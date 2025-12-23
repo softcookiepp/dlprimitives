@@ -1,1 +1,0 @@
-/usr/bin/c++  -std=c++11 -g -O2 -Wall -Wl,--dependency-file=CMakeFiles/test_broadcast_reduce.dir/link.d CMakeFiles/test_broadcast_reduce.dir/tests/test_broadcast_reduce.cpp.o -o test_broadcast_reduce  -Wl,-rpath,/home/me/development/dlprimitives-vk/build libdlprim_core.so /usr/lib/libOpenCL.so

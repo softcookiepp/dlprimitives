@@ -1,1 +1,0 @@
-/usr/bin/c++  -std=c++11 -g -O2 -Wall -Wl,--dependency-file=CMakeFiles/test_json.dir/link.d CMakeFiles/test_json.dir/tests/json_test.cpp.o -o test_json  -Wl,-rpath,/home/me/development/dlprimitives-vk/build libdlprim.so libdlprim_core.so /usr/lib/libOpenCL.so

@@ -1,1 +1,0 @@
-/usr/bin/c++  -std=c++11 -g -O2 -Wall -Wl,--dependency-file=CMakeFiles/test_from_template.dir/link.d CMakeFiles/test_from_template.dir/tests/test_from_template.cpp.o -o test_from_template  -Wl,-rpath,/home/me/development/dlprimitives-vk/build libdlprim.so libdlprim_core.so /usr/lib/libOpenCL.so
