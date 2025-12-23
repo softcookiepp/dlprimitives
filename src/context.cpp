@@ -18,23 +18,50 @@ namespace dlprim {
             type_ = cpu;
             return;
         }
+#if VULKAN_API
+		throw std::runtime_error("not implemented!");
+#else
         cl::Context ctx = ec.queue_->getInfo<CL_QUEUE_CONTEXT>();
         cl::Device  dev = ec.queue_->getInfo<CL_QUEUE_DEVICE>();
+#endif
+
+#if VULKAN_API
+		// ha! no platforms for vulkan c:
+#else
         // there is no clRetainPlatform this you can construct cl::Platform without true/false flag
         // in fact cl.hpp does not have true/false parameter but cl2.hpp has - but 
         // it is stub that does nothing
         cl::Platform plat(dev.getInfo<CL_DEVICE_PLATFORM>());
+#endif
 
+#if VULKAN_API
+		// just use the device as a placeholder, then even
+		platform_ = dev;
+#else
         platform_ = plat;
+#endif
         device_ = dev;
         context_ = ctx;
+        // ??
         type_ = Context::ocl;
     }
 
-    Context::Context(cl::Context const &c,cl::Platform const &p,cl::Device const &d) : 
+    Context::Context(
+#if VULKAN_API
+		tart::device_ptr d
+#else
+		cl::Context const &c,cl::Platform const &p,cl::Device const &d
+#endif
+		) : 
+#if VULKAN_API
+		platform_(d),
+		device_(d),
+		context_(d)
+#else
         platform_(p),
         device_(d),
         context_(c),
+#endif
         type_(Context::ocl)
     {
     }
@@ -80,40 +107,62 @@ namespace dlprim {
 
     bool Context::is_amd()
     {
+#if VULKAN_API
+		return false;
+#else
         if(is_cpu_context())
             return false;
         return device().getInfo<CL_DEVICE_VENDOR_ID>() == 0x1002;
         //return device_extensions().find("cl_amd_") != std::string::npos;
+#endif
     }
     bool Context::is_apple()
     {
+#if VULKAN_API
+		return false;
+#else
         if(is_cpu_context())
             return false;
         return device().getInfo<CL_DEVICE_VENDOR_ID>() == 0x1027f00;
+#endif
     }
     bool Context::is_intel()
     {
+#if VULKAN_API
+		return false;
+#else
         if(is_cpu_context())
             return false;
         return device().getInfo<CL_DEVICE_VENDOR_ID>() == 0x8086;
         //return device_extensions().find("cl_intel_") != std::string::npos;
+#endif
     }
     bool Context::is_nvidia()
     {
+#if VULKAN_API
+		return false;
+#else
         if(is_cpu_context())
             return false;
         return device().getInfo<CL_DEVICE_VENDOR_ID>() == 0x10DE;
         //return device_extensions().find("cl_nv_") != std::string::npos;
+#endif
     }
     bool Context::is_imagination()
     {
+#if VULKAN_API
+		return false;
+#else
         if(is_cpu_context())
             return false;
         return device().getInfo<CL_DEVICE_VENDOR_ID>() == 0x1010;
+#endif
     }
 
     int Context::estimated_core_count()
     {
+#if VULKAN_API
+#else
         int cu = device().getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
         if(is_apple())
             // TODO: detect Apple8+ generation, then return cu * 512
@@ -125,15 +174,20 @@ namespace dlprim {
         if(is_intel())
             return cu * 8;
         return cu;
+#endif
     }
 
     std::string const &Context::device_extensions()
     {
+#if VULKAN_API
+		return "";
+#else
         if(is_cpu_context())
             return ext_;
         if(ext_.empty())
             ext_ = device().getInfo<CL_DEVICE_EXTENSIONS>();
         return ext_;
+#endif
     }
 
 

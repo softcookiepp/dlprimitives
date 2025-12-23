@@ -1,0 +1,1 @@
+/usr/bin/c++  -std=c++11 -g -O2 -Wall CMakeFiles/dlprim_benchmark.dir/tools/benchmark.cpp.o -o dlprim_benchmark  -Wl,-rpath,/home/me/development/dlprimitives-vk/build: libdlprim.so libdlprim_core.so /usr/lib/x86_64-linux-gnu/libOpenCL.so /usr/lib/x86_64-linux-gnu/libopenblas.so 

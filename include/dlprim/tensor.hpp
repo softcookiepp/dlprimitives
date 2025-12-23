@@ -109,7 +109,7 @@ namespace dlprim {
         /// 
         /// Create a tensor for specific context and allocate the device memory for it.
         /// 
-        Tensor(Context &ctx,Shape const &s,DataType d=float_data,bool is_trainable=true);
+        Tensor(Context &ctx, Shape const &s,DataType d=float_data,bool is_trainable=true);
         
         ///
         /// Create a tensor from external buffer

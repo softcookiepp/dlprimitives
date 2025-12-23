@@ -90,7 +90,7 @@ namespace dlprim {
     {
         buffer_ = buffer;
     }
-    Tensor::Tensor(Context &ctx,Shape const &s,DataType d,bool is_train):
+    Tensor::Tensor(Context &ctx, Shape const &s,DataType d,bool is_train):
         specs_(new TensorSpecs(s,d,is_train)),
 		host_(new Tensor::HostMem()),
         cpu_tensor_(ctx.is_cpu_context()),
@@ -103,7 +103,12 @@ namespace dlprim {
 		if(cpu_tensor_)
 			host_->alloc(size);
         if(!cpu_tensor_) {
+#if VULKAN_API
+			// gonna need to figure out where to put the device class
+			throw std::runtime_error("buffer creation not implemented");
+#else
             buffer_ = cl::Buffer(ctx.context(),CL_MEM_READ_WRITE,size);
+#endif
         }
     }
 
@@ -119,7 +124,11 @@ namespace dlprim {
         if(cpu_tensor_)
             memcpy(host_data(),p,memory_size());
         else
+#if VULKAN_API
+			buffer_->copyIn(p, memory_size(), offset_ * size_of_data_type(dtype()));
+#else
             c.queue().enqueueWriteBuffer(buffer_, sync ? CL_TRUE : CL_FALSE, offset_ * size_of_data_type(dtype()), memory_size(), p,c.events(),c.event("write"));
+#endif
     }
 
     void Tensor::to_device(ExecutionContext const &c,bool sync)
@@ -132,12 +141,7 @@ namespace dlprim {
         c.queue().enqueueWriteBuffer(buffer_, sync ? CL_TRUE : CL_FALSE, offset_ * size_of_data_type(dtype()), memory_size(), host_data(),c.events(),c.event("write"));
 #endif
     }
-    void Tensor::to_host(
-#if VULKAN_API
-#else
-		ExecutionContext const &c,
-#endif
-		void *p,bool sync)
+    void Tensor::to_host(ExecutionContext const &c, void *p,bool sync)
     {
         if(cpu_tensor_) 
             memcpy(p,host_data(),memory_size());
