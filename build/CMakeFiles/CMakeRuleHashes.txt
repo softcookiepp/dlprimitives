@@ -1,2 +1,0 @@
-# Hashes of file build rules.
-f40ec332757797459b0c83e89e3eb28c kernels.cpp

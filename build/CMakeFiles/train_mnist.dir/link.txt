@@ -1,1 +1,0 @@
-/usr/bin/c++  -std=c++11 -g -O2 -Wall CMakeFiles/train_mnist.dir/examples/cpp/train_mnist.cpp.o -o train_mnist  -Wl,-rpath,/home/me/development/dlprimitives-vk/build libdlprim.so libdlprim_core.so /usr/lib/x86_64-linux-gnu/libOpenCL.so /usr/lib/x86_64-linux-gnu/libopenblas.so 
