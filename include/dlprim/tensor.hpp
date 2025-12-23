@@ -114,14 +114,26 @@ namespace dlprim {
         ///
         /// Create a tensor from external buffer
         ///
-        Tensor(cl::Buffer const &buffer,cl_ulong offset,Shape const &s,DataType d=float_data,bool is_trainable=true);
+        Tensor(
+#if VULKAN_API
+			tart::buffer_ptr
+#else
+			cl::Buffer const &
+#endif
+				buffer,
+#if VULKAN_API
+				size_t
+#else
+				cl_ulong
+#endif
+				offset,Shape const &s,DataType d=float_data,bool is_trainable=true);
 
         ///
         /// Create null tensor, binding such a tensor to kernel will pass NULL pointer
         ///
         Tensor();
         ///
-        /// Copy construtor - uses reference counting points to same memory
+        /// Copy constructor - uses reference counting points to same memory
         ///
         Tensor(Tensor const &) = default;
         ///
@@ -288,7 +300,11 @@ namespace dlprim {
         std::shared_ptr<HostMem> host_;
         bool cpu_tensor_;
         int offset_;
+#if VULKAN_API
+		tart::buffer_ptr buffer_;
+#else
         cl::Buffer buffer_;
+#endif
         size_t capacity_;
         size_t full_capacity_;
     };

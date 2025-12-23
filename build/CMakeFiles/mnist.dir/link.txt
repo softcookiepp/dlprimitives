@@ -1,0 +1,1 @@
+/usr/bin/c++  -std=c++11 -g -O2 -Wall -Wl,--dependency-file=CMakeFiles/mnist.dir/link.d CMakeFiles/mnist.dir/tests/mnist.cpp.o -o mnist  -Wl,-rpath,/home/me/development/dlprimitives-vk/build libdlprim.so libdlprim_core.so /usr/lib/libOpenCL.so

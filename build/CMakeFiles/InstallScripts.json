@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/me/development/dlprimitives-vk/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
