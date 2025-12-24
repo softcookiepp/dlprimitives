@@ -159,11 +159,10 @@ public:
 #endif
 		) :
 #if VULKAN_API
-		queue_(dev),
+		queue_(dev), event_(nullptr)
 #else
-        queue_(new cl::CommandQueue(q)),
+        queue_(new cl::CommandQueue(q)), event_(nullptr),events_(nullptr)
 #endif
-        event_(nullptr),events_(nullptr)
     {
     }
     ///
@@ -177,7 +176,7 @@ public:
 #endif
 		) :
 #if VULKAN_API
-		queue_(dev), event_(event), events_(nullptr)
+		queue_(dev), event_(event)
 #else
         queue_(new cl::CommandQueue(q)),event_(event),events_(nullptr)
 #endif
@@ -187,15 +186,27 @@ public:
     ///
     /// Create a context with a request to wait for events
     ///
-    ExecutionContext(cl::CommandQueue const &q,std::vector<cl::Event> *events) :
+    ExecutionContext(
+#if VULKAN_API
+		tart::device_ptr dev, std::vector<tart::event_ptr>& events) :
+        queue_(dev), event_(nullptr), events_(events)
+#else
+		cl::CommandQueue const &q,std::vector<cl::Event> *events) :
         queue_(new cl::CommandQueue(q)),event_(nullptr),events_(events)
+#endif
     {
     }
     ///
     /// Create a context with a request to signal completion event and wait for events
     ///
-    ExecutionContext(cl::CommandQueue const &q,std::vector<cl::Event> *events,cl::Event *event) :
+    ExecutionContext(
+#if VULKAN_API
+		tart::device_ptr q,std::vector<tart::event_ptr>& events, tart::event_ptr event) :
         queue_(new cl::CommandQueue(q)),event_(event),events_(events)
+#else
+		cl::CommandQueue const &q,std::vector<cl::Event> *events,cl::Event *event) :
+        queue_(new cl::CommandQueue(q)),event_(event),events_(events)
+#endif
     {
     }
 
@@ -254,17 +265,30 @@ public:
     void finish()
     {
         if(queue_)
+#if VULKAN_API
+            queue_->sync();
+#else
             queue_->finish();
+#endif
     }
 
     
     ///
     /// Get the command queue. Never call it in non-OpenCL context
     ///
-    cl::CommandQueue &queue() const
+#if VULKAN_API
+	tart::device_ptr
+#else
+    cl::CommandQueue&
+#endif
+		queue() const
     {
         DLPRIM_CHECK(queue_);
+#if VULKAN_API
+        return queue_;
+#else
         return *queue_;
+#endif
     }
 
     ///
@@ -272,7 +296,11 @@ public:
     /// is enabled profiling conters will be written the TimingData with the name of the
     /// kernel you call. Optional id allows to distinguish between multiple similar calls
     ///
+#if VULKAN_API
+    const tart::event_ptr event(const std::string name = "unknown", int id = -1)
+#else
     cl::Event *event(char const *name = "unknown", int id = -1) const
+#endif
     {
         if(timing_ && !timing_->cpu_only) {
             return &timing_->add_event(name,id,event_)->event;
@@ -282,7 +310,12 @@ public:
     ///
     /// Get events to wait for
     ///
-    std::vector<cl::Event> *events() const {
+#if VULKAN_API
+	const std::vector<tart::event_ptr>& events()
+#else
+    std::vector<cl::Event> *events() const
+#endif
+    {
         return events_;
     }
 
@@ -317,7 +350,7 @@ public:
     }
 
 private:
-    ExecutionContext generate_series_context_impl(size_t id,size_t total) const
+    ExecutionContext generate_series_context_impl(size_t id, size_t total) const
     {
         if(total <= 1)
             return *this;
