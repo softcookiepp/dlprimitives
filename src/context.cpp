@@ -11,7 +11,10 @@
 #include <iostream>
 
 namespace dlprim {
-    
+	
+#if VULKAN_API
+	// TODO put instance here c:
+#endif
     Context::Context(ExecutionContext const &ec)
     {
         if(!ec.queue_) {

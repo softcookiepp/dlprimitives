@@ -27,22 +27,39 @@ public:
     typedef std::chrono::time_point<clock_type> time_point_type;
 
     struct Section {
-        Section(char const *n) : name(n) {}
+#if VULKAN_API
+		Section(std::string n) : name(n) {}
+        Section(std::string n,time_point_type t) : name(n), start(t) {}
+		const std::string name = "unknown";
+#else
+		Section(char const *n) : name(n) {}
         Section(char const *n,time_point_type t) : name(n), start(t) {}
         char const *name="unknown";
+#endif
         time_point_type start;
         double time_sec;
         int parent = -1;
     };
 
     struct Data {
+#if VULKAN_API
+		tart::event_ptr event = nullptr;
+		const std::string name = "";
+#else
         cl::Event event;
         char const *name = nullptr;
+#endif
         int index = -1;
         int section = -1;
     };
 
-    void enter(char const *name)
+    void enter(
+#if VULKAN_API
+		std::string name
+#else
+		char const *name
+#endif
+		)
     {
         sections_.push_back(Section(name,std::chrono::high_resolution_clock::now()));
         if(!sids_.empty())
@@ -134,15 +151,36 @@ public:
     ///
     /// Create context from cl::CommandQueue, note no events will be waited/signaled
     ///
-    ExecutionContext(cl::CommandQueue const &q) :
-        queue_(new cl::CommandQueue(q)),event_(nullptr),events_(nullptr)
+    ExecutionContext(
+#if VULKAN_API
+		tart::device_ptr dev
+#else
+		cl::CommandQueue const &q
+#endif
+		) :
+#if VULKAN_API
+		queue_(dev),
+#else
+        queue_(new cl::CommandQueue(q)),
+#endif
+        event_(nullptr),events_(nullptr)
     {
     }
     ///
     /// Create a context with a request to signal completion event
     ///
-    ExecutionContext(cl::CommandQueue const &q,cl::Event *event) :
+    ExecutionContext(
+#if VULKAN_API
+		tart::device_ptr dev, tart::event_ptr event
+#else
+		cl::CommandQueue const &q,cl::Event *event
+#endif
+		) :
+#if VULKAN_API
+		queue_(dev), event_(event), events_(nullptr)
+#else
         queue_(new cl::CommandQueue(q)),event_(event),events_(nullptr)
+#endif
     {
     }
 
@@ -292,9 +330,16 @@ private:
 
 
     std::shared_ptr<TimingData> timing_;
+#if VULKAN_API
+	// begone, pointers!
+	tart::device_ptr queue_;
+	tart::event_ptr event_;
+	std::vector<tart::event_ptr> events_;
+#else
     std::shared_ptr<cl::CommandQueue> queue_; /// make sure copying is fast
     cl::Event *event_;
     std::vector<cl::Event> *events_;
+#endif
     friend class Context;
 };
 
@@ -329,7 +374,13 @@ public:
     ///
     /// Create the object from OpenCL context, platform and device..
     ///
-    Context(cl::Context const &c,cl::Platform const &p,cl::Device const &d);
+    Context(
+#if VULKAN_API
+		tart::device_ptr d
+#else
+		cl::Context const &c,cl::Platform const &p,cl::Device const &d
+#endif
+	);
 
     /// 
     /// Create the object from queue
@@ -362,12 +413,22 @@ public:
         return type_ == ocl;
     }
     /// Get OpenCL platform object
-    cl::Platform &platform()
+#if VULKAN_API
+	tart::device_ptr
+#else
+    cl::Platform &
+#endif
+		platform()
     {
         return platform_;
     }
     /// Get OpenCL device object
-    cl::Device &device()
+#if VULKAN_API
+	tart::device_ptr
+#else
+	cl::Device &
+#endif
+		device()
     {
         return device_;
     }
@@ -398,21 +459,40 @@ public:
     bool is_imagination();
 
     /// Get OpenCL context object
-    cl::Context &context()
+#if VULKAN_API
+	tart::device_ptr
+#else
+    cl::Context
+#endif
+		&context()
     {
         return context_;
     }
     /// Creates a new Command queue for the context with optional properties
+#if VULKAN_API
+	tart::device_ptr make_queue(uint32_t props=0)
+#else
     cl::CommandQueue make_queue(cl_command_queue_properties props=0)
+#endif
     {
+#if VULKAN_API
+		tart::device_ptr
+#else
         cl::CommandQueue q;
         if(!is_cpu_context())
             q=std::move(cl::CommandQueue(context_,device_,props));
         return q;
+#endif
     }
 
     /// Generate ExecutionContext (queue + events)
-    ExecutionContext make_execution_context(cl_command_queue_properties props=0)
+    ExecutionContext make_execution_context(
+#if VULKAN_API
+		uint32_t
+#else
+		cl_command_queue_properties
+#endif
+		props=0)
     {
         if(is_cpu_context())
             return ExecutionContext();
@@ -422,9 +502,15 @@ public:
 
 private:
     void select_opencl_device(int p,int d);
+#if VULKAN_API
+	tart::device_ptr platform_;
+    tart::device_ptr device_;
+    tart::device_ptr context_;
+#else
     cl::Platform platform_;
     cl::Device device_;
     cl::Context context_;
+#endif
     ContextType type_;;
     std::map<std::string,bool> ext_cache_;
     std::string ext_;
