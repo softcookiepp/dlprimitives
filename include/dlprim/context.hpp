@@ -248,7 +248,11 @@ public:
     ///
     /// Profiling scope enter called by ExecGuard::ExecGuard()
     ///
+#if VULKAN_API
+	void enter(const std::string& name)
+#else
     void enter(char const *name) const
+#endif
     {
         if(timing_)
             timing_->enter(name);

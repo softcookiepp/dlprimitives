@@ -198,13 +198,24 @@ namespace dlprim {
     {
         if(is_cpu_context())
             return "CPU";
+#if VULKAN_API
+		return "SOME GPU IDK";
+#else
         std::string plat = platform_.getInfo<CL_PLATFORM_NAME>().c_str();
         std::string dev  = device_.getInfo<CL_DEVICE_NAME>().c_str();
         return dev + " on " + plat;
+#endif
     }
 
     void Context::select_opencl_device(int p,int d)
     {
+#if VULKAN_API
+		tart::Instance& instance = tart::init();
+		if (d >= instance.getNumDevices() )
+			throw ValidationError("No such device : " std::to_string(d));
+		device_ = instance.createDevice(d);
+		context_ = device_;
+#else
         std::vector<cl::Platform> platforms;
         cl::Platform::get(&platforms);
         if(p < 0 || size_t(p) >= platforms.size()) {
@@ -219,6 +230,7 @@ namespace dlprim {
         }
         device_ = devices[d];
         context_ = cl::Context(device_);
+#endif
     }
 }
 
