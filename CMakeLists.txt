@@ -1,10 +1,11 @@
-project(dlprimitives)
 cmake_minimum_required(VERSION 3.5)
+project(dlprimitives)
+
 
 enable_testing()
 
 if(NOT WIN32)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -O2 -Wall")
+	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -O2 -Wall")
 endif()
 
 option(USE_CL_HPP "Use older CL/cl.hpp instead of CL/opencl.hpp" OFF)
@@ -288,6 +289,10 @@ endif()
 target_link_libraries(dlprim_core ${OCL_LIB})	
 if(WITH_SQLITE3)
     target_link_libraries(dlprim_core ${SQLITE3_LIB})
+endif()
+
+if(USE_VULKAN_API)
+	target_compile_definitions(dlprim_core VULKAN_API 1)
 endif()
 
 if(NOT BUILD_CORE_ONLY)
