@@ -44,8 +44,12 @@ Cache &Cache::instance()
     return c;
 }
 
-
-cl::Program const &Cache::get_program(Context &ctx,std::string const &source,std::vector<Parameter> const &params)
+#if VULKAN_API
+	tart::program_ptr
+#else
+	cl::Program const &
+#endif
+	Cache::get_program(Context &ctx,std::string const &source,std::vector<Parameter> const &params)
 {
     std::string key = make_key(ctx,source,params);
     std::unique_lock<std::mutex> g(mutex_);
@@ -68,6 +72,8 @@ cl::Program Cache::build_program(Context  &ctx,std::string const &source,std::ve
     std::ostringstream prepend;
     std::ostringstream ss;
     bool combine = false;
+#if VULKAN_API
+#else
     std::string ocl_version = ctx.platform().getInfo<CL_PLATFORM_VERSION>();
     if(ocl_version.substr(7,1) >= "2") 
 	    ss << "-cl-std=CL2.0 ";
@@ -87,13 +93,20 @@ cl::Program Cache::build_program(Context  &ctx,std::string const &source,std::ve
         prepend << "#pragma OPENCL EXTENSION cl_khr_fp16 : enable\n";
         combine=true;
     }
+#endif
     std::string const &code = (combine ? prepend.str() + source_text : source_text);
     std::string sparams = ss.str();
     
     #ifdef DEBUG_CACHE_TIMES
     TimeWriter guard(source);
     #endif
-
+#if VULKAN_API
+	// no sqlite3; it is better to minimize dependencies
+	// first I am pretty sure we need to compile the openCL source
+	// for now we will use clspv, since that will allow us to at least run the code...
+	//throw std::runtime_error("not implemented!");
+	
+#else
     #ifdef  WITH_SQLITE3
     /// nvidia has very different type of caching since binary return not binary but rather ptx,
     /// using only native cuda cache works better, double cache adds overhead
@@ -115,6 +128,14 @@ cl::Program Cache::build_program(Context  &ctx,std::string const &source,std::ve
         }
     }
     #endif
+#endif
+#if VULKAN_API
+	// just make the program correctly.
+	// at some point the OpenCL C codegen will be adapted for GLSL; that day has not come
+	tart::shader_module_ptr mod = ctx.device()->compileCL(code);
+	tart::cl_program_ptr clprg = ctx.device()->createCLProgram(mod);
+	tart::program_ptr prg = ctx.device()->createProgram(clprg);
+#else
     cl::Program prg(ctx.context(),code);
     try {
         prg.build(std::vector<cl::Device>{ctx.device()},sparams.c_str());
@@ -154,7 +175,7 @@ cl::Program Cache::build_program(Context  &ctx,std::string const &source,std::ve
         pc.save_binary(ctx,code,sparams,binaries[0],source);
     }
     #endif
-
+#endif
     return prg;
 }
 

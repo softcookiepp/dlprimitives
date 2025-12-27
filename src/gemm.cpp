@@ -185,9 +185,12 @@ namespace gpu {
         void set_scale(Context &ctx,StandardActivations &activation)
         {
             if(sep_scale_ == false) {
+#if VULKAN_API
+				throw std::runtime_error("not implemented!");
+#else
                 cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"scal");
                 scal_ = std::move(cl::Kernel(prog,"sscal"));
-                
+#endif
                 if(activation != StandardActivations::identity) {
                     cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"activation",
                                                         "ACTIVATION",int(activation));
