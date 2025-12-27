@@ -292,7 +292,7 @@ if(WITH_SQLITE3)
 endif()
 
 if(USE_VULKAN_API)
-	target_compile_definitions(dlprim_core VULKAN_API 1)
+	target_compile_definitions(dlprim_core PUBLIC VULKAN_API 1)
 endif()
 
 if(NOT BUILD_CORE_ONLY)
