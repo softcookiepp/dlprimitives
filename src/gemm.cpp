@@ -186,16 +186,27 @@ namespace gpu {
         {
             if(sep_scale_ == false) {
 #if VULKAN_API
-				throw std::runtime_error("not implemented!");
+				tart::program_ptr
 #else
-                cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"scal");
-                scal_ = std::move(cl::Kernel(prog,"sscal"));
+                cl::Program const &
 #endif
+					prog = gpu::Cache::instance().get_program(ctx,"scal");
+                scal_ = std::move(cl::Kernel(prog,"sscal"));
                 if(activation != StandardActivations::identity) {
-                    cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"activation",
+#if VULKAN_API
+					tart::program_ptr
+#else
+                    cl::Program const &
+#endif
+						prog = gpu::Cache::instance().get_program(ctx,"activation",
                                                         "ACTIVATION",int(activation));
+#if VULKAN_API
+					tart::kernel_ptr k = prog->getKernel("activation");
+					act_ = k;
+#else
                     cl::Kernel k(prog,"activation");
                     act_ = std::move(k);
+#endif
                     activation = StandardActivations::identity;
                     sep_act_ = true;
                 }
@@ -204,14 +215,32 @@ namespace gpu {
             }
         }
 
-        void activation(size_t size,cl::Buffer &x,cl_ulong x_offset,ExecutionContext const &ec)
+        void activation(size_t size, 
+#if VULKAN_API
+			tart::buffer_ptr x,
+			size_t x_offset,
+#else
+			cl::Buffer &x,
+			cl_ulong x_offset,
+#endif
+			ExecutionContext const &ec)
         {
-                act_.setArg(0,cl_ulong(size));
+                act_.setArg(0,
+#if VULKAN_API
+					size
+#else
+					cl_ulong(size)
+#endif
+				);
                 act_.setArg(1,x);
                 act_.setArg(2,x_offset);
                 act_.setArg(3,x);
                 act_.setArg(4,x_offset);
+#if VULKAN_API
+				throw std::runtime_error("not implemented!");
+#else
                 ec.queue().enqueueNDRangeKernel(act_, cl::NullRange, cl::NDRange(size),cl::NullRange,ec.events(),ec.event("activation"));
+#endif
         }
 
         void scale(size_t size,float s,cl::Buffer &x,cl_ulong x_offset,ExecutionContext const &ec)
