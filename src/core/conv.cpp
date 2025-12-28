@@ -317,7 +317,11 @@ namespace core {
 #endif
         }
     private:
+#if VULKAN_API
+        tart::kernel_ptr conv_,conv_kernel_;
+#else
         cl::Kernel conv_,conv_kernel_;
+#endif
         Conv2DSettings config_;
     };
 
