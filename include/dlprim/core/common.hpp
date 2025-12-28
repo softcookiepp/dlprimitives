@@ -20,7 +20,11 @@ namespace core {
         Scale(Context &ctx,DataType dtype=float_data);
         void enqueue(float s,Tensor &t,ExecutionContext const &ec);
     private:
+#if VULKAN_API
+		tart::kernel_ptr k_;
+#else
         cl::Kernel k_;
+#endif
     };
 
     void add_tensors(Tensor &a,Tensor &b,Tensor &sum,ExecutionContext const &ec);
@@ -81,7 +85,11 @@ namespace core {
                                Tensor &source,size_t source_offset,
                                float target_scale,ExecutionContext const &e);
     private:
+#if VULKAN_API
+		tart::kernel_ptr kernel_;
+#else
         cl::Kernel kernel_;
+#endif;
         DataType dtype_;
     };
 

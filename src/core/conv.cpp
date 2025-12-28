@@ -50,7 +50,11 @@ namespace core {
         }
         virtual void enqueue(Tensor &x,Tensor &W,Tensor *bias,Tensor &y, Tensor &,float factor,ExecutionContext const &e) 
         {
+#if VULKAN_API
+			tart::buffer_ptr bias_buffer = nullptr;
+#else
             cl::Buffer *bias_buffer = nullptr;
+#endif
             int bias_offset = 0;
             if(bias) {
                 bias_buffer = &bias->device_buffer();
@@ -263,7 +267,18 @@ namespace core {
 
             auto ec1 = ec.generate_series_context(0,2);
             auto ec2 = ec.generate_series_context(1,2);
-
+#if VULKAN_API
+			std::vector<uint32_t> l1({8,8});
+            std::vector<uint32_t> g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
+            g1[0] = g1[0]/l1[0];
+            g1[1] = g1[1]/l1[1];
+            conv_kernel_->enqueue(g1, l1);
+            ec.queue()->sync();
+            std::vector<uint32_t> l2({256,1});
+            int tiles = ((w + 1) / 2 * (h + 1) / 2 * B + 31)/32;
+            std::vector<uint32_t> g2({tiles,(N + 31) / 32});
+            conv_->enqueue(g2, l2);
+#elsse
             cl::NDRange l1(8,8);
             cl::NDRange g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
             ec.queue().enqueueNDRangeKernel(conv_kernel_,cl::NullRange,g1,l1,ec.events(),ec1.event("winograd_3to4_kernel"));
@@ -271,6 +286,7 @@ namespace core {
             int tiles = ((w + 1) / 2 * (h + 1) / 2 * B + 31)/32;
             cl::NDRange g2(tiles * 256,(N + 31) / 32);
             ec.queue().enqueueNDRangeKernel(conv_,cl::NullRange,g2,l2,ec.events(),ec2.event("winograd_3x3_main"));
+#endif
         }
 
         Conv2DForwardWinograd(Context &ctx,Conv2DSettings const &config,bool bias,StandardActivations activation = StandardActivations::identity) :
@@ -283,13 +299,22 @@ namespace core {
                 off = 0;
                 toff = 0;
             }
-            cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"winograd_fwd",
+#if VULKAN_API
+			tart::program_ptr
+#else
+            cl::Program const &
+#endif
+            prog = gpu::Cache::instance().get_program(ctx,"winograd_fwd",
                                             "ACTIVATION",int(activation),
                                             "STRIDE_OFFSET",off,
                                             "TR_STRIDE_OFFSET",toff,
                                             "BIAS",int(bias));
+#if VULKAN_API
+			
+#else
             conv_kernel_ = cl::Kernel(prog,"winconv_calc_gkgt_3x3");
             conv_ = cl::Kernel(prog,"winconv_3x3");
+#endif
         }
     private:
         cl::Kernel conv_,conv_kernel_;
