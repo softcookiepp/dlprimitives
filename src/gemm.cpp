@@ -186,7 +186,7 @@ namespace gpu {
         {
             if(sep_scale_ == false) {
 #if VULKAN_API
-				tart::program_ptr
+				tart::program_ptr&
 #else
                 cl::Program const &
 #endif
@@ -194,7 +194,7 @@ namespace gpu {
                 scal_ = std::move(cl::Kernel(prog,"sscal"));
                 if(activation != StandardActivations::identity) {
 #if VULKAN_API
-					tart::program_ptr
+					tart::program_ptr&
 #else
                     cl::Program const &
 #endif
@@ -382,17 +382,41 @@ namespace gpu {
 
             int gs0,gs1,ls0,ls1;
             calc_dims(gs0,ls0,gs1,ls1,M,N);
-           
-            cl::NDRange global,local;
+#if VULKAN_API
+			std::vector<uint32_t>
+#else
+            cl::NDRange
+#endif
+				global,local;
             if(reduce_k_ > 1) {
+#if VULKAN_API
+				global = {reduce_k_,gs0,gs1};
+				local = {1,ls0,ls1};
+#else
                 global = cl::NDRange(reduce_k_,gs0,gs1);
                 local =  cl::NDRange(1,ls0,ls1);
+#endif
             }
             else {
+#if VULKAN_API
+				global = {gs0,gs1};
+                local =  {ls0,ls1};
+#else
                 global = cl::NDRange(gs0,gs1);
                 local =  cl::NDRange(ls0,ls1);
+#endif
             }
+#if VULKAN_API
+			// correct global size
+			for (size_t i = 0; i < global.size(); i += 1)
+			{
+				global[i] = global[i]/local[i];
+			}
+			// weeeeeeeeeeeeeee
+			kernel_->enqueue(global, local);
+#else
             e.queue().enqueueNDRangeKernel(kernel_, cl::NullRange, global,local,e.events(),e.event("gemm"));
+#endif
             
             if(sep_act_) {
                 auto e2 = ein.generate_series_context(kernel_runs-1,kernel_runs);
@@ -401,7 +425,11 @@ namespace gpu {
         }
 
     private:
+#if VULKAN_API
+        tart::kernel_ptr kernel_;
+#else
         cl::Kernel kernel_;
+#endif
         bool bias_;
     };
 
@@ -417,7 +445,12 @@ namespace gpu {
         {
             DLPRIM_CHECK(act == StandardActivations::identity);
             check_zorder(ctx,M,N);
-            cl::Program const &prog = Cache::instance().get_program(ctx,"sgemm",
+#if VULKAN_API
+			tart::program_ptr&
+#else
+            cl::Program const &
+#endif
+				prog = Cache::instance().get_program(ctx,"sgemm",
                                         "BATCH_GEMM",1,
                                         "TILE_SIZE_M",tile_size_m_,
                                         "TILE_SIZE_N",tile_size_n_,
@@ -432,10 +465,26 @@ namespace gpu {
                                         "REDUCE_K",0,
                                         "ZORDER",zorder_,
                                         "ACTIVATION",0);
+#if VULKAN_API
+			kernel_ = prog->getKernel("sgemm");
+#else
             kernel_ = cl::Kernel(prog,"sgemm");
+#endif
             bias_ = false;
         }
         virtual void gemm(int batches,int M,int N,int K,
+#if VULKAN_API
+						tart::buffer_ptr a,
+						size_t offset_a,
+						int batch_stride_a,
+						int lda,
+						tart::buffer_ptr b,
+						size_t offset_b,
+						int batch_stride_b,
+						int ldb,
+						tart::buffer_ptr c,
+						size_t offset_c,
+#else
                           cl::Buffer &a,
                           cl_ulong offset_a,
                           int batch_stride_a,
@@ -446,6 +495,7 @@ namespace gpu {
                           int ldb,
                           cl::Buffer &c,
                           cl_ulong offset_c,
+#endif
                           int batch_stride_c,
                           int ldc,
                           float beta,
@@ -473,11 +523,15 @@ namespace gpu {
            
             int gs0,gs1,ls0,ls1;
             calc_dims(gs0,ls0,gs1,ls1,M,N);
-            
+#if VULKAN_API
+			std::vector<uint32_t>  local({1,ls0,ls1});
+			std::vector<uint32_t> global({batches/local[0],gs0/local[1],gs1/local[2]});
+			kernel_->enqueue(global, local);
+#else
             cl::NDRange global = cl::NDRange(batches,gs0,gs1);
             cl::NDRange local =  cl::NDRange(1,ls0,ls1);
             e.queue().enqueueNDRangeKernel(kernel_, cl::NullRange, global,local,e.events(),e.event("gemm"));
-            
+#endif      
         }
 
     private:
@@ -501,7 +555,12 @@ namespace gpu {
                     int im2col_chan = 0) :
                 StandardSGEMMBase(ctx,M,N,K,false,false,act)
         {
-            cl::Program const &prog = Cache::instance().get_program(ctx,"sgemm",
+#if VULKAN_API
+			tart::program_ptr&
+#else
+            cl::Program const &
+#endif
+            prog = Cache::instance().get_program(ctx,"sgemm",
                                         "TILE_SIZE_M",tile_size_m_,
                                         "TILE_SIZE_N",tile_size_n_,
                                         "BLOCK_SIZE_M",block_size_m_,
@@ -534,7 +593,12 @@ namespace gpu {
                 gemm_name_="conv_gemm_bwd_filter";
             else
                 gemm_name_="conv_gemm";
-            kernel_ = cl::Kernel(prog,"sgemm");
+            kernel_ = 
+#if VULKAN_API
+				prog->getKernel("sgemm");
+#else
+				cl::Kernel(prog,"sgemm");
+#endif
             bias_ = bias;
             groups_ = groups;
             md_ = int(op_mode);
@@ -545,6 +609,19 @@ namespace gpu {
             w_ = src_cols;
         }
         virtual void gemm(int M,int N,int K,
+#if VULKAN_API
+						tart::buffer_ptr a,
+						uint64_t offset_a,
+						int lda,
+						tart::buffer_ptr b,
+						uint64_t offset_b,
+						int ldb,
+						tart::buffer_ptr c,
+						uint64_t offset_c,
+						int ldc,
+						tart::buffer_ptr bias,
+						uint64_t bias_offset,
+#else
                           cl::Buffer &a,
                           cl_ulong offset_a,
                           int lda,
@@ -556,6 +633,7 @@ namespace gpu {
                           int ldc,
                           cl::Buffer *bias,
                           cl_ulong bias_offset,
+#endif
                           float beta,
                           int size_of_c,
                           ExecutionContext const &ein)
@@ -597,16 +675,34 @@ namespace gpu {
             int ls1 = tile_size_n_ / block_size_n_; 
             int gs0 = round_up_div(M,tile_size_m_) * tile_size_m_ / block_size_m_;
             int gs1 = round_up_div(N,tile_size_n_) * tile_size_n_ / block_size_n_;
+#if VULKAN_API
+			std::vector<uint32_t> global,local;
+#else
             cl::NDRange global,local;
+#endif
             if(groups_ > 1 || reduce_k_ > 1) {
+#if VULKAN_API
+				local = {1,ls0,ls1};
+				global = { (groups_ * reduce_k_)/local[0], gs0/local[1], gs1/local[2]};
+#else
                 global = cl::NDRange(groups_ * reduce_k_,gs0,gs1);
                 local =  cl::NDRange(1,ls0,ls1);
+#endif
             }
             else {
+#if VULKAN_API
+				local = {ls0, ls1, 1};
+				global = {gs0/ls0, gs1/ls1, 1};
+#else
                 global = cl::NDRange(gs0,gs1,1);
                 local =  cl::NDRange(ls0,ls1,1);
+#endif
             }
+#if VULKAN_API
+			kernel_->enqueue(global, local);
+#else
             e.queue().enqueueNDRangeKernel(kernel_, cl::NullRange, global,local,e.events(),e.event(gemm_name_));
+#endif
 
             if(sep_act_) {
                 auto e2 = ein.generate_series_context(kernel_runs-1,kernel_runs);
@@ -616,8 +712,13 @@ namespace gpu {
 
     private:
         char const *gemm_name_;
+#if VULKAN_API
+		tart::kernel_ptr kernel_ = nullptr;
+		tart::kernel_ptr scal_ = nullptr;
+#else
         cl::Kernel kernel_;
         cl::Kernel scal_;
+#endif
         bool bias_;
         int groups_;
         int md_;
