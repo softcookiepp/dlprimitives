@@ -62,8 +62,12 @@ Cache &Cache::instance()
 
 }
 
-
-cl::Program Cache::build_program(Context  &ctx,std::string const &source,std::vector<Parameter> const &params)
+#if VULKAN_API
+tart::program_ptr
+#else
+cl::Program
+#endif
+	Cache::build_program(Context  &ctx,std::string const &source,std::vector<Parameter> const &params)
 {
     auto ks = kernel_sources.find(source);
     if(ks == kernel_sources.end())
@@ -73,6 +77,7 @@ cl::Program Cache::build_program(Context  &ctx,std::string const &source,std::ve
     std::ostringstream ss;
     bool combine = false;
 #if VULKAN_API
+	// just disable this for now. it will be important to translate later though
 #else
     std::string ocl_version = ctx.platform().getInfo<CL_PLATFORM_VERSION>();
     if(ocl_version.substr(7,1) >= "2") 
@@ -101,11 +106,8 @@ cl::Program Cache::build_program(Context  &ctx,std::string const &source,std::ve
     TimeWriter guard(source);
     #endif
 #if VULKAN_API
-	// no sqlite3; it is better to minimize dependencies
-	// first I am pretty sure we need to compile the openCL source
-	// for now we will use clspv, since that will allow us to at least run the code...
-	//throw std::runtime_error("not implemented!");
-	
+	// no sqlite3; it is better to minimize dependencies.
+	// any persistent caching will be handled by tart itself in the future at some point.
 #else
     #ifdef  WITH_SQLITE3
     /// nvidia has very different type of caching since binary return not binary but rather ptx,
@@ -131,10 +133,12 @@ cl::Program Cache::build_program(Context  &ctx,std::string const &source,std::ve
 #endif
 #if VULKAN_API
 	// just make the program correctly.
+	// for now it will use clspv
 	// at some point the OpenCL C codegen will be adapted for GLSL; that day has not come
 	tart::shader_module_ptr mod = ctx.device()->compileCL(code);
 	tart::cl_program_ptr clprg = ctx.device()->createCLProgram(mod);
 	tart::program_ptr prg = ctx.device()->createProgram(clprg);
+	return prg;
 #else
     cl::Program prg(ctx.context(),code);
     try {
@@ -175,14 +179,18 @@ cl::Program Cache::build_program(Context  &ctx,std::string const &source,std::ve
         pc.save_binary(ctx,code,sparams,binaries[0],source);
     }
     #endif
-#endif
     return prg;
+#endif
 }
 
 
 std::string Cache::make_key(Context &ctx,std::string const &src,std::vector<Parameter> const &params)
 {
+#if VULKAN_API
+	std::uintptr_t ctx_ptr = (std::uintptr_t)(ctx.context().get());
+#else
     void *ctx_ptr = ctx.context()();
+#endif
     std::ostringstream ss;
     ss << "prg:" << ctx_ptr <<  "@" << src <<  "/?";
     for(size_t i=0;i<params.size();i++) {

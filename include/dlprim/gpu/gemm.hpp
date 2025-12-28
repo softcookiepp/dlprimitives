@@ -24,6 +24,19 @@ namespace gpu {
         static constexpr int bias_N =  2;
 
         virtual void gemm(int M,int N,int K,
+#if VULKAN_API
+						tart::buffer_ptr &a,
+						size_t offset_a,
+						int lda,
+						tart::buffer_ptr &b,
+						size_t offset_b,
+						int ldb,
+						tart::buffer_ptr &c,
+						size_t offset_c,
+						int ldc,
+						tart::buffer_ptr bias,
+						size_t bias_offset,
+#else
                           cl::Buffer &a,
                           cl_ulong offset_a,
                           int lda,
@@ -35,6 +48,7 @@ namespace gpu {
                           int ldc,
                           cl::Buffer *bias,
                           cl_ulong bias_offset,
+#endif
                           float beta,
                           int size_of_c,
                           ExecutionContext const &e) = 0;
@@ -44,6 +58,18 @@ namespace gpu {
                           bool trans_a,bool trans_b,
                           int Batch, // number of matrices
                           int M,int N,int K,
+#if VULKAN_API
+                          tart::buffer_ptr &a,
+                          size_t offset_a, 
+                          int batch_stride_a,
+                          int lda,
+                          tart::buffer_ptr &b,
+                          size_t offset_b,
+                          int batch_stride_b,
+                          int ldb,
+                          tart::buffer_ptr &c,
+                          size_t offset_c,
+#else
                           cl::Buffer &a,
                           cl_ulong offset_a, 
                           int batch_stride_a,
@@ -54,6 +80,7 @@ namespace gpu {
                           int ldb,
                           cl::Buffer &c,
                           cl_ulong offset_c,
+#endif
                           int batch_stride_c,
                           int ldc,
                           float beta,
