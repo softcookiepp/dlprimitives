@@ -237,6 +237,8 @@ namespace gpu {
                 act_.setArg(3,x);
                 act_.setArg(4,x_offset);
 #if VULKAN_API
+				tart::device_ptr& dev = ec.queue();
+				act_->enqueue();
 				throw std::runtime_error("not implemented!");
 #else
                 ec.queue().enqueueNDRangeKernel(act_, cl::NullRange, cl::NDRange(size),cl::NullRange,ec.events(),ec.event("activation"));
