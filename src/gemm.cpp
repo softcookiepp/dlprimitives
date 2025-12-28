@@ -238,6 +238,7 @@ namespace gpu {
                 act_.setArg(4,x_offset);
 #if VULKAN_API
 				tart::device_ptr& dev = ec.queue();
+				// TODO: ensure the global size for this isn't wrong
 				act_->enqueue({size}, {1});
 #else
                 ec.queue().enqueueNDRangeKernel(act_, cl::NullRange, cl::NDRange(size),cl::NullRange,ec.events(),ec.event("activation"));
@@ -250,13 +251,26 @@ namespace gpu {
             if(size >= 1024)
                 wg = 256;
             int p=0;
-            scal_.setArg(p++,cl_ulong(size));
+            scal_.setArg(p++,
+#if VULKAN_API
+				size
+#else
+				cl_ulong(size)
+#endif
+			);
             scal_.setArg(p++,s);
             scal_.setArg(p++,x);
             scal_.setArg(p++,x_offset);
+#if VULKAN_API
+			std::vector<uint32_t> l({wg});
+			std::vector<uint32_t> g = gpu::round_range(size, l);
+			g[0] = g[0]/wg;
+			scal_->enqueue(g, l);
+#else
             cl::NDRange l(wg);
             cl::NDRange g=gpu::round_range(size,l);
             ec.queue().enqueueNDRangeKernel(scal_,cl::NullRange,g,l,ec.events(),ec.event("gemm_beta_scale"));
+#endif
         }
         int tile_size_n_,tile_size_m_,tile_size_k_;
         int block_size_n_,block_size_m_;
