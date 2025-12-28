@@ -45,20 +45,54 @@ namespace core {
                 ws_ += second_reduce_ * 2 * size_of_data_type(dtype) * features_;
             }
             
-            cl::Program const &fwd_sums = gpu::Cache::instance().get_program(ctx,
+#if VULKAN_API
+			tart::program_ptr
+#else
+            cl::Program const &
+#endif
+            fwd_sums = gpu::Cache::instance().get_program(ctx,
                         "bn_sums",
                         "WG_SIZE",wg_,
                         "BACKWARD",0,
                         "SECOND_REDUCE_SIZE",second_reduce_);
 
-            cl::Program const &bwd_sums = gpu::Cache::instance().get_program(ctx,
+#if VULKAN_API
+			tart::program_ptr
+#else
+            cl::Program const &
+#endif
+            bwd_sums = gpu::Cache::instance().get_program(ctx,
                         "bn_sums",
                         "WG_SIZE",wg_,
                         "BACKWARD",1,
                         "SECOND_REDUCE_SIZE",second_reduce_);
 
-            cl::Program const &utils = gpu::Cache::instance().get_program(ctx,"bn_utils");
+#if VULKAN_API
+			tart::program_ptr
+#else
+            cl::Program const &
+#endif
+            utils = gpu::Cache::instance().get_program(ctx,"bn_utils");
+#if VULKAN_API
+			sums_ = fwd_sums->getKernel("compute");
+            if(second_reduce_ > 1) {
+                sums_reduce_ = fwd_sums->getKernel("reduce");
+            }
+            dyx_sums_ = bwd_sums->getKernel("compute");
+            if(second_reduce_ > 1) {
+                dyx_sums_reduce_ = bwd_sums->getKernel("reduce");
+            }
 
+            update_sums_ = utils->getKernel("update_sums");
+            mean_var_to_a_b_ =utils->getKernel("mean_var_to_a_b");
+            combine_mean_var_with_gamma_beta_ = utils->getKernel("combine_mean_var_with_gamma_beta");
+            compute_backward_factors_ = utils->getKernel("compute_backward_factors");
+            forward_ = utils->getKernel("forward");
+            backward_data_ = utils->getKernel("backward_data");
+            backward_filter_ = utils->getKernel("backward_filter");
+            var_gamma_to_a_ = utils->getKernel("var_gamma_to_a");
+            backward_test_ = utils->getKernel("backward_test");
+#else
             sums_ = cl::Kernel(fwd_sums,"compute");
             if(second_reduce_ > 1) {
                 sums_reduce_ = cl::Kernel(fwd_sums,"reduce");
@@ -68,7 +102,6 @@ namespace core {
                 dyx_sums_reduce_ = cl::Kernel(bwd_sums,"reduce");
             }
 
-            
             update_sums_ = cl::Kernel(utils,"update_sums");
             mean_var_to_a_b_ =cl::Kernel(utils,"mean_var_to_a_b");
             combine_mean_var_with_gamma_beta_ = cl::Kernel(utils,"combine_mean_var_with_gamma_beta");
@@ -78,6 +111,7 @@ namespace core {
             backward_filter_ = cl::Kernel(utils,"backward_filter");
             var_gamma_to_a_ = cl::Kernel(utils,"var_gamma_to_a");
             backward_test_ = cl::Kernel(utils,"backward_test");
+#endif
         }
 
         size_t get_plane_size(Shape const &s)
@@ -111,11 +145,15 @@ namespace core {
             if(second_reduce_ <= 1) {
                 mean.set_arg(sums_,p);
                 var.set_arg(sums_,p);
+#if VULKAN_API
+				sums_->enqueue({1, features_}, {wg_, 1});
+#else
                 e.queue().enqueueNDRangeKernel( sums_,
                                                 cl::NullRange,
                                                 cl::NDRange(wg_,features_),
                                                 cl::NDRange(wg_,1),
                                                 e.events(),e.event("calc_mean_var"));
+#endif
             }
             else {
                 Tensor x_sum = ws.sub_tensor(0,Shape(second_reduce_,features_),dt_);
@@ -133,6 +171,11 @@ namespace core {
 
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
+#if VULKAN_API
+				sums_->enqueue({second_reduce_,features_}, {wg_, 1});
+				e.queue()->sync();
+				sums_reduce_->enqueue({1, features_}, {second_reduce_, 1});
+#else
                 e.queue().enqueueNDRangeKernel( sums_,
                                                 cl::NullRange,
                                                 cl::NDRange(wg_*second_reduce_,features_),
@@ -144,6 +187,7 @@ namespace core {
                                                 cl::NDRange(second_reduce_,features_),
                                                 cl::NDRange(second_reduce_,1),
                                                 e2.events(),e2.event("calc_mean_var_reduce"));
+#endif
             }
         }
         
@@ -163,9 +207,13 @@ namespace core {
             update_sums_.setArg(p++,running_mean_factor);
             update_sums_.setArg(p++,batch_var_factor);
             update_sums_.setArg(p++,running_var_factor);
+#if VULKAN_API
+			throw std::runtime_error("not implemented!");
+#else
             e.queue().enqueueNDRangeKernel(update_sums_,
                                            cl::NullRange,cl::NDRange(features_),cl::NullRange,
                                            e.events(),e.event("update_sums"));
+#endif
         }
 
         void enqueue3D(cl::Kernel &k,int batches,int rc,ExecutionContext const &e,char const *name)

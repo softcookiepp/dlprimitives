@@ -16,6 +16,10 @@ namespace dlprim {
         void apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext const &e);
     private:
         Context ctx_;
+#if VULKAN_API
+		tart::kernel_ptr kernel_;
+#else
         cl::Kernel kernel_;
+#endif
     };
 } // namespace

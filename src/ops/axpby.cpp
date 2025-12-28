@@ -29,7 +29,11 @@ void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext
     DLPRIM_CHECK(x.shape().total_size() == y.shape().total_size());
     DLPRIM_CHECK(z.shape().total_size() == y.shape().total_size());
     size_t total = x.shape().total_size();
+#if VULKAN_API
+	e.queue()->sync();
+#else
     e.queue().finish();
+#endif
     if(ctx_.is_cpu_context()) {
         float *xp = x.data<float>();
         float *yp = y.data<float>();
@@ -39,6 +43,19 @@ void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext
         cblas_saxpy(total,b,yp,1,zp,1);
     }
     else {
+#if VULKAN_API
+        std::vector<uint32_t> l(1);
+        if(total >= 256)
+            l[0] = 256;
+        else if(total >= 128)
+            l[0] = 128;
+        else
+            l[0] = 64;
+
+        std::vector<uint32_t> g = gpu::round_range(total,l);
+        // because of course
+        g[0] = g[0] / l[0];
+#else
         cl::NDRange l;
         if(total >= 256)
             l=cl::NDRange(256);
@@ -48,15 +65,24 @@ void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext
             l=cl::NDRange(64);
 
         cl::NDRange g=gpu::round_range(total,l);
-       
+#endif
         int p=0;
-        kernel_.setArg(p++,cl_ulong(total));
+        kernel_.setArg(p++,
+#if VULKAN_API
+			total);
+#else
+			cl_ulong(total));
+#endif
         kernel_.setArg(p++,a);
         x.set_arg(kernel_,p);
         kernel_.setArg(p++,b);
         y.set_arg(kernel_,p);
         z.set_arg(kernel_,p);
+#if VULKAN_API
+		kernel_->enqueue(g, l);
+#else
         e.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,g,l,e.events(),e.event("axpby"));
+#endif
     }
 }
 
