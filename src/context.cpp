@@ -22,7 +22,8 @@ namespace dlprim {
             return;
         }
 #if VULKAN_API
-		throw std::runtime_error("not implemented!");
+		tart::device_ptr dev = ec.queue_;
+		const tart::device_ptr& ctx = dev;
 #else
         cl::Context ctx = ec.queue_->getInfo<CL_QUEUE_CONTEXT>();
         cl::Device  dev = ec.queue_->getInfo<CL_QUEUE_DEVICE>();
@@ -59,7 +60,7 @@ namespace dlprim {
 #if VULKAN_API
 		platform_(d),
 		device_(d),
-		context_(d)
+		context_(d),
 #else
         platform_(p),
         device_(d),
@@ -165,6 +166,8 @@ namespace dlprim {
     int Context::estimated_core_count()
     {
 #if VULKAN_API
+		// not implemented in tart yet; will do later
+		return 0;
 #else
         int cu = device().getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
         if(is_apple())
@@ -183,7 +186,7 @@ namespace dlprim {
     std::string const &Context::device_extensions()
     {
 #if VULKAN_API
-		return "";
+		return ext_;
 #else
         if(is_cpu_context())
             return ext_;
@@ -212,7 +215,7 @@ namespace dlprim {
 #if VULKAN_API
 		tart::Instance& instance = tart::init();
 		if (d >= instance.getNumDevices() )
-			throw ValidationError("No such device : " std::to_string(d));
+			throw ValidationError("No such device : " + std::to_string(d));
 		device_ = instance.createDevice(d);
 		context_ = device_;
 #else

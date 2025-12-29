@@ -44,7 +44,7 @@ public:
     struct Data {
 #if VULKAN_API
 		tart::event_ptr event = nullptr;
-		const std::string name = "";
+		std::string name = "";
 #else
         cl::Event event;
         char const *name = nullptr;
@@ -82,12 +82,19 @@ public:
             sids_.pop();
         events_.clear();
     }
-
+#if VULKAN_API
+    std::shared_ptr<Data> add_event(std::string name,int index=-1, tart::event_ptr ev = nullptr)
+#else
     std::shared_ptr<Data> add_event(char const *name,int index=-1,cl::Event *ev = nullptr)
+#endif
     {
         std::shared_ptr<Data> e(new Data());
         if(ev)
+#if VULKAN_API
+			e->event = ev;
+#else
             e->event = *ev;
+#endif
         if(!sids_.empty())
             e->section = sids_.top();
 
@@ -146,7 +153,11 @@ class ExecutionContext {
 public:
     /// default constructor - can be used for CPU context
     ExecutionContext() :
+#if VULKAN_API
+        event_(nullptr), events_({}) {}
+#else
         event_(nullptr), events_(nullptr) {}
+#endif
 
     ///
     /// Create context from cl::CommandQueue, note no events will be waited/signaled
@@ -170,7 +181,7 @@ public:
     ///
     ExecutionContext(
 #if VULKAN_API
-		tart::device_ptr dev, tart::event_ptr event
+		const tart::device_ptr& dev, const tart::event_ptr& event
 #else
 		cl::CommandQueue const &q,cl::Event *event
 #endif
@@ -188,7 +199,7 @@ public:
     ///
     ExecutionContext(
 #if VULKAN_API
-		tart::device_ptr dev, std::vector<tart::event_ptr>& events) :
+		const tart::device_ptr& dev, const std::vector<tart::event_ptr>& events) :
         queue_(dev), event_(nullptr), events_(events)
 #else
 		cl::CommandQueue const &q,std::vector<cl::Event> *events) :
@@ -201,8 +212,8 @@ public:
     ///
     ExecutionContext(
 #if VULKAN_API
-		tart::device_ptr q,std::vector<tart::event_ptr>& events, tart::event_ptr event) :
-        queue_(new cl::CommandQueue(q)),event_(event),events_(events)
+		const tart::device_ptr& q, const std::vector<tart::event_ptr>& events, const tart::event_ptr& event) :
+        queue_(q),event_(event),events_(events)
 #else
 		cl::CommandQueue const &q,std::vector<cl::Event> *events,cl::Event *event) :
         queue_(new cl::CommandQueue(q)),event_(event),events_(events)
@@ -249,7 +260,7 @@ public:
     /// Profiling scope enter called by ExecGuard::ExecGuard()
     ///
 #if VULKAN_API
-	void enter(const std::string& name)
+	void enter(const std::string& name) const
 #else
     void enter(char const *name) const
 #endif
@@ -307,7 +318,11 @@ public:
 #endif
     {
         if(timing_ && !timing_->cpu_only) {
+#if VULKAN_API
+            return timing_->add_event(name,id,event_)->event;
+#else
             return &timing_->add_event(name,id,event_)->event;
+#endif
         }
         return event_;
     }
@@ -331,7 +346,14 @@ public:
     {
         if(queue_ == nullptr)
             return ExecutionContext();
+#if VULKAN_API
+		// ARE YOU HAPPY??? HOLY SHIT
+		const std::vector<tart::event_ptr> eventsConst(events_);
+		//const tart::device_ptr deviceConst = queue();
+		return ExecutionContext(queue(), events_);
+#else
         return ExecutionContext(queue(),events_);
+#endif
     }
 
     ///
@@ -513,7 +535,7 @@ public:
 #endif
     {
 #if VULKAN_API
-		tart::device_ptr
+		return device_;
 #else
         cl::CommandQueue q;
         if(!is_cpu_context())

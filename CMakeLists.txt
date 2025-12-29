@@ -292,7 +292,8 @@ if(WITH_SQLITE3)
 endif()
 
 if(USE_VULKAN_API)
-	target_compile_definitions(dlprim_core PUBLIC VULKAN_API 1)
+	target_compile_definitions(dlprim_core PUBLIC VULKAN_API)
+	target_include_directories(dlprim_core PUBLIC tart/include tart/VulkanMemoryAllocator/include)
 endif()
 
 if(NOT BUILD_CORE_ONLY)
