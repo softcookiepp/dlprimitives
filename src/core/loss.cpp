@@ -31,7 +31,27 @@ namespace core {
         int mpl = wg_size * items_per_wi;
         int nd_range = (sm_range + mpl - 1) / mpl * wg_size;
         Context ctx(e);
+#if VULKAN_API
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"softmax",
+                            "WG_SIZE",wg_size,
+                            "ITEMS_PER_WI",items_per_wi,
+                            "LOG_SM",int(log_softmax));
+        tart::kernel_ptr kernel = prog->getKernel("softmax");
+        Shape in_shape = x.shape();
+        int b0 = in_shape[0];
+        int b2 = in_shape.size() == 3 ? in_shape[2] : 1;
+        int p = 0;
+        kernel->setArg(p++,b0);
+        kernel->setArg(p++,sm_range);
+        kernel->setArg(p++,b2);
+        x.set_arg(kernel,p);
+        y.set_arg(kernel,p);
 
+        std::vector<uint32_t> gr({b0,nd_range/wg_size,b2});
+        std::vector<uint32_t> wg({1,wg_size,1});
+        kernel->enqueue(gr, wg);
+        e.queue().enqueueNDRangeKernel(kernel,cl::NullRange,gr,wg,e.events(),e.event("softmax"));
+#else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"softmax",
                             "WG_SIZE",wg_size,
                             "ITEMS_PER_WI",items_per_wi,
@@ -50,6 +70,7 @@ namespace core {
         cl::NDRange gr(b0,nd_range,b2);
         cl::NDRange wg(1,wg_size,1);
         e.queue().enqueueNDRangeKernel(kernel,cl::NullRange,gr,wg,e.events(),e.event("softmax"));
+#endif
     }
 
     void softmax_backward(Tensor &dx,Tensor &y,Tensor &dy,bool log_softmax,float factor,ExecutionContext const &e)
@@ -76,7 +97,28 @@ namespace core {
         int mpl = wg_size * items_per_wi;
         int nd_range = (sm_range + mpl - 1) / mpl * wg_size;
         Context ctx(e);
+#if VULKAN_API
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"softmax",
+                            "WG_SIZE",wg_size,
+                            "ITEMS_PER_WI",items_per_wi,
+                            "LOG_SM",int(log_softmax));
+        tart::kernel_ptr kernel = prog->getKernel("softmax_backward");
+        Shape in_shape = dx.shape();
+        int b0 = in_shape[0];
+        int b2 = in_shape.size() == 3 ? in_shape[2] : 1;
+        int p = 0;
+        kernel->setArg(p++,b0);
+        kernel->setArg(p++,sm_range);
+        kernel->setArg(p++,b2);
+        dx.set_arg(kernel,p);
+        y.set_arg(kernel,p);
+        dy.set_arg(kernel,p);
+        kernel->setArg(p++,factor);
 
+        std::vector<uint32_t> gr({b0,nd_range/wg_size,b2});
+        std::vector<uint32_t> wg({1,wg_size,1});
+        kernel->enqueue(gr, wg);
+#else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"softmax",
                             "WG_SIZE",wg_size,
                             "ITEMS_PER_WI",items_per_wi,
@@ -97,6 +139,7 @@ namespace core {
         cl::NDRange gr(b0,nd_range,b2);
         cl::NDRange wg(1,wg_size,1);
         e.queue().enqueueNDRangeKernel(kernel,cl::NullRange,gr,wg,e.events(),e.event("softmax"));
+#endif
     }
 
     ///
@@ -129,7 +172,25 @@ namespace core {
         }
 
         Context ctx(e);
+#if VULKAN_API
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"nll_loss_fwd",
+                            "WG_SIZE",wg_size,
+                            "ITEMS_PER_WI",items_per_wi,
+                            "REDUCE",int(reduce),
+                            "itype",itype);
 
+        tart::kernel_ptr kernel = prog->getKernel("nll_loss_forward");
+        Shape in_shape = x.shape();
+        int p = 0;
+        kernel->setArg(p++,int(in_shape[0]));
+        kernel->setArg(p++,int(in_shape[1]));
+        x.set_arg(kernel,p);
+        lbl.set_arg(kernel,p);
+        y.set_arg(kernel,p);
+        kernel->setArg(p++,scale);
+        std::vector<uint32_t> wg({wg_size, 1, 1});
+        kernel->enqueue({1, 1, 1}, wg);
+#else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_fwd",
                             "WG_SIZE",wg_size,
                             "ITEMS_PER_WI",items_per_wi,
@@ -147,6 +208,7 @@ namespace core {
         kernel.setArg(p++,scale);
         cl::NDRange wg(wg_size,1,1);
         e.queue().enqueueNDRangeKernel(kernel,cl::NullRange,wg,wg,e.events(),e.event("nll_loss_fwd"));
+#endif
     }
     ///
     /// Compute forward Negative log likelehood loss x should be log of prob
@@ -166,7 +228,23 @@ namespace core {
         }
 
         Context ctx(e);
-
+#if VULKAN_API
+        tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"nll_loss_bwd",
+                            "REDUCE",int(reduce),
+                            "itype",itype);
+        tart::kernel_ptr kernel = prog->getKernel("nll_loss_backward");
+        Shape in_shape = dx.shape();
+        int p = 0;
+        kernel->setArg(p++,int(in_shape[0]));
+        kernel->setArg(p++,int(in_shape[1]));
+        dx.set_arg(kernel,p);
+        lbl.set_arg(kernel,p);
+        dy.set_arg(kernel,p);
+        kernel->setArg(p++,scale);
+        kernel->setArg(p++,factor);
+        std::vector<uint32_t> nd(in_shape[1],in_shape[0]);
+        kernel->enqueue(nd, {1, 1});
+#else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_bwd",
                             "REDUCE",int(reduce),
                             "itype",itype);
@@ -182,6 +260,7 @@ namespace core {
         kernel.setArg(p++,factor);
         cl::NDRange nd(in_shape[1],in_shape[0]);
         e.queue().enqueueNDRangeKernel(kernel,cl::NullRange,nd,cl::NullRange,e.events(),e.event("nll_loss_bwd"));
+#endif
     }
 
     
