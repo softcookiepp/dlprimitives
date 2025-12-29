@@ -782,14 +782,22 @@ namespace dlprim {
 
     void Net::copy_parameters_to_device()
     {
+#if VULKAN_API
+        tart::device_ptr q = ctx_.make_queue();
+#else
         cl::CommandQueue q = ctx_.make_queue();
+#endif
         for(auto &pr : parameters_) {
             pr.second.to_device(q);
         }
     }
     void Net::copy_parameters_to_host()
     {
+#if VULKAN_API
+        tart::device_ptr q = ctx_.make_queue();
+#else
         cl::CommandQueue q = ctx_.make_queue();
+#endif
         for(auto &pr : parameters_) {
             pr.second.to_host(q);
         }

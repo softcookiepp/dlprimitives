@@ -14,10 +14,25 @@
 
 namespace dlprim {
 namespace core {
-
+#if VULKAN_API
+    void bind_as_dtype(tart::kenrel_ptr k,int &p,double value,DataType dt)
+#else
     void bind_as_dtype(cl::Kernel &k,int &p,double value,DataType dt)
+#endif
     {
         switch(dt) {
+#if VULKAN_API
+		case  double_data:  k->setArg(p++, double(value)); break;
+        case  float_data:   k->setArg(p++, float(value)); break;
+        case  half_data:    k->setArg(p++, float(value)); break; // half goes as float to kernel parameter
+        case  int64_data:   k->setArg(p++, int64_t(value)); break;
+        case  int32_data:   k->setArg(p++, int(value)); break;
+        case  int16_data:   k->setArg(p++, int16_t(value)); break;
+        case  int8_data:    k->setArg(p++, cl_char(value)); break;
+        case  uint64_data:  k->setArg(p++, uint64_t(value)); break;
+        case  uint32_data:  k->setArg(p++, uint32_t(value)); break;
+        case  uint8_data:   k->setArg(p++, uint8_t(value)); break;
+#else
         case  double_data:  k.setArg(p++,double(value)); break;
         case  float_data:   k.setArg(p++,float(value)); break;
         case  half_data:    k.setArg(p++,float(value)); break; // half goes as float to kernel parameter
@@ -28,6 +43,7 @@ namespace core {
         case  uint64_data:  k.setArg(p++,cl_long(value)); break;
         case  uint32_data:  k.setArg(p++,cl_int(value)); break;
         case  uint8_data:   k.setArg(p++,cl_uchar(value)); break;
+#endif
         default:
             throw  NotImplementedError("Unsupported bind as type:" + data_type_to_opencl_type(dt));
         }
@@ -83,6 +99,25 @@ namespace core {
                 code_fixed << "\\\n";
             else
                 code_fixed << code[i];
+#if VULKAN_API
+        tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"pointwise",
+                                                                           "dtype",data_type_to_opencl_type(ref_type),
+                                                                           "#PARAMS",params.str(),
+                                                                           "#LOADS",loads.str(),
+                                                                           "#SAVES",saves.str(),
+                                                                           "#CALC",code_fixed.str());
+        tart::kernel_ptr k = prog->getKernel("exec");
+        uint32_t total = ref.total_size();
+        int p=0;
+        k->setArg(p++,total);
+        for(Tensor &x:xs)
+            x.set_arg(k,p);
+        for(Tensor &y:ys)
+            y.set_arg(k,p);
+        for(double w:ws)
+            bind_as_dtype(k,p,w,ref_type);
+        k->enqueue({total}, {1});
+#else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"pointwise",
                                                                            "dtype",data_type_to_opencl_type(ref_type),
                                                                            "#PARAMS",params.str(),
@@ -100,6 +135,7 @@ namespace core {
         for(double w:ws)
             bind_as_dtype(k,p,w,ref_type);
         e.queue().enqueueNDRangeKernel(k,cl::NullRange,cl::NDRange(total),cl::NullRange,e.events(),e.event("pointwise_exec"));
+#endif
     }
 
 
@@ -107,19 +143,34 @@ namespace core {
 
     template<int size>
     struct CLShape {
+#if VULKAN_API
+		uint64_t s[size];
+#else
         cl_ulong s[size];
+#endif
     };
 
     template<int size>
+#if VULKAN_API
+    void bind_cl_shape(tart::kernel_ptr k,int &p,Shape const &s)
+#else
     void bind_cl_shape(cl::Kernel &k,int &p,Shape const &s)
+#endif
     {
         CLShape<size> cl_s;
         for(int i=0;i<size;i++)
             cl_s.s[i]=s[i];
+#if VULKAN_API
+        k->setArg(p++,cl_s);
+#else
         k.setArg(p++,cl_s);
+#endif
     }
-
+#if VULKAN_API
+    void bind_shape(tart::kernel_ptr k, int &p,Shape const &s)
+#else
     void bind_shape(cl::Kernel &k,int &p,Shape const &s)
+#endif
     {
         switch(s.size()) {
         case 1: bind_cl_shape<1>(k,p,s); return;
@@ -150,9 +201,24 @@ namespace core {
         return code_fixed.str();
     }
 
-
+#if VULKAN_API
+    std::vector<uint32_t> get_broadcast_ndrange(Shape ref)
+#else
     cl::NDRange get_broadcast_ndrange(Shape ref)
+#endif
     {
+#if VULKAN_API
+		std::vector<uint32_t> range;
+        switch(ref.size()) {
+        case 1: range = {ref[0]}; break;
+        case 2: range = {ref[1],ref[0]}; break;
+        case 3: range = {ref[2],ref[1],ref[0]}; break;
+        case 4: range = {ref[3]*ref[2],ref[1],ref[0]}; break;
+        case 5: range = {ref[4]*ref[3],ref[2]*ref[1],ref[0]}; break;
+        case 6: range = {ref[5]*ref[4],ref[3]*ref[2],ref[1]*ref[0]}; break;
+        case 7: range = {ref[6]*ref[5]*ref[4],ref[3]*ref[2],ref[1]*ref[0]}; break;
+        case 8: range = {ref[7]*ref[6]*ref[5],ref[4]*ref[3]*ref[2],ref[1]*ref[0]}; break;
+#else
         cl::NDRange range;
         switch(ref.size()) {
         case 1: range = cl::NDRange(ref[0]); break;
@@ -163,14 +229,27 @@ namespace core {
         case 6: range = cl::NDRange(ref[5]*ref[4],ref[3]*ref[2],ref[1]*ref[0]); break;
         case 7: range = cl::NDRange(ref[6]*ref[5]*ref[4],ref[3]*ref[2],ref[1]*ref[0]); break;
         case 8: range = cl::NDRange(ref[7]*ref[6]*ref[5],ref[4]*ref[3]*ref[2],ref[1]*ref[0]); break;
+#endif
         default:
             throw NotImplementedError("Invalid dimentsions count for broadcastes shape size " + std::to_string(ref.size()));
         }
         return range;
     }
-
+#if VULKAN_API
+    std::vector<uint32_t> get_broadcast_reduce_ndrange(Shape ref,int zero,int non_reduce_dims,size_t nd_range)
+#else
     cl::NDRange get_broadcast_reduce_ndrange(Shape ref,int zero,int non_reduce_dims,size_t nd_range)
+#endif
     {
+#if VULKAN_API
+		std::vector<uint32_t> range;
+        switch(non_reduce_dims) {
+        case 0: range = {nd_range,1,                       1                      }; break;
+        case 1: range = {nd_range,ref[zero+0],             1                      }; break;
+        case 2: range = {nd_range,ref[zero+1],             ref[zero+0]            }; break;
+        case 3: range = {nd_range,ref[zero+2],             ref[zero+1]*ref[zero+0]}; break;
+        case 4: range = {nd_range,ref[zero+3]*ref[zero+2], ref[zero+1]*ref[zero+0]}; break;
+#else
         cl::NDRange range;
         switch(non_reduce_dims) {
         case 0: range = cl::NDRange(nd_range,1,                       1                      ); break;
@@ -178,6 +257,7 @@ namespace core {
         case 2: range = cl::NDRange(nd_range,ref[zero+1],             ref[zero+0]            ); break;
         case 3: range = cl::NDRange(nd_range,ref[zero+2],             ref[zero+1]*ref[zero+0]); break;
         case 4: range = cl::NDRange(nd_range,ref[zero+3]*ref[zero+2], ref[zero+1]*ref[zero+0]); break;
+#endif
         default:
             throw NotImplementedError("Invalid dimentsions count for broadcastes shape size " + std::to_string(ref.size()));
         }
@@ -252,6 +332,30 @@ namespace core {
 
         loads << '\n';
         saves <<'\n';
+#if VULKAN_API
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
+                                                                           "DIMS",ref.size(),
+                                                                           "#PARAMS",params.str(),
+                                                                           "#LOADS",loads.str(),
+                                                                           "#SAVES",saves.str(),
+                                                                           "#CALC",format_code(code));
+        tart::kernel_ptr k = prog->getKernel("exec");
+        int p=0;
+        bind_shape(k,p,ref);
+        for(size_t i=0;i<xs.size();i++) {
+            xs[i].set_arg(k,p);
+            bind_shape(k,p,strides[i]);
+        }
+        for(Tensor &y:ys)
+            y.set_arg(k,p);
+        
+        for(size_t i=0;i<ws.size();i++) { 
+            bind_as_dtype(k,p,ws[i],dts[i]);
+        }
+        std::vector<uint32_t> range = get_broadcast_ndrange(ref);
+        std::vector<uint32_t> local(range.size(), 1);
+		k->enqueue(range, local);
+#else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
                                                                            "DIMS",ref.size(),
                                                                            "#PARAMS",params.str(),
@@ -274,6 +378,7 @@ namespace core {
         cl::NDRange range = get_broadcast_ndrange(ref);
             
         e.queue().enqueueNDRangeKernel(k,cl::NullRange,range,cl::NullRange,e.events(),e.event("pointwise_exec_broadcast"));
+#endif
     }
 
     ///
@@ -368,7 +473,22 @@ namespace core {
             if(second_stage_stride_ != 1) {
                 kernel_.setArg(p++,cl_ulong(second_stage_stride_));
             }
-
+#if VULKAN_API
+			std::vector<uint32_t> glob(range_.size());
+			for (size_t i = 0; i < glob.size(); i += 1)
+				glob[i] = range_[i]/wg_range_[i];
+			if(second_stage_stride_ == 1) {
+				kernel_->enqueue(glob, wg_range_);
+            }
+            else {
+                auto e1 = e.generate_series_context(0,2);
+                auto e2 = e.generate_series_context(1,2);
+                kernel_->enqueue(glob, wg_range_);
+                DLPRIM_CHECK(second_stage_->workspace() == 0);
+                Tensor tmp;
+                second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
+            }
+#else
             if(second_stage_stride_ == 1) {
                 e.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,range_,wg_range_,e.events(),e.event("pointwise_exec_broadcast"));
             }
@@ -380,6 +500,7 @@ namespace core {
                 Tensor tmp;
                 second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
             }
+#endif
         }
 
         PointwiseOperationBroadcastReduceImpl(  Context &ctx,
