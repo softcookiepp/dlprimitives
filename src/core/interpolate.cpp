@@ -43,12 +43,32 @@ namespace dlprim { namespace core {
         }
         
         Context ctx(e);
+#if VULKAN_API
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"interpolate_2d");
+        tart::kernel_ptr k = prog->getKernel(bilinear ? "bilinear" : "nearest_fwd");
+#else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"interpolate_2d");
         cl::Kernel k(prog,(bilinear ? "bilinear" : "nearest_fwd"));
-
+#endif
         int bc = x_shape[0]*x_shape[1];
         int p=0;
         int work_per_thread = std::min(bc,64);
+#if VULKAN_API
+		if(bilinear)
+            k->setArg(p++,fwd_bilinear);
+        k->setArg(p++,bc);
+        k->setArg(p++,work_per_thread);
+        k->setArg(p++,srcH);
+        k->setArg(p++,srcW);
+        k->setArg(p++,tgtH);
+        k->setArg(p++,tgtW);
+        k->setArg(p++,float(scale_y));
+        k->setArg(p++,float(scale_x));
+        if(bilinear)
+            k->setArg(p++,align_corners);
+        else
+            k->setArg(p++,offset);
+#else
         if(bilinear)
             k.setArg(p++,fwd_bilinear);
         k.setArg(p++,bc);
@@ -63,13 +83,19 @@ namespace dlprim { namespace core {
             k.setArg(p++,align_corners);
         else
             k.setArg(p++,offset);
+#endif
         x.set_arg(k,p);
         y.set_arg(k,p);
         
         int gr_size = (bc + work_per_thread - 1) / work_per_thread;
+#if VULKAN_API
+		std::vector<uint32_t> gr({tgtH,tgtW,gr_size});
+		k->enqueue(gr, {1, 1, 1});
+#else
         cl::NDRange gr(tgtH,tgtW,gr_size);
         char const *name = (bilinear ? (fwd_bilinear ? "bilinear_fwd" : "bilinear_bwd") : "nearest_fwd");
         e.queue().enqueueNDRangeKernel(k,cl::NullRange,gr,cl::NullRange,e.events(),e.event(name));
+#endif
     }
 
     void interpolate2d(Tensor &x,Tensor &y,double scale_y,double scale_x,InterpolateType method,bool bool_align_corners,ExecutionContext const &e)
@@ -106,12 +132,31 @@ namespace dlprim { namespace core {
         }
         
         Context ctx(e);
+#if VULKAN_API
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"interpolate_2d");
+		tart::kernel_ptr k = prog->getKernel("nearest_bwd");
+#else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"interpolate_2d");
         cl::Kernel k(prog,"nearest_bwd");
+#endif
 
         int bc = x_shape[0]*x_shape[1];
         int p=0;
         int work_per_thread = std::min(bc,64);
+#if VULKAN_API
+		k->setArg(p++,bc);
+        k->setArg(p++,work_per_thread);
+        k->setArg(p++,srcH);
+        k->setArg(p++,srcW);
+        k->setArg(p++,tgtH);
+        k->setArg(p++,tgtW);
+        k->setArg(p++,float(scale_y));
+        k->setArg(p++,float(scale_x));
+        k->setArg(p++,offset);
+        dx.set_arg(k,p);
+        dy.set_arg(k,p);
+        k->setArg(p++,factor);
+#else
         k.setArg(p++,bc);
         k.setArg(p++,work_per_thread);
         k.setArg(p++,srcH);
@@ -124,10 +169,16 @@ namespace dlprim { namespace core {
         dx.set_arg(k,p);
         dy.set_arg(k,p);
         k.setArg(p++,factor);
+#endif
         
         int gr_size = (bc + work_per_thread - 1) / work_per_thread;
+#if VULKAN_API
+		std::vector<uint32_t> gr({srcH,srcW,gr_size});
+		k->enqueue(gr, {1, 1, 1});
+#else
         cl::NDRange gr(srcH,srcW,gr_size);
         e.queue().enqueueNDRangeKernel(k,cl::NullRange,gr,cl::NullRange,e.events(),e.event("nearest_bwd"));
+#endif
     }
 
 
