@@ -89,7 +89,7 @@ namespace core {
 		tart::kernel_ptr kernel_;
 #else
         cl::Kernel kernel_;
-#endif;
+#endif
         DataType dtype_;
     };
 

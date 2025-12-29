@@ -637,6 +637,7 @@ namespace core {
             e.queue().enqueueNDRangeKernel(compute_backward_factors_,
                                    cl::NullRange,cl::NDRange(features_),cl::NullRange,
                                    e1.events(),e1.event("compute_backward_factors"));
+#endif
             p=0;
             backward_data_.setArg(p++,batches);
             backward_data_.setArg(p++,features_);

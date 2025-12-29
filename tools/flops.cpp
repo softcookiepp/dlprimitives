@@ -831,26 +831,48 @@ FlopsStats get_flops(std::string device, double scale)
     double max_gb = 0;
     for(int half =0;half < 1 + float16;half++) {
         try {
+#if VULKAN_API
+			tart::program_ptr prog = dp::gpu::Cache::instance().get_program(ctx,"benchmark","USE_HALF",half);
+            tart::kernel_ptr k1 = prog->getKernel("flops_v1");
+            tart::kernel_ptr k2 = prog->getKernel("flops_v2");
+            tart::kernel_ptr k4 = prog->getKernel("flops_v4");
+            tart::kernel_ptr k8 = prog->getKernel("flops_v8");
+            tart::kernel_ptr k16 = prog->getKernel("flops_v16");
+#else
             cl::Program const &prog = dp::gpu::Cache::instance().get_program(ctx,"benchmark","USE_HALF",half);
             cl::Kernel k1(prog,"flops_v1");
             cl::Kernel k2(prog,"flops_v2");
             cl::Kernel k4(prog,"flops_v4");
             cl::Kernel k8(prog,"flops_v8");
             cl::Kernel k16(prog,"flops_v16");
+#endif
             
             if(half == 0) {
                 std::cout << "Testing memory speed" << std::endl;
                 for(int d=1;d<=16;d*=2) {
+#if VULKAN_API
+                    tart::kernel_ptr ms = prog->getKernel("memspeed_v" + std::to_string(d));
+#else
                     cl::Kernel ms(prog,("memspeed_v" + std::to_string(d)).c_str());
+#endif
                     ms.setArg(0,halfG.device_buffer());
                     std::cout << "- Vector size " << d << std::endl;
                     std::cout << "-- Warming " << std::endl;
+#if VULKAN_API
+					ms->enqueue({mem_size/4/d}, {1});
+					q->sync();
+#else
                     q.enqueueNDRangeKernel(ms,cl::NullRange,cl::NDRange(mem_size/4/d),cl::NullRange,nullptr,nullptr);
                     q.finish();
+#endif
                     std::cout << "-- Running " << std::flush;
                     auto start = std::chrono::high_resolution_clock::now();
+#if VULKAN_API
+					ms->enqueue({mem_size/4/d}, {1});
+#else
                     q.enqueueNDRangeKernel(ms,cl::NullRange,cl::NDRange(mem_size/4/d),cl::NullRange,nullptr,nullptr);
                     q.finish();
+#endif
                     auto end = std::chrono::high_resolution_clock::now();
                     auto secs = std::chrono::duration_cast<std::chrono::duration<double> > ((end-start)).count();
                     double gbs = 2 * mem_size / secs * 1e-9; // read+write 
@@ -870,12 +892,22 @@ FlopsStats get_flops(std::string device, double scale)
 
                 std::cout << "- Vector size " << vs << std::endl;
                 std::cout << "-- Warming " << std::endl;
+#if VULKAN_API
+				k->enqueue({N/vs}, {1});
+				q->sync();
+#else
                 q.enqueueNDRangeKernel(k,cl::NullRange,cl::NDRange(N/vs),cl::NullRange,nullptr,nullptr);
                 q.finish();
+#endif
                 std::cout << "-- Running " << std::flush;
                 auto start = std::chrono::high_resolution_clock::now();
+#if VULKAN_API
+				k->enqueue({N/vs}, {1});
+				q->sync();
+#else
                 q.enqueueNDRangeKernel(k,cl::NullRange,cl::NDRange(N/vs),cl::NullRange,nullptr,nullptr);
                 q.finish();
+#endif
                 auto end = std::chrono::high_resolution_clock::now();
                 auto secs = std::chrono::duration_cast<std::chrono::duration<double> > ((end-start)).count();
                 double flops = N * 4.0 * 10000  * 2; // matrix 4 mads * float4 * 1000 * N

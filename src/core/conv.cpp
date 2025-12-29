@@ -394,7 +394,6 @@ namespace core {
             
             s_.enqueue(factor,dx,ec1);
 #if VULKAN_API
-#if VULKAN_API
             std::vector<uint32_t> l1({8,8});
             cl::NDRange g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
             ec.queue().enqueueNDRangeKernel(conv_kernel_bwd_,cl::NullRange,g1,l1,ec2.events(),ec2.event("winograd_3to4_kernel"));

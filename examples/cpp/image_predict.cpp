@@ -95,10 +95,13 @@ int main(int argc,char **argv)
             names.clear();
         }
     }
+#if VULKAN_API
+#else
     catch(cl::Error const &e) {
         std::cerr << "OpenCL error:" << e.what() << " " << e.err() << std::endl;
         return 1;
     }
+#endif
     catch(std::exception const &ex) {
         std::cerr << "Error:" << ex.what() << std::endl;
         return 1;

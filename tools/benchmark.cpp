@@ -238,7 +238,11 @@ int main(int argc,char **argv)
                                 std::cout << '[' << d->index << ']';
                             std::cout << "  " << time << " ms" << std::endl;
                         }
+#if VULKAN_API
+                        catch(std::exception const &e) {
+#else
                         catch(cl::Error const &e) {
+#endif
                             std::cerr << "Failed for " << d->name << " " << e.what() << e.err() << std::endl;
                         }
                     }
@@ -258,7 +262,11 @@ int main(int argc,char **argv)
         }
         std::cout << "TOT time per batch:  " << (total_time / total_batches * 1e3) << " ms" << std::endl;
     }
+#if VULKAN_API
+    catch(std::exception const &e) {
+#else
     catch(cl::Error const &e) {
+#endif
         std::cerr << "OpenCL error:" << e.what() << " " << e.err() << std::endl;
         return 1;
     }
