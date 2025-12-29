@@ -96,7 +96,11 @@ void copy_tensors(std::vector<dp::Tensor> &tensors,dp::json::value const &v)
 void copy_tensors(std::vector<dp::Tensor> &out,std::vector<dp::Tensor> &inp,dp::Context &ctx)
 {
     TESTEQ(out.size(),inp.size());
+#if VULKAN_API
+    tart::device_ptr q = ctx.make_queue();
+#else
     cl::CommandQueue q = ctx.make_queue();
+#endif
         
     for(size_t i=0;i<out.size();i++) {
         TESTEQ(out[i].shape(),inp[i].shape());
@@ -229,7 +233,11 @@ int main(int argc,char **argv)
         dp::Context ctx(argv[1]);
         dp::ExecutionContext e;
         if(!ctx.is_cpu_context()) {
+#if VULKAN_API
+			tart::device_ptr q = ctx.make_queue();
+#else
             cl::CommandQueue q = ctx.make_queue();
+#endif
             e = dp::ExecutionContext(q);
         }
         
@@ -436,10 +444,13 @@ int main(int argc,char **argv)
         
         return 0;
     }
+#if VULKAN_API
+#else
     catch(cl::Error const &e) {
         std::cerr << "\n\nFAILED: " << e.what() << " " << e.err()<< std::endl;
         return 1;
     }
+#endif
     catch(std::exception const &e) {
         std::cerr << "\n\nFAILED: " << e.what() << std::endl;
         return 1;

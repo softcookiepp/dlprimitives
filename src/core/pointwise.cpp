@@ -670,7 +670,37 @@ namespace core {
 #ifdef DEBUG_2STAGE
             std::cerr << "Items per thread/wg_size/nd_range:" << items_per_wi << "/" << wg_size << "/" << nd_range<< std::endl;
 #endif            
-           
+#if VULKAN_API
+            tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast_reduce",
+                                                                               "REDUCE_DIMS",reduce_dims.size(),
+                                                                               "SMALL_REDUCTION",small_reduction,
+                                                                               "DIMS",ref.size(),
+                                                                               "WG_SIZE",wg_size,
+                                                                               "ITEMS_PER_WI",items_per_wi,
+                                                                               "TWO_STAGE_REDUCTION",(second_stage_stride_ == 1 ? 0 : 1),
+                                                                               "#PARAMS",PARAMS.str(),
+                                                                               "#PREPARE_LOAD_INPUT_ALL",PREPARE_LOAD_INPUT_ALL.str(),
+                                                                               "#REDUCE_INIT_ALL",REDUCE_INIT_ALL.str(),
+                                                                               "#LOAD_INPUT_ALL",LOAD_INPUT_ALL.str(),
+                                                                               "#LOAD_REDUCE_ALL",LOAD_REDUCE_ALL.str(),
+                                                                               "#SAVE_REDUCE_ALL",SAVE_REDUCE_ALL.str(),
+                                                                               "#LOAD_REDUCED_SAVE_GLOBAL_ALL",LOAD_REDUCED_SAVE_GLOBAL_ALL.str(),
+                                                                               "#REDUCE",format_code(reduce),
+                                                                               "#CALC",format_code(compute_code));
+            kernel_ = prog->getKernel("exec");
+
+            std::vector<uint32_t> range;
+            std::vector<uint32_t> wg_range;
+            int zero = reduce_dims.size();
+            if(zero == 0) {
+                range = get_broadcast_ndrange(ref);
+                wg_range.resize(range.size(), 1);
+            }
+            else {
+                range = get_broadcast_reduce_ndrange(ref,zero,non_reduce_dims.size(),nd_range);
+                wg_range = wg_size == 0 ? {1, 1, 1} : {wg_size, 1, 1};
+            }
+#else
             cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast_reduce",
                                                                                "REDUCE_DIMS",reduce_dims.size(),
                                                                                "SMALL_REDUCTION",small_reduction,
@@ -700,6 +730,7 @@ namespace core {
                 range = get_broadcast_reduce_ndrange(ref,zero,non_reduce_dims.size(),nd_range);
                 wg_range = wg_size == 0 ? cl::NullRange : cl::NDRange(wg_size,1,1);
             }
+#endif
             range_ = range;
             wg_range_ = wg_range;
             wg_size_ = wg_size;
@@ -717,8 +748,13 @@ namespace core {
         size_t second_stage_stride_;
         DataType target_type_;
         size_t wg_size_;
+#if VULKAN_API
+		std::vector<uint32_t> range_,wg_range_;
+        std::vector<uint32_t> kernel_;
+#else
         cl::NDRange range_,wg_range_;
         cl::Kernel kernel_;
+#endif
         Shape ref_;
         std::unique_ptr<PointwiseOperationBroadcastReduceImpl> second_stage_;
     };

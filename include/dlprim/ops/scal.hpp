@@ -17,6 +17,10 @@ namespace dlprim {
         void scale(float s,Tensor &t,ExecutionContext const &ec);
     private:
         Context ctx_;
+#if VULKAN_API
+        tart::kernel_ptr k_;
+#else
         cl::Kernel k_;
+#endif
     };
 }

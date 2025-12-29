@@ -12,11 +12,18 @@ namespace dlprim {
 namespace core {
     SliceCopy::SliceCopy(Context &ctx,DataType dtype) :dtype_(dtype)
     {
+#if VULKAN_API
+		tart::program_ptr& prog = gpu::Cache::instance().get_program(ctx,"copy",
+                                "dtype",data_type_to_opencl_type(dtype_)
+                                );
+        kernel_ = prog->getKernel("copy");
+#else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"copy",
                                 "dtype",data_type_to_opencl_type(dtype_)
                                 );
         cl::Kernel k(prog,"copy");
         kernel_ =  k;
+#endif  
     }
     SliceCopy::~SliceCopy()
     {
@@ -35,6 +42,20 @@ namespace core {
         DLPRIM_CHECK(target_offset + slice <= t[1]);
         DLPRIM_CHECK(s[2] == t[2]);
         int p = 0;
+#if VULKAN_API
+		kernel_->setArg(p++,cl_ulong(slice));
+        kernel_->setArg(p++,cl_ulong(s[0]));
+        kernel_->setArg(p++,cl_ulong(t[1]));
+        kernel_->setArg(p++,cl_ulong(target_offset));
+        kernel_->setArg(p++,cl_ulong(s[1]));
+        kernel_->setArg(p++,cl_ulong(source_offset));
+        kernel_->setArg(p++,cl_ulong(s[2]));
+        target.set_arg(kernel_,p);
+        source.set_arg(kernel_,p);
+        bind_as_dtype(kernel_,p,scale,dtype_);
+		
+		kernel_->enqueue({s[2], slice, s[0]}, {1, 1, 1});
+#else
         kernel_.setArg(p++,cl_ulong(slice));
         kernel_.setArg(p++,cl_ulong(s[0]));
         kernel_.setArg(p++,cl_ulong(t[1]));
@@ -47,6 +68,7 @@ namespace core {
         bind_as_dtype(kernel_,p,scale,dtype_);
 
         q.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,cl::NDRange(s[2],slice,s[0]),cl::NullRange,q.events(),q.event("slice_copy"));
+#endif
     }
 }
 }

@@ -7,6 +7,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include <dlprim/config.hpp>
+#if VULKAN_API
+#include "tart.hpp"
+#else
 #if !defined(DLPRIM_USE_CL1_HPP) && !defined(DLPRIM_USE_CL2_HPP)
 #  ifndef CL_HPP_ENABLE_EXCEPTIONS
 #     define CL_HPP_ENABLE_EXCEPTIONS
@@ -57,3 +60,4 @@
 #  endif
 #endif
 
+#endif

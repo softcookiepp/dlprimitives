@@ -46,6 +46,15 @@ int main(int argc,char **argv)
         for(unsigned i=0;i<a.shape()[0];i++)
             p[i] = -5.0 + i;
         a.to_device(q2);
+#if VULKAN_API
+        tart::program_ptr& prg = dp::gpu::Cache::instance().get_program(ctx,"bias","ACTIVATION",int(dp::StandardActivations::relu));
+        tart::kernel_ptr k = prg->getKernel("activation_inplace");
+        int pos=0;
+        k->setArg(pos++,int(a.shape().total_size()));
+        a.set_arg(k,pos);
+        k->enqueue({a.shape().total_size()}, {1});
+        a.to_host(q2,false);
+#else
         cl::Program const &prg = dp::gpu::Cache::instance().get_program(ctx,"bias","ACTIVATION",int(dp::StandardActivations::relu));
         cl::Kernel k(prg,"activation_inplace");
         int pos=0;
@@ -54,6 +63,7 @@ int main(int argc,char **argv)
         q2.queue().enqueueNDRangeKernel(k,cl::NullRange,cl::NDRange(a.shape().total_size()),cl::NullRange,nullptr,nullptr);
         a.to_host(q2,false);
         q2.finish();
+#endif
         for(unsigned i=0;i<a.shape()[0];i++) {
             TEST(p[i] == std::max(0.0,-5.0 + i));
         }

@@ -109,7 +109,11 @@ namespace dlprim {
         void setup_kernel(int sm_range);
         DataType dtype_;
         std::string itype_;
+#if VULKAN_API
+		tart::kernel_ptr kernel_,kernel_bwd_;
+#else
         cl::Kernel kernel_,kernel_bwd_;
+#endif
         std::unique_ptr<Scal> scal_;
     };
 }
