@@ -69,8 +69,11 @@ namespace core {
         pointwise_operation({},{t},{value},"y0=w0;",e);
     }
 
-
+#if VULKAN_API
+    void fill_random(Tensor &t, uint64_t philox_seed, uint64_t philox_seq,RandomDistribution dist,float p1,float p2,ExecutionContext const &e)
+#else
     void fill_random(Tensor &t,cl_ulong philox_seed,cl_ulong philox_seq,RandomDistribution dist,float p1,float p2,ExecutionContext const &e)
+#endif
     {
         Context ctx(e);
         DLPRIM_CHECK(t.dtype() == float_data);
