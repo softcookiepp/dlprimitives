@@ -15,7 +15,7 @@
 namespace dlprim {
 namespace core {
 #if VULKAN_API
-    void bind_as_dtype(tart::kenrel_ptr k,int &p,double value,DataType dt)
+    void bind_as_dtype(tart::kernel_ptr k,int &p,double value,DataType dt)
 #else
     void bind_as_dtype(cl::Kernel &k,int &p,double value,DataType dt)
 #endif
@@ -28,7 +28,7 @@ namespace core {
         case  int64_data:   k->setArg(p++, int64_t(value)); break;
         case  int32_data:   k->setArg(p++, int(value)); break;
         case  int16_data:   k->setArg(p++, int16_t(value)); break;
-        case  int8_data:    k->setArg(p++, cl_char(value)); break;
+        case  int8_data:    k->setArg(p++, int8_t(value)); break;
         case  uint64_data:  k->setArg(p++, uint64_t(value)); break;
         case  uint32_data:  k->setArg(p++, uint32_t(value)); break;
         case  uint8_data:   k->setArg(p++, uint8_t(value)); break;
@@ -471,7 +471,11 @@ namespace core {
             }
 
             if(second_stage_stride_ != 1) {
+#if VULKAN_API
+                kernel_->setArg(p++,uint64_t(second_stage_stride_));
+#else
                 kernel_.setArg(p++,cl_ulong(second_stage_stride_));
+#endif
             }
 #if VULKAN_API
 			std::vector<uint32_t> glob(range_.size());
@@ -698,7 +702,7 @@ namespace core {
             }
             else {
                 range = get_broadcast_reduce_ndrange(ref,zero,non_reduce_dims.size(),nd_range);
-                wg_range = wg_size == 0 ? {1, 1, 1} : {wg_size, 1, 1};
+                wg_range = wg_size == 0 ? std::vector<uint32_t>({1, 1, 1}) : std::vector<uint32_t>({wg_size, 1, 1});
             }
 #else
             cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast_reduce",
@@ -750,7 +754,7 @@ namespace core {
         size_t wg_size_;
 #if VULKAN_API
 		std::vector<uint32_t> range_,wg_range_;
-        std::vector<uint32_t> kernel_;
+        tart::kernel_ptr kernel_;
 #else
         cl::NDRange range_,wg_range_;
         cl::Kernel kernel_;

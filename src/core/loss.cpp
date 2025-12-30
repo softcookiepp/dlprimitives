@@ -50,7 +50,6 @@ namespace core {
         std::vector<uint32_t> gr({b0,nd_range/wg_size,b2});
         std::vector<uint32_t> wg({1,wg_size,1});
         kernel->enqueue(gr, wg);
-        e.queue().enqueueNDRangeKernel(kernel,cl::NullRange,gr,wg,e.events(),e.event("softmax"));
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"softmax",
                             "WG_SIZE",wg_size,
