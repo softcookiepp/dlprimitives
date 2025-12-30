@@ -174,7 +174,7 @@ namespace core {
                 wg_size_ = 256;
             items_per_wi_ = (sm_range + wg_size_ - 1) / wg_size_;
 #if VULKAN_API
-			tart::program_ptr& prog = gpu::Cache::instance().get_program(ctx,"global_pooling",
+			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"global_pooling",
                     "POOL_MODE",int(avg),
                     "WG_SIZE",wg_size_,
                     "ENABLE_BWD",1,
@@ -211,7 +211,7 @@ namespace core {
             output.set_arg(kernel_,p);
 
             std::vector<uint32_t> gr({in_shape[0]*in_shape[1], nd_range_/wg_size_});
-            std::vecotr<uint32_t> wg({1, wg_size_});
+            std::vector<uint32_t> wg({1, wg_size_});
             kernel_->enqueue(gr, wg);
 #else
             kernel_.setArg(p++,int(in_shape[0]*in_shape[1]));
