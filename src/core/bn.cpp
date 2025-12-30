@@ -236,7 +236,7 @@ namespace core {
             update_sums_.setArg(p++,running_var_factor);
 #endif
 #if VULKAN_API
-			update_sums->enqueue({features_}, {1});
+			update_sums_->enqueue({features_}, {1});
 #else
             e.queue().enqueueNDRangeKernel(update_sums_,
                                            cl::NullRange,cl::NDRange(features_),cl::NullRange,
@@ -305,8 +305,13 @@ namespace core {
             DLPRIM_CHECK(ws.memory_size() >= ws_);
             Tensor b = ws.sub_tensor_target_offset(0,Shape(features_),dt_);
             int p = 0;
+#if VULKAN_API
+			mean_var_to_a_b_->setArg(p++,features_);
+            mean_var_to_a_b_->setArg(p++,eps);
+#else
             mean_var_to_a_b_.setArg(p++,features_);
             mean_var_to_a_b_.setArg(p++,eps);
+#endif
 
             mean.set_arg(mean_var_to_a_b_,p);
             var.set_arg(mean_var_to_a_b_,p);
@@ -577,9 +582,15 @@ namespace core {
             int hw = get_plane_size(dx.shape());
             int total = batches*hw;
             int p=0;
+#if VULKAN_API	
+			compute_backward_factors_->setArg(p++,features_);
+            compute_backward_factors_->setArg(p++,total);
+            compute_backward_factors_->setArg(p++,eps);
+#else
             compute_backward_factors_.setArg(p++,features_);
             compute_backward_factors_.setArg(p++,total);
             compute_backward_factors_.setArg(p++,eps);
+#endif
             mean.set_arg(compute_backward_factors_,p);
             var.set_arg(compute_backward_factors_,p);
             dy_sum.set_arg(compute_backward_factors_,p);
@@ -588,6 +599,7 @@ namespace core {
             x_factor.set_arg(compute_backward_factors_,p);
             dy_factor.set_arg(compute_backward_factors_,p);
             b_offset.set_arg(compute_backward_factors_,p);
+
 #if VULKAN_API
 			compute_backward_factors_->enqueue({features_}, {1});
 #else
@@ -596,6 +608,18 @@ namespace core {
                                    e1.events(),e1.event("compute_backward_factors"));
 #endif
             p=0;
+#if VULKAN_API
+			backward_data_->setArg(p++,batches);
+            backward_data_->setArg(p++,features_);
+            backward_data_->setArg(p++,hw);
+            x.set_arg(backward_data_,p);
+            dy.set_arg(backward_data_,p);
+            x_factor.set_arg(backward_data_,p);
+            dy_factor.set_arg(backward_data_,p);
+            b_offset.set_arg(backward_data_,p);
+            dx.set_arg(backward_data_,p);
+            backward_data_->setArg(p++,scale);
+#else
             backward_data_.setArg(p++,batches);
             backward_data_.setArg(p++,features_);
             backward_data_.setArg(p++,hw);
@@ -606,6 +630,7 @@ namespace core {
             b_offset.set_arg(backward_data_,p);
             dx.set_arg(backward_data_,p);
             backward_data_.setArg(p++,scale);
+#endif
             enqueue3D(backward_data_,batches,hw,e2,"backward_data");
         }
 
@@ -614,6 +639,18 @@ namespace core {
                              float dg_fact,float db_fact,float eps,ExecutionContext const &e)
         {
             int p=0;
+#if VULKAN_API 
+			backward_filter_->setArg(p++,features_);
+            mean.set_arg(backward_filter_,p);
+            var.set_arg(backward_filter_,p);
+            dy_sum.set_arg(backward_filter_,p);
+            dyx_sum.set_arg(backward_filter_,p);
+            dgamma.set_arg(backward_filter_,p);
+            dbeta.set_arg(backward_filter_,p);
+            backward_filter_->setArg(p++,eps);
+            backward_filter_->setArg(p++,dg_fact);
+            backward_filter_->setArg(p++,db_fact);
+#else
             backward_filter_.setArg(p++,features_);
             mean.set_arg(backward_filter_,p);
             var.set_arg(backward_filter_,p);
@@ -624,6 +661,7 @@ namespace core {
             backward_filter_.setArg(p++,eps);
             backward_filter_.setArg(p++,dg_fact);
             backward_filter_.setArg(p++,db_fact);
+#endif
 #if VULKAN_API
 			backward_filter_->enqueue({features_}, {1});
 #else
@@ -690,9 +728,15 @@ namespace core {
             int hw = get_plane_size(dx.shape());
             int total = batches*hw;
             int p=0;
+#if VULKAN_API
+			compute_backward_factors_->setArg(p++,features_);
+            compute_backward_factors_->setArg(p++,total);
+            compute_backward_factors_->setArg(p++,-1.0f); // use rstd instead of var
+#else
             compute_backward_factors_.setArg(p++,features_);
             compute_backward_factors_.setArg(p++,total);
             compute_backward_factors_.setArg(p++,-1.0f); // use rstd instead of var
+#endif
             mean.set_arg(compute_backward_factors_,p);
             rstd.set_arg(compute_backward_factors_,p);
             dy_sum.set_arg(compute_backward_factors_,p);
@@ -709,16 +753,26 @@ namespace core {
                                    e1.events(),e1.event("compute_backward_factors"));
 #endif
             p=0;
+#if VULKAN_API
+            backward_data_->setArg(p++,batches);
+            backward_data_->setArg(p++,features_);
+            backward_data_->setArg(p++,hw);
+#else
             backward_data_.setArg(p++,batches);
             backward_data_.setArg(p++,features_);
             backward_data_.setArg(p++,hw);
+#endif
             x.set_arg(backward_data_,p);
             dy.set_arg(backward_data_,p);
             x_factor.set_arg(backward_data_,p);
             dy_factor.set_arg(backward_data_,p);
             b_offset.set_arg(backward_data_,p);
             dx.set_arg(backward_data_,p);
+#if VULKAN_API
+            backward_data_->setArg(p++,scale);
+#else
             backward_data_.setArg(p++,scale);
+#endif
             enqueue3D(backward_data_,batches,hw,e2,"backward_data");
         }
 

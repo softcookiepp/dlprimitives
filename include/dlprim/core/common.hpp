@@ -59,8 +59,11 @@ namespace core {
     /// \param p1 - min value for uniform and mu for normal
     /// \param p2 - max value for uniform and sigma for normal
     ///
+#if VULKAN_API
+    void fill_random(Tensor &t, uint64_t philox_seed, uint64_t philox_seq,RandomDistribution dist,float p1,float p2,ExecutionContext const &e);
+#else
     void fill_random(Tensor &t,cl_ulong philox_seed,cl_ulong philox_seq,RandomDistribution dist,float p1,float p2,ExecutionContext const &e);
-
+#endif
    
     
     ///
