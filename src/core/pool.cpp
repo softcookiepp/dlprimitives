@@ -22,7 +22,7 @@ namespace core {
             DLPRIM_CHECK(dt == float_data);
             wg_size_ = 8;
 #if VULKAN_API	
-			tart::program_ptr& prog = gpu::Cache::instance().get_program(ctx,"pooling",
+			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"pooling",
                                         "WG_SIZE",wg_size_,
                                         "POOL_H",k[0],
                                         "POOL_W",k[1],
@@ -151,7 +151,7 @@ namespace core {
         int wg_size_;
 #if VULKAN_API
         tart::kernel_ptr kernel_;
-        tart:kernel_ptr bwd_kernel_;
+        tart::kernel_ptr bwd_kernel_;
 #else
         cl::Kernel kernel_;
         cl::Kernel bwd_kernel_;
