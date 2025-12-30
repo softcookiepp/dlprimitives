@@ -139,9 +139,9 @@ namespace core {
             int hw = get_plane_size(x.shape());
             int p = 0;
 #if VULKAN_API
-			sums_.setArg(p++,batch);
-            sums_.setArg(p++,channels);
-            sums_.setArg(p++,hw);
+			sums_->setArg(p++,batch);
+            sums_->setArg(p++,channels);
+            sums_->setArg(p++,hw);
             x.set_arg(sums_,p);
 #else
             sums_.setArg(p++,batch);
@@ -169,12 +169,21 @@ namespace core {
                 x_sum.set_arg(sums_,p);
                 x2_sum.set_arg(sums_,p);
                 p=0;
+#if VULKAN_API
+				sums_reduce_->setArg(p++,features_);
+                x_sum.set_arg(sums_reduce_,p);
+                x2_sum.set_arg(sums_reduce_,p);
+                mean.set_arg(sums_reduce_,p);
+                var.set_arg(sums_reduce_,p);
+                sums_reduce_->setArg(p++,1.0f/(batch*hw));
+#else
                 sums_reduce_.setArg(p++,features_);
                 x_sum.set_arg(sums_reduce_,p);
                 x2_sum.set_arg(sums_reduce_,p);
                 mean.set_arg(sums_reduce_,p);
                 var.set_arg(sums_reduce_,p);
                 sums_reduce_.setArg(p++,1.0f/(batch*hw));
+#endif
 
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
@@ -205,6 +214,17 @@ namespace core {
                                                   Tensor &ws,ExecutionContext const &e)
         {
             int p=0;
+#if VULKAN_API
+			update_sums_->setArg(p++,features_);
+            batch_mean.set_arg(update_sums_,p);
+            batch_var.set_arg(update_sums_,p);
+            running_mean.set_arg(update_sums_,p);
+            running_var.set_arg(update_sums_,p);
+            update_sums_->setArg(p++,batch_mean_factor);
+            update_sums_->setArg(p++,running_mean_factor);
+            update_sums_->setArg(p++,batch_var_factor);
+            update_sums_->setArg(p++,running_var_factor);
+#else
             update_sums_.setArg(p++,features_);
             batch_mean.set_arg(update_sums_,p);
             batch_var.set_arg(update_sums_,p);
@@ -214,6 +234,7 @@ namespace core {
             update_sums_.setArg(p++,running_mean_factor);
             update_sums_.setArg(p++,batch_var_factor);
             update_sums_.setArg(p++,running_var_factor);
+#endif
 #if VULKAN_API
 			update_sums->enqueue({features_}, {1});
 #else
@@ -245,9 +266,15 @@ namespace core {
             int p = 0;
             int batches = x.shape()[0];
             int rc = get_plane_size(x.shape());
+#if VULKAN_API
+			forward_->setArg(p++,int(x.shape()[0]));
+            forward_->setArg(p++,features_);
+            forward_->setArg(p++,int(rc));
+#else
             forward_.setArg(p++,int(x.shape()[0]));
             forward_.setArg(p++,features_);
             forward_.setArg(p++,int(rc));
+#endif
 
             x.set_arg(forward_,p);
             y.set_arg(forward_,p);
@@ -305,9 +332,13 @@ namespace core {
             split_ws_to_a_b(ws,a,b);
 
             int p = 0;
+#if VULKAN_API
+			mean_var_to_a_b_->setArg(p++,features_);
+            mean_var_to_a_b_->setArg(p++,eps);
+#else
             mean_var_to_a_b_.setArg(p++,features_);
             mean_var_to_a_b_.setArg(p++,eps);
-
+#endif
             mean.set_arg(mean_var_to_a_b_,p);
             var.set_arg(mean_var_to_a_b_,p);
             a.set_arg(mean_var_to_a_b_,p);
@@ -341,9 +372,13 @@ namespace core {
             split_ws_to_a_b(ws,a,b);
 
             int p = 0;
+#if VULKAN_API
+			combine_mean_var_with_gamma_beta_->setArg(p++, features_);
+            combine_mean_var_with_gamma_beta_->setArg(p++,eps);
+#else
             combine_mean_var_with_gamma_beta_.setArg(p++,features_);
             combine_mean_var_with_gamma_beta_.setArg(p++,eps);
-
+#endif
             mean.set_arg(combine_mean_var_with_gamma_beta_,p);
             var.set_arg(combine_mean_var_with_gamma_beta_,p);
             gamma.set_arg(combine_mean_var_with_gamma_beta_,p);
@@ -416,9 +451,15 @@ namespace core {
             DLPRIM_CHECK(channels==features_);
             int hw = get_plane_size(x.shape());
             int p = 0;
+#if VULKAN_API
+			dyx_sums_->setArg(p++,batch);
+            dyx_sums_->setArg(p++,channels);
+            dyx_sums_->setArg(p++,hw);
+#else
             dyx_sums_.setArg(p++,batch);
             dyx_sums_.setArg(p++,channels);
             dyx_sums_.setArg(p++,hw);
+#endif
             x.set_arg(dyx_sums_,p);
             dy.set_arg(dyx_sums_,p);
             if(second_reduce_ <= 1) {
@@ -441,7 +482,11 @@ namespace core {
                 s1.set_arg(dyx_sums_,p);
                 s2.set_arg(dyx_sums_,p);
                 p=0;
+#if VULKAN_API
+                dyx_sums_reduce_->setArg(p++,features_);
+#else
                 dyx_sums_reduce_.setArg(p++,features_);
+#endif
                 s1.set_arg(dyx_sums_reduce_,p);
                 s2.set_arg(dyx_sums_reduce_,p);
                 dyx_sum.set_arg(dyx_sums_reduce_,p);
