@@ -186,7 +186,11 @@ namespace dlprim {
         ///
         /// Get cl::Buffer for the tensor
         ///
-        cl::Buffer &device_buffer() 
+#if VULKAN_API
+        tart::buffer_ptr& device_buffer()
+#else
+        cl::Buffer &device_buffer()
+#endif
         { 
             return buffer_;
         }
@@ -196,7 +200,11 @@ namespace dlprim {
         ///
         /// Always uses 64 bit ulong even of the device 32 bit. 
         ///
+#if VULKAN_API
+        uint64_t device_offset()
+#else
         cl_ulong device_offset() 
+#endif
         {
             return offset_; 
         }
@@ -288,11 +296,19 @@ namespace dlprim {
         ///
         /// Assign buffer and offset as kernel argumnets, at position pos and pos+1, pos incrementeded twice
         ///
+#if VULKAN_API
+		void set_arg(tart::kernel_ptr &k,int &pos)
+        {
+            k->setArg(pos++,device_buffer());
+            k->setArg(pos++,device_offset());
+        }
+#else
         void set_arg(cl::Kernel &k,int &pos)
         {
             k.setArg(pos++,device_buffer());
             k.setArg(pos++,device_offset());
         }
+#endif
 
     private:
 		struct HostMem;

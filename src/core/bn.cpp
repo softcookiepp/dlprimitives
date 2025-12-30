@@ -138,10 +138,17 @@ namespace core {
             DLPRIM_CHECK(channels==features_);
             int hw = get_plane_size(x.shape());
             int p = 0;
+#if VULKAN_API
+			sums_.setArg(p++,batch);
+            sums_.setArg(p++,channels);
+            sums_.setArg(p++,hw);
+            x.set_arg(sums_,p);
+#else
             sums_.setArg(p++,batch);
             sums_.setArg(p++,channels);
             sums_.setArg(p++,hw);
             x.set_arg(sums_,p);
+#endif
             if(second_reduce_ <= 1) {
                 mean.set_arg(sums_,p);
                 var.set_arg(sums_,p);
@@ -215,8 +222,11 @@ namespace core {
                                            e.events(),e.event("update_sums"));
 #endif
         }
-
+#if VULKAN_API
+        void enqueue3D(tart::kernel_ptr &k,int batches,int rc,ExecutionContext const &e,char const *name)
+#else
         void enqueue3D(cl::Kernel &k,int batches,int rc,ExecutionContext const &e,char const *name)
+#endif
         {
 #if VULKAN_API
 			k->enqueue({rc, features_, batches}, {1, 1, 1});
@@ -468,19 +478,33 @@ namespace core {
             int batches = dx.shape()[0];
             int hw = get_plane_size(dx.shape());
             int p=0;
-            var_gamma_to_a_.setArg(p++,features_);
+#if VULKAN_API
+			var_gamma_to_a_->setArg(p++,features_);
+            var_gamma_to_a_->setArg(p++,eps);
+            var.set_arg(var_gamma_to_a_,p);
+            gamma.set_arg(var_gamma_to_a_,p);
+            dy_factor.set_arg(var_gamma_to_a_,p);
+			var_gamma_to_a_->enqueue({features_}, {1});
+#else
+			var_gamma_to_a_.setArg(p++,features_);
             var_gamma_to_a_.setArg(p++,eps);
             var.set_arg(var_gamma_to_a_,p);
             gamma.set_arg(var_gamma_to_a_,p);
             dy_factor.set_arg(var_gamma_to_a_,p);
-#if VULKAN_API
-			var_gamma_to_a_->enqueue({features_}, {1});
-#else
             e.queue().enqueueNDRangeKernel(var_gamma_to_a_,
                                            cl::NullRange,cl::NDRange(features_),cl::NullRange,
                                            e1.events(),e2.event("var_gamma_to_a"));
 #endif
             p=0;
+#if VULKAN_API
+			backward_test_->setArg(p++,batches);
+            backward_test_->setArg(p++,features_);
+            backward_test_->setArg(p++,hw);
+            dx.set_arg(backward_test_,p);
+            dy.set_arg(backward_test_,p);
+            dy_factor.set_arg(backward_test_,p);
+            backward_test_->setArg(p++,dx_factor);
+#else
             backward_test_.setArg(p++,batches);
             backward_test_.setArg(p++,features_);
             backward_test_.setArg(p++,hw);
@@ -488,6 +512,7 @@ namespace core {
             dy.set_arg(backward_test_,p);
             dy_factor.set_arg(backward_test_,p);
             backward_test_.setArg(p++,dx_factor);
+#endif
             enqueue3D(backward_test_,batches,hw,e2,"backward_data");
         }
 
