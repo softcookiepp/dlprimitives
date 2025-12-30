@@ -31,11 +31,10 @@ namespace core {
             int outs  = y.shape()[1];
             int bias_offset = bias ? bias->device_offset() : 0;
 #if VULKAN_API
-			tart::buffer_ptr
+			tart::buffer_ptr bias_buffer = bias ? bias->device_buffer() :  nullptr;
 #else
-            cl::Buffer*
+            cl::Buffer* bias_buffer = bias ? &bias->device_buffer() :  nullptr;
 #endif
-			bias_buffer = bias ? &bias->device_buffer() :  nullptr;
             gemm_->gemm(batch,outs,inps,
                     x.device_buffer(),x.device_offset(),inps,
                     w.device_buffer(),w.device_offset(),inps,
