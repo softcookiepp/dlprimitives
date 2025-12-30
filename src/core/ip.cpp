@@ -250,7 +250,6 @@ namespace core {
                 kernel2_->setArg(p++, 1);
                 kernel2_->setArg(p++, beta);
                 kernel2_->enqueue({1, features_}, {wg2_, 1});
-                e.queue().enqueueNDRangeKernel(kernel2_,cl::NullRange,cl::NDRange(wg2_,features_),cl::NDRange(wg2_,1),ec2.events(),ec2.event("bwd_bias_b"));
 #else
                 kernel_.setArg(p++,features_);
                 kernel_.setArg(p++,total_size);
