@@ -118,8 +118,11 @@ int main(int argc,char **argv)
             solver.reset(new dp::solvers::Adam(ctx));
         if(enable_sgd) 
             solver.reset(new dp::solvers::SGD(ctx));
-
+#if VULKAN_API
+        dp::ExecutionContext q=ctx.make_execution_context(0);
+#else
         dp::ExecutionContext q=ctx.make_execution_context((enable_profiling && !force_cpu_times)? CL_QUEUE_PROFILING_ENABLE : 0);
+#endif
         std::shared_ptr<dp::TimingData> timing;
         if(enable_profiling) {
             timing.reset(new dp::TimingData);
@@ -202,7 +205,11 @@ int main(int argc,char **argv)
                 if(ctx.is_cpu_context()||force_cpu_times) {
                     for(unsigned i=0;i<timing->sections().size();i++) {
                         int s = i;
+#if VULKAN_API
+                        std::stack<std::string> sections;
+#else
                         std::stack<char const *> sections;
+#endif
                         while(s!=-1) {
                             auto &sec = timing->sections().at(s);
                             sections.push(sec.name);
@@ -216,8 +223,14 @@ int main(int argc,char **argv)
                     }
                 }
                 else {
-                    for(auto &d : timing->events()) {
+#if VULKAN_API
+#else
+                    for(auto &d : timing->events())
+                    {
                         try {
+
+							// can't do this yet :c
+
                             auto end =   d->event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
                             auto start = d->event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
                             double time = (end - start) * 1e-6;
@@ -238,15 +251,14 @@ int main(int argc,char **argv)
                                 std::cout << '[' << d->index << ']';
                             std::cout << "  " << time << " ms" << std::endl;
                         }
-#if VULKAN_API
-                        catch(std::exception const &e) {
-#else
+
                         catch(cl::Error const &e) {
-#endif
+
                             std::cerr << "Failed for " << d->name << " " << e.what() << e.err() << std::endl;
                         }
                     }
                     std::cout << "Total GPU " << total_event_time << " ms , real " << std::chrono::duration_cast<std::chrono::duration<double> > ((stop-start)).count() * 1e3 << " ms" << std::endl;
+#endif
                 }
             }
             if(i>=0) {
@@ -263,13 +275,13 @@ int main(int argc,char **argv)
         std::cout << "TOT time per batch:  " << (total_time / total_batches * 1e3) << " ms" << std::endl;
     }
 #if VULKAN_API
-    catch(std::exception const &e) {
 #else
     catch(cl::Error const &e) {
-#endif
+
         std::cerr << "OpenCL error:" << e.what() << " " << e.err() << std::endl;
         return 1;
     }
+#endif
     catch(std::exception const &ex) {
         std::cerr << "Error:" << ex.what() << std::endl;
         return 1;

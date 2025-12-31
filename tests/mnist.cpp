@@ -129,6 +129,9 @@ int main(int argc,char **argv)
         auto stop = std::chrono::system_clock::now();
         if(total != 0 && !reported && timing) {
             double total_event_time = 0;
+#if VULKAN_API
+			// profiling isn't yet implemented for tart
+#else
             for(auto &d : timing->events()) {
                 try {
                     auto end =   d->event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
@@ -151,14 +154,13 @@ int main(int argc,char **argv)
                         std::cout << '[' << d->index << ']';
                     std::cout << "  " << time << " us" << std::endl;
                 }
-#if VULKAN_API
                 catch(cl::Error const &e) {
-#else
-                catch(cl::Error const &e) {
-#endif
+
                     std::cerr << "Failed for " << d->name << " " << e.what() << e.err() << std::endl;
                 }
+
             }
+#endif
             std::cout << "Total GPU " << total_event_time << " us , real " << std::chrono::duration_cast<std::chrono::duration<double> > ((stop-start)).count() * 1e6 << " us" << std::endl;
             reported = true;
         }

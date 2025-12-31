@@ -142,7 +142,12 @@ namespace dlprim {
         Tensor &operator=(Tensor const &) = default;
         Tensor(Tensor &&) = default;
         Tensor &operator=(Tensor &&) = default;
-        ~Tensor() {}
+        ~Tensor()
+#if VULKAN_API
+		;
+#else
+        {}
+#endif
         
         TensorSpecs const &specs() const
         {
@@ -318,6 +323,11 @@ namespace dlprim {
         int offset_;
 #if VULKAN_API
 		tart::buffer_ptr buffer_;
+		// for deallocation
+		tart::device_ref dev_;
+		
+		// whether or not the buffer belongs to another tensor.
+		bool own_buffer_ = false;
 #else
         cl::Buffer buffer_;
 #endif

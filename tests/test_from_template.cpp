@@ -373,7 +373,11 @@ int main(int argc,char **argv)
                     for(dp::Tensor &tensor : out_tensors)
                         tensor.to_host(e,false);
                     if(ctx.is_opencl_context())    
+#if VULKAN_API
+                        e.queue()->sync();
+#else
                         e.queue().finish();
+#endif
                 }
                 double eps = cases[i].get<double>("eps",1e-5);
                 compare_tensors(out_tensors,ref_tensors,eps);
@@ -418,7 +422,11 @@ int main(int argc,char **argv)
                             for(dp::Tensor &tensor : param_diffs)
                                 tensor.to_host(e,false);
                             if(ctx.is_opencl_context())    
-                                e.queue().finish();
+#if VULKAN_API
+								e.queue()->sync();
+#else
+								e.queue().finish();
+#endif
                         }
                         std::vector<int> params_grad,params_nograd;
                         for(auto p : param_specs) {

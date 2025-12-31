@@ -109,13 +109,22 @@ namespace dlprim {
 			host_->alloc(size);
         if(!cpu_tensor_) {
 #if VULKAN_API
-			// gonna need to figure out where to put the device class
-			throw std::runtime_error("buffer creation not implemented");
+			buffer_ = ctx.context()->allocateBuffer(size);
+			dev_ = ctx.context();
+			own_buffer_ = true;
 #else
             buffer_ = cl::Buffer(ctx.context(),CL_MEM_READ_WRITE,size);
 #endif
         }
     }
+
+#if VULKAN_API
+	// tart makes you free buffers automatically. this behavior might change in the future.
+	Tensor::~Tensor()
+	{
+		dev_.lock()->deallocateBuffer(buffer_);
+	}
+#endif
 
     void Tensor::reshape(Shape const &new_shape)
     {

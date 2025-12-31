@@ -811,7 +811,11 @@ private:
     dp::DataType dt_;
     Metrics ref_;
     double scale_;
+#if VULKAN_API
+    uint64_t seed_,seq_;
+#else
     cl_ulong seed_,seq_;
+#endif
     FILE *report_;
 };
 
@@ -852,10 +856,12 @@ FlopsStats get_flops(std::string device, double scale)
                 for(int d=1;d<=16;d*=2) {
 #if VULKAN_API
                     tart::kernel_ptr ms = prog->getKernel("memspeed_v" + std::to_string(d));
+                    ms->setArg(0,halfG.device_buffer());
 #else
                     cl::Kernel ms(prog,("memspeed_v" + std::to_string(d)).c_str());
-#endif
                     ms.setArg(0,halfG.device_buffer());
+#endif
+                    
                     std::cout << "- Vector size " << d << std::endl;
                     std::cout << "-- Warming " << std::endl;
 #if VULKAN_API
@@ -883,12 +889,19 @@ FlopsStats get_flops(std::string device, double scale)
             }
  
             std::cout << "Testing flops " << (half ? "half" : "float") << std::endl;
-
+#if VULKAN_API
+            std::vector<tart::kernel_ref> ks={k1, k2, k4, k8, k16};
+#else
             std::vector<cl::Kernel *> ks={&k1,&k2,&k4,&k8,&k16};
+#endif
             for(unsigned i=0,vs=1;i<ks.size();i++,vs*=2)  {
+#if VULKAN_API
+                tart::kernel_ptr k = ks[i].lock();
+                k->setArg(0, t.device_buffer());
+#else
                 cl::Kernel &k=*ks[i];
                 k.setArg(0,t.device_buffer());
-
+#endif
 
                 std::cout << "- Vector size " << vs << std::endl;
                 std::cout << "-- Warming " << std::endl;
