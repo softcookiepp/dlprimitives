@@ -45,7 +45,7 @@ namespace core {
 		std::vector<uint32_t> l({wg});
         std::vector<uint32_t> g = gpu::round_range(size,l);
         g[0] = g[0]/l[0];
-        k_->enqueue(g, l);
+        k_->run(g, l);
 #else
         cl::NDRange l(wg);
         cl::NDRange g=gpu::round_range(size,l);
@@ -102,7 +102,7 @@ namespace core {
         k->setArg(p++,philox_seq);
         k->setArg(p++,p1);
         k->setArg(p++,p2);
-        k->enqueue({(total+3)/4}, {1});
+        k->run({(total+3)/4}, {1});
 #else
         k.setArg(p++,total);
         t.set_arg(k,p);

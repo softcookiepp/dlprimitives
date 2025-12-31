@@ -122,7 +122,7 @@ namespace dlprim {
 	// tart makes you free buffers automatically. this behavior might change in the future.
 	Tensor::~Tensor()
 	{
-		dev_.lock()->deallocateBuffer(buffer_);
+		//dev_.lock()->deallocateBuffer(buffer_);
 	}
 #endif
 

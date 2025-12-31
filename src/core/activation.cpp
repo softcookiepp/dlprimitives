@@ -67,7 +67,7 @@ namespace core {
         std::vector<uint32_t> wg({256});
         std::vector<uint32_t> gr=gpu::round_range(size,wg);
         gr[0] = gr[0]/wg[0];
-        k->enqueue(gr, wg);
+        k->run(gr, wg);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"activation",
                                                     "ACTIVATION",int(activation));

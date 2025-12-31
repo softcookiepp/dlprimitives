@@ -54,7 +54,7 @@ namespace core {
         source.set_arg(kernel_,p);
         bind_as_dtype(kernel_,p,scale,dtype_);
 		
-		kernel_->enqueue({s[2], slice, s[0]}, {1, 1, 1});
+		kernel_->run({s[2], slice, s[0]}, {1, 1, 1});
 #else
         kernel_.setArg(p++,cl_ulong(slice));
         kernel_.setArg(p++,cl_ulong(s[0]));

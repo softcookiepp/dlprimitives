@@ -244,7 +244,7 @@ namespace gpu {
 #endif
 #if VULKAN_API
 			// TODO: ensure the global size for this isn't wrong
-			act_->enqueue({size}, {1});
+			act_->run({size}, {1});
 #else
 			ec.queue().enqueueNDRangeKernel(act_, cl::NullRange, cl::NDRange(size),cl::NullRange,ec.events(),ec.event("activation"));
 #endif
@@ -274,7 +274,7 @@ namespace gpu {
 			std::vector<uint32_t> l({wg});
 			std::vector<uint32_t> g = gpu::round_range(size, l);
 			g[0] = g[0]/wg;
-			scal_->enqueue(g, l);
+			scal_->run(g, l);
 #else
             cl::NDRange l(wg);
             cl::NDRange g=gpu::round_range(size,l);
@@ -466,7 +466,7 @@ namespace gpu {
 				global[i] = global[i]/local[i];
 			}
 			// weeeeeeeeeeeeeee
-			kernel_->enqueue(global, local);
+			kernel_->run(global, local);
 #else
             e.queue().enqueueNDRangeKernel(kernel_, cl::NullRange, global,local,e.events(),e.event("gemm"));
 #endif
@@ -599,7 +599,7 @@ namespace gpu {
 #if VULKAN_API
 			std::vector<uint32_t>  local({1,ls0,ls1});
 			std::vector<uint32_t> global({batches/local[0],gs0/local[1],gs1/local[2]});
-			kernel_->enqueue(global, local);
+			kernel_->run(global, local);
 #else
             cl::NDRange global = cl::NDRange(batches,gs0,gs1);
             cl::NDRange local =  cl::NDRange(1,ls0,ls1);
@@ -797,7 +797,7 @@ namespace gpu {
 #endif
             }
 #if VULKAN_API
-			kernel_->enqueue(global, local);
+			kernel_->run(global, local);
 #else
             e.queue().enqueueNDRangeKernel(kernel_, cl::NullRange, global,local,e.events(),e.event(gemm_name_));
 #endif

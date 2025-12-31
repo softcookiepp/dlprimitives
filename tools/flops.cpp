@@ -865,7 +865,7 @@ FlopsStats get_flops(std::string device, double scale)
                     std::cout << "- Vector size " << d << std::endl;
                     std::cout << "-- Warming " << std::endl;
 #if VULKAN_API
-					ms->enqueue({mem_size/4/d}, {1});
+					ms->run({mem_size/4/d}, {1});
 					q->sync();
 #else
                     q.enqueueNDRangeKernel(ms,cl::NullRange,cl::NDRange(mem_size/4/d),cl::NullRange,nullptr,nullptr);
@@ -874,7 +874,7 @@ FlopsStats get_flops(std::string device, double scale)
                     std::cout << "-- Running " << std::flush;
                     auto start = std::chrono::high_resolution_clock::now();
 #if VULKAN_API
-					ms->enqueue({mem_size/4/d}, {1});
+					ms->run({mem_size/4/d}, {1});
 #else
                     q.enqueueNDRangeKernel(ms,cl::NullRange,cl::NDRange(mem_size/4/d),cl::NullRange,nullptr,nullptr);
                     q.finish();
@@ -906,7 +906,7 @@ FlopsStats get_flops(std::string device, double scale)
                 std::cout << "- Vector size " << vs << std::endl;
                 std::cout << "-- Warming " << std::endl;
 #if VULKAN_API
-				k->enqueue({N/vs}, {1});
+				k->run({N/vs}, {1});
 				q->sync();
 #else
                 q.enqueueNDRangeKernel(k,cl::NullRange,cl::NDRange(N/vs),cl::NullRange,nullptr,nullptr);
@@ -915,7 +915,7 @@ FlopsStats get_flops(std::string device, double scale)
                 std::cout << "-- Running " << std::flush;
                 auto start = std::chrono::high_resolution_clock::now();
 #if VULKAN_API
-				k->enqueue({N/vs}, {1});
+				k->run({N/vs}, {1});
 				q->sync();
 #else
                 q.enqueueNDRangeKernel(k,cl::NullRange,cl::NDRange(N/vs),cl::NullRange,nullptr,nullptr);

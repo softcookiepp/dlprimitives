@@ -240,7 +240,7 @@ namespace core {
                 kernel_->setArg(p++,0.0f);
                 auto ec1 = e.generate_series_context(0,2);
                 auto ec2 = e.generate_series_context(1,2);
-                kernel_->enqueue(g, l);
+                kernel_->run(g, l);
                 p=0;
                 kernel2_->setArg(p++,features_);
                 kernel2_->setArg(p++,size2_);
@@ -248,7 +248,7 @@ namespace core {
                 dw.set_arg(kernel2_, p); 
                 kernel2_->setArg(p++, 1);
                 kernel2_->setArg(p++, beta);
-                kernel2_->enqueue({1, features_}, {wg2_, 1});
+                kernel2_->run({1, features_}, {wg2_, 1});
 #else
                 kernel_.setArg(p++,features_);
                 kernel_.setArg(p++,total_size);
@@ -284,7 +284,7 @@ namespace core {
                 dw.set_arg(kernel_,p);
                 kernel_->setArg(p++,1);
                 kernel_->setArg(p++,beta);
-                kernel_->enqueue(g, l);
+                kernel_->run(g, l);
 #else
                 cl::NDRange l(wg_,1);
                 cl::NDRange g=gpu::round_range(norm_size,features_,l);
@@ -353,7 +353,7 @@ namespace core {
         k->setArg(p++,RC);
         t.set_arg(k,p);
         bias.set_arg(k,p);
-        k->enqueue({RC,F,B}, {1, 1, 1});
+        k->run({RC,F,B}, {1, 1, 1});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"fwd_bias");
         cl::Kernel k(prog,"fwd_bias");

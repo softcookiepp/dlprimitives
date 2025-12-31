@@ -116,7 +116,7 @@ namespace core {
             y.set_arg(k,p);
         for(double w:ws)
             bind_as_dtype(k,p,w,ref_type);
-        k->enqueue({total}, {1});
+        k->run({total}, {1});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"pointwise",
                                                                            "dtype",data_type_to_opencl_type(ref_type),
@@ -354,7 +354,7 @@ namespace core {
         }
         std::vector<uint32_t> range = get_broadcast_ndrange(ref);
         std::vector<uint32_t> local(range.size(), 1);
-		k->enqueue(range, local);
+		k->run(range, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
                                                                            "DIMS",ref.size(),
@@ -482,12 +482,12 @@ namespace core {
 			for (size_t i = 0; i < glob.size(); i += 1)
 				glob[i] = range_[i]/wg_range_[i];
 			if(second_stage_stride_ == 1) {
-				kernel_->enqueue(glob, wg_range_);
+				kernel_->run(glob, wg_range_);
             }
             else {
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
-                kernel_->enqueue(glob, wg_range_);
+                kernel_->run(glob, wg_range_);
                 DLPRIM_CHECK(second_stage_->workspace() == 0);
                 Tensor tmp;
                 second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
@@ -502,7 +502,7 @@ namespace core {
                 e.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,range_,wg_range_,e1.events(),e1.event("pointwise_exec_broadcast_1st_stage"));
                 DLPRIM_CHECK(second_stage_->workspace() == 0);
                 Tensor tmp;
-                second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
+                second_stage_->run(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
             }
 #endif
         }

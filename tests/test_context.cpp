@@ -57,7 +57,7 @@ int main(int argc,char **argv)
         int pos=0;
         k->setArg(pos++,int(a.shape().total_size()));
         a.set_arg(k,pos);
-        k->enqueue({a.shape().total_size()}, {1});
+        k->run({a.shape().total_size()}, {1});
         a.to_host(q2,false);
 #else
         cl::Program const &prg = dp::gpu::Cache::instance().get_program(ctx,"bias","ACTIVATION",int(dp::StandardActivations::relu));

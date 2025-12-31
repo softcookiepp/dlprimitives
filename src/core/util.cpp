@@ -59,7 +59,7 @@ namespace core {
         k->setArg(p++,dst);
         k->setArg(p++,dst_offset);
         std::vector<uint32_t> local(range.size(), 1);
-        k->enqueue(range, local);
+        k->run(range, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"copy_strided",
                                 "dtype_src",data_type_to_opencl_type(dtype_src,use_io_type),
