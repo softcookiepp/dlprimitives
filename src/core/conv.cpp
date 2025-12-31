@@ -57,7 +57,11 @@ namespace core {
 #endif
             int bias_offset = 0;
             if(bias) {
+#if VULKAN_API
                 bias_buffer = bias->device_buffer();
+#else
+                bias_buffer = &bias->device_buffer();
+#endif
                 bias_offset = bias->device_offset();
             }
             int batch = x.shape()[0];
@@ -277,8 +281,9 @@ namespace core {
             }
             out.set_arg(conv_,p);
 #if VULKAN_API
+			conv_->setArg(p++,factor);
 #else
-            conv_->setArg(p++,factor);
+            conv_.setArg(p++,factor);
 #endif
 
             auto ec1 = ec.generate_series_context(0,2);

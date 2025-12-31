@@ -186,15 +186,19 @@ namespace gpu {
         {
             if(sep_scale_ == false) {
 #if VULKAN_API
-				tart::program_ptr&
+				tart::program_ptr
 #else
                 cl::Program const &
 #endif
 					prog = gpu::Cache::instance().get_program(ctx,"scal");
+#if VULKAN_API
+                scal_ = prog->getKernel("sscal");
+#else
                 scal_ = std::move(cl::Kernel(prog,"sscal"));
+#endif
                 if(activation != StandardActivations::identity) {
 #if VULKAN_API
-					tart::program_ptr&
+					tart::program_ptr
 #else
                     cl::Program const &
 #endif
@@ -225,42 +229,47 @@ namespace gpu {
 #endif
 			ExecutionContext const &ec)
         {
-                act_.setArg(0,
 #if VULKAN_API
-					size
+			act_->setArg(0, uint64_t(size));
+			act_->setArg(1, x);
+			act_->setArg(2, x_offset);
+			act_->setArg(3, x);
+			act_->setArg(4, x_offset);
 #else
-					cl_ulong(size)
+			act_.setArg(0, cl_ulong(size));
+			act_.setArg(1, x);
+			act_.setArg(2, x_offset);
+			act_.setArg(3, x);
+			act_.setArg(4, x_offset);
 #endif
-				);
-                act_.setArg(1,x);
-                act_.setArg(2,x_offset);
-                act_.setArg(3,x);
-                act_.setArg(4,x_offset);
 #if VULKAN_API
-				tart::device_ptr& dev = ec.queue();
-				// TODO: ensure the global size for this isn't wrong
-				act_->enqueue({size}, {1});
+			// TODO: ensure the global size for this isn't wrong
+			act_->enqueue({size}, {1});
 #else
-                ec.queue().enqueueNDRangeKernel(act_, cl::NullRange, cl::NDRange(size),cl::NullRange,ec.events(),ec.event("activation"));
+			ec.queue().enqueueNDRangeKernel(act_, cl::NullRange, cl::NDRange(size),cl::NullRange,ec.events(),ec.event("activation"));
 #endif
         }
-
+#if VULKAN_API
+        void scale(size_t size,float s, const tart::buffer_ptr& x, uint64_t x_offset,ExecutionContext const &ec)
+#else
         void scale(size_t size,float s,cl::Buffer &x,cl_ulong x_offset,ExecutionContext const &ec)
+#endif
         {
             int wg = 64;
             if(size >= 1024)
                 wg = 256;
             int p=0;
-            scal_.setArg(p++,
-#if VULKAN_API
-				size
+#if VULKAN_API 
+            scal_->setArg(p++, uint64_t(size));
+            scal_->setArg(p++, s);
+            scal_->setArg(p++, x);
+            scal_->setArg(p++, x_offset);
 #else
-				cl_ulong(size)
-#endif
-			);
+            scal_.setArg(p++, cl_ulong(size));
             scal_.setArg(p++,s);
             scal_.setArg(p++,x);
             scal_.setArg(p++,x_offset);
+#endif
 #if VULKAN_API
 			std::vector<uint32_t> l({wg});
 			std::vector<uint32_t> g = gpu::round_range(size, l);
@@ -279,8 +288,13 @@ namespace gpu {
         bool sep_scale_;
         bool sep_act_;
         bool batch_gemm_;
+#if VULKAN_API
+        tart::kernel_ptr scal_;
+        tart::kernel_ptr act_;
+#else
         cl::Kernel scal_;
         cl::Kernel act_;
+#endif
         bool zorder_ = false;
     };
 
@@ -295,6 +309,23 @@ namespace gpu {
                 StandardSGEMMBase(ctx,M,N,K,true,false,act)
         {
             check_zorder(ctx,M,N);
+#if VULKAN_API
+            tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm",
+                                        "TILE_SIZE_M",tile_size_m_,
+                                        "TILE_SIZE_N",tile_size_n_,
+                                        "BLOCK_SIZE_M",block_size_m_,
+                                        "BLOCK_SIZE_N",block_size_n_,
+                                        "TILE_SIZE_K",tile_size_k_,
+                                        "TILE_OFFSET",off_,
+                                        "BIAS",bias,
+                                        "ATRANS",int(atrans),
+                                        "BTRANS",int(btrans),
+                                        "IM2COL_OCHAN",im2col_chan,
+                                        "REDUCE_K",reduce_k_,
+                                        "ZORDER",zorder_,
+                                        "ACTIVATION",int(act));
+            kernel_ = prog->getKernel("sgemm");
+#else
             cl::Program const &prog = Cache::instance().get_program(ctx,"sgemm",
                                         "TILE_SIZE_M",tile_size_m_,
                                         "TILE_SIZE_N",tile_size_n_,
@@ -310,13 +341,14 @@ namespace gpu {
                                         "ZORDER",zorder_,
                                         "ACTIVATION",int(act));
             kernel_ = cl::Kernel(prog,"sgemm");
+#endif
             bias_ = bias;
         }
         static int round_up_div(int x,int y)
         {
             return (x + y - 1)/y;
         }
-        virtual void gemm(int M,int N,int K,
+        void gemm(int M,int N,int K,
 #if VULKAN_API
 						tart::buffer_ptr &a,
 						size_t offset_a,
@@ -358,6 +390,26 @@ namespace gpu {
                 e=ein;
             }
             int ind=0;
+#if VULKAN_API
+            kernel_->setArg(ind++,M);
+            kernel_->setArg(ind++,N);
+            kernel_->setArg(ind++,K);
+            kernel_->setArg(ind++,a);
+            kernel_->setArg(ind++,offset_a);
+            kernel_->setArg(ind++,lda);
+            kernel_->setArg(ind++,b);
+            kernel_->setArg(ind++,offset_b);
+            kernel_->setArg(ind++,ldb);
+            kernel_->setArg(ind++,c);
+            kernel_->setArg(ind++,offset_c);
+            kernel_->setArg(ind++,ldc);
+            kernel_->setArg(ind++,beta);
+            if(bias_) {
+                DLPRIM_CHECK(bias != nullptr);
+                kernel_->setArg(ind++,*bias);
+                kernel_->setArg(ind++,bias_offset);
+            }
+#else
             kernel_.setArg(ind++,M);
             kernel_.setArg(ind++,N);
             kernel_.setArg(ind++,K);
@@ -376,6 +428,7 @@ namespace gpu {
                 kernel_.setArg(ind++,*bias);
                 kernel_.setArg(ind++,bias_offset);
             }
+#endif
             else {
                 DLPRIM_CHECK(bias == nullptr);
             }
@@ -390,7 +443,7 @@ namespace gpu {
 				global,local;
             if(reduce_k_ > 1) {
 #if VULKAN_API
-				global = {reduce_k_,gs0,gs1};
+				global = {reduce_k_,gs0/ls0,gs1/ls1};
 				local = {1,ls0,ls1};
 #else
                 global = cl::NDRange(reduce_k_,gs0,gs1);
@@ -399,7 +452,7 @@ namespace gpu {
             }
             else {
 #if VULKAN_API
-				global = {gs0,gs1};
+				global = {gs0/ls0,gs1/ls1};
                 local =  {ls0,ls1};
 #else
                 global = cl::NDRange(gs0,gs1);
@@ -446,7 +499,7 @@ namespace gpu {
             DLPRIM_CHECK(act == StandardActivations::identity);
             check_zorder(ctx,M,N);
 #if VULKAN_API
-			tart::program_ptr&
+			tart::program_ptr
 #else
             cl::Program const &
 #endif
@@ -472,7 +525,7 @@ namespace gpu {
 #endif
             bias_ = false;
         }
-        virtual void gemm(int batches,int M,int N,int K,
+        void gemm(int batches,int M,int N,int K,
 #if VULKAN_API
 						tart::buffer_ptr a,
 						size_t offset_a,
@@ -503,6 +556,25 @@ namespace gpu {
         {
 
             int ind=0;
+#if VULKAN_API
+            kernel_->setArg(ind++,batches);
+            kernel_->setArg(ind++,M);
+            kernel_->setArg(ind++,N);
+            kernel_->setArg(ind++,K);
+            kernel_->setArg(ind++,a);
+            kernel_->setArg(ind++,offset_a);
+            kernel_->setArg(ind++,batch_stride_a);
+            kernel_->setArg(ind++,lda);
+            kernel_->setArg(ind++,b);
+            kernel_->setArg(ind++,offset_b);
+            kernel_->setArg(ind++,batch_stride_b);
+            kernel_->setArg(ind++,ldb);
+            kernel_->setArg(ind++,c);
+            kernel_->setArg(ind++,offset_c);
+            kernel_->setArg(ind++,batch_stride_c);
+            kernel_->setArg(ind++,ldc);
+            kernel_->setArg(ind++,beta);
+#else
             kernel_.setArg(ind++,batches);
             kernel_.setArg(ind++,M);
             kernel_.setArg(ind++,N);
@@ -520,6 +592,7 @@ namespace gpu {
             kernel_.setArg(ind++,batch_stride_c);
             kernel_.setArg(ind++,ldc);
             kernel_.setArg(ind++,beta);
+#endif
            
             int gs0,gs1,ls0,ls1;
             calc_dims(gs0,ls0,gs1,ls1,M,N);
@@ -535,7 +608,11 @@ namespace gpu {
         }
 
     private:
+#if VULKAN_API
+		tart::kernel_ptr kernel_;
+#else
         cl::Kernel kernel_;
+#endif
         bool bias_;
         bool zorder_;
     };
@@ -556,7 +633,7 @@ namespace gpu {
                 StandardSGEMMBase(ctx,M,N,K,false,false,act)
         {
 #if VULKAN_API
-			tart::program_ptr&
+			tart::program_ptr
 #else
             cl::Program const &
 #endif
@@ -608,7 +685,7 @@ namespace gpu {
             ci_ = src_channels;
             w_ = src_cols;
         }
-        virtual void gemm(int M,int N,int K,
+        void gemm(int M,int N,int K,
 #if VULKAN_API
 						tart::buffer_ptr a,
 						uint64_t offset_a,
@@ -649,6 +726,26 @@ namespace gpu {
                 e=ein;
             }
             int ind=0;
+#if VULKAN_API
+            kernel_->setArg(ind++,M);
+            kernel_->setArg(ind++,N);
+            kernel_->setArg(ind++,K);
+            kernel_->setArg(ind++,a);
+            kernel_->setArg(ind++,offset_a);
+            kernel_->setArg(ind++,lda);
+            kernel_->setArg(ind++,b);
+            kernel_->setArg(ind++,offset_b);
+            kernel_->setArg(ind++,ldb);
+            kernel_->setArg(ind++,c);
+            kernel_->setArg(ind++,offset_c);
+            kernel_->setArg(ind++,ldc);
+            kernel_->setArg(ind++,beta);
+            if(bias_) {
+                DLPRIM_CHECK(bias != nullptr);
+                kernel_->setArg(ind++,*bias);
+                kernel_->setArg(ind++,bias_offset);
+            }
+#else
             kernel_.setArg(ind++,M);
             kernel_.setArg(ind++,N);
             kernel_.setArg(ind++,K);
@@ -667,6 +764,7 @@ namespace gpu {
                 kernel_.setArg(ind++,*bias);
                 kernel_.setArg(ind++,bias_offset);
             }
+#endif
             else {
                 DLPRIM_CHECK(bias == nullptr);
             }
