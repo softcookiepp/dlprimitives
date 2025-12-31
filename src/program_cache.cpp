@@ -76,12 +76,13 @@ cl::Program
     std::ostringstream prepend;
     std::ostringstream ss;
     bool combine = false;
+
 #if VULKAN_API
-	// just disable this for now. it will be important to translate later though
 #else
     std::string ocl_version = ctx.platform().getInfo<CL_PLATFORM_VERSION>();
     if(ocl_version.substr(7,1) >= "2") 
 	    ss << "-cl-std=CL2.0 ";
+#endif
     bool enable_half = ctx.check_device_extension("cl_khr_fp16");
     for(size_t i=0;i<params.size();i++) {
         if(i > 0)
@@ -98,7 +99,7 @@ cl::Program
         prepend << "#pragma OPENCL EXTENSION cl_khr_fp16 : enable\n";
         combine=true;
     }
-#endif
+
     std::string const &code = (combine ? prepend.str() + source_text : source_text);
     std::string sparams = ss.str();
     
@@ -135,6 +136,7 @@ cl::Program
 	// just make the program correctly.
 	// for now it will use clspv
 	// at some point the OpenCL C codegen will be adapted for GLSL; that day has not come
+	std::cout << "BUILD ARGS: " << sparams << std::endl;
 	tart::shader_module_ptr mod = ctx.device()->compileCL(code);
 	tart::cl_program_ptr clprg = ctx.device()->createCLProgram(mod);
 	tart::program_ptr prg = ctx.device()->createProgram(clprg);

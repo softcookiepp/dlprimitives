@@ -120,9 +120,13 @@ if(NOT USE_INTERNAL_BLAS)
 endif()
 
 
-
-file(GLOB CL_SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/*.cl)
-file(GLOB CL_HEADERS  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/*.h)
+if(USE_VULKAN_API)
+	file(GLOB CL_SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-clspv/*.cl)
+	file(GLOB CL_HEADERS  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-clspv/*.h)
+else()
+	file(GLOB CL_SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/*.cl)
+	file(GLOB CL_HEADERS  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/*.h)
+endif()
 
 if(NOT BUILD_CORE_ONLY)
     find_package(PythonLibs 3)
