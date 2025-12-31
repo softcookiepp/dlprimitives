@@ -94,13 +94,13 @@ void SoftmaxWithLoss::setup_kernel(int sm_range)
     if(!setup_kernel_params(sm_range))
         return;
 #if VULKAN_API
-    tart::program_ptr& prog_fwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
+    tart::program_ptr prog_fwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
                                                             "WG_SIZE",wg_size_,
                                                             "ITEMS_PER_WI",items_per_wi_,
                                                             "itype",itype_,
                                                             "CALC_LOSS",1);
     kernel_ = prog_fwd->getKernel("softmax");
-    tart::program_ptr& prog_bwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
+    tart::program_ptr prog_bwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
                                                 "WG_SIZE",wg_size_,
                                                 "ITEMS_PER_WI",items_per_wi_,
                                                 "itype",itype_,
