@@ -348,19 +348,19 @@ namespace gpu {
         {
             return (x + y - 1)/y;
         }
-        void gemm(int M,int N,int K,
+        virtual void gemm(int M,int N,int K,
 #if VULKAN_API
 						tart::buffer_ptr &a,
-						size_t offset_a,
+						uint64_t offset_a,
 						int lda,
 						tart::buffer_ptr &b,
-						size_t offset_b,
+						uint64_t offset_b,
 						int ldb,
 						tart::buffer_ptr &c,
-						size_t offset_c,
+						uint64_t offset_c,
 						int ldc,
 						tart::buffer_ptr bias,
-						size_t bias_offset,
+						uint64_t bias_offset,
 #else
                           cl::Buffer &a,
                           cl_ulong offset_a,
@@ -525,18 +525,18 @@ namespace gpu {
 #endif
             bias_ = false;
         }
-        void gemm(int batches,int M,int N,int K,
+        virtual void gemm(int batches,int M,int N,int K,
 #if VULKAN_API
 						tart::buffer_ptr a,
-						size_t offset_a,
+						uint64_t offset_a,
 						int batch_stride_a,
 						int lda,
 						tart::buffer_ptr b,
-						size_t offset_b,
+						uint64_t offset_b,
 						int batch_stride_b,
 						int ldb,
 						tart::buffer_ptr c,
-						size_t offset_c,
+						uint64_t offset_c,
 #else
                           cl::Buffer &a,
                           cl_ulong offset_a,
@@ -685,15 +685,15 @@ namespace gpu {
             ci_ = src_channels;
             w_ = src_cols;
         }
-        void gemm(int M,int N,int K,
+        virtual void gemm(int M,int N,int K,
 #if VULKAN_API
-						tart::buffer_ptr a,
+						tart::buffer_ptr &a,
 						uint64_t offset_a,
 						int lda,
-						tart::buffer_ptr b,
+						tart::buffer_ptr &b,
 						uint64_t offset_b,
 						int ldb,
-						tart::buffer_ptr c,
+						tart::buffer_ptr &c,
 						uint64_t offset_c,
 						int ldc,
 						tart::buffer_ptr bias,
@@ -866,15 +866,15 @@ namespace gpu {
                           int M,int N,int K,
 #if VULKAN_API
                           tart::buffer_ptr &a,
-                          size_t offset_a, 
+                          uint64_t offset_a, 
                           int batch_stride_a,
                           int lda,
                           tart::buffer_ptr &b,
-                          size_t offset_b,
+                          uint64_t offset_b,
                           int batch_stride_b,
                           int ldb,
                           tart::buffer_ptr &c,
-                          size_t offset_c,
+                          uint64_t offset_c,
 #else
                           cl::Buffer &a,
                           cl_ulong offset_a, 
