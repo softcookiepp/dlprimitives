@@ -16,7 +16,7 @@ namespace dlprim {
         if(ctx_.is_cpu_context())
             return;
 #if VULKAN_API
-        tart::program_ptr& prog = gpu::Cache::instance().get_program(ctx,"scal");
+        tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"scal");
         k_ = prog->getKernel("sscal");
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"scal");
@@ -43,8 +43,8 @@ namespace dlprim {
             else
                 wg = 64;
 #if VULKAN_API
-			k_.setArg(p++,cl_ulong(size));
-            k_.setArg(p++,s);
+			k_->setArg(p++, uint64_t(size));
+            k_->setArg(p++,s);
             t.set_arg(k_,p);
             std::vector<uint32_t> l({wg});
             std::vector<uint32_t> g = gpu::round_range(size,l);

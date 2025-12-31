@@ -17,8 +17,13 @@ AXPBY::AXPBY(Context &ctx,DataType dt) : ctx_(ctx)
     DLPRIM_CHECK(dt == float_data);
     if(ctx_.is_cpu_context())
         return;
+#if VULKAN_API
+    tart::program_ptr prog = gpu::Cache::instance().get_program(ctx_,"axpby");
+    kernel_ = prog->getKernel("axpby");
+#else
     cl::Program const &prog = gpu::Cache::instance().get_program(ctx_,"axpby");
     kernel_ = cl::Kernel(prog,"axpby");
+#endif
 }
 AXPBY::~AXPBY()
 {
@@ -67,17 +72,19 @@ void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext
         cl::NDRange g=gpu::round_range(total,l);
 #endif
         int p=0;
-        kernel_.setArg(p++,
 #if VULKAN_API
-			total);
+		kernel_->setArg(p++, uint64_t(total));
+        kernel_->setArg(p++, a);
+        x.set_arg(kernel_, p);
+        kernel_->setArg(p++, b);
 #else
-			cl_ulong(total));
+        kernel_.setArg(p++, cl_ulong(total));
+        kernel_.setArg(p++, a);
+        x.set_arg(kernel_, p);
+        kernel_.setArg(p++, b);
 #endif
-        kernel_.setArg(p++,a);
-        x.set_arg(kernel_,p);
-        kernel_.setArg(p++,b);
-        y.set_arg(kernel_,p);
-        z.set_arg(kernel_,p);
+        y.set_arg(kernel_, p);
+        z.set_arg(kernel_, p);
 #if VULKAN_API
 		kernel_->enqueue(g, l);
 #else
