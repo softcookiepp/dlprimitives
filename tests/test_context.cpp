@@ -36,8 +36,13 @@ int main(int argc,char **argv)
         dp::ExecutionContext q2 = ctx2.make_execution_context();
 
         if(ctx.is_opencl_context()) {
+#if VULKAN_API
+			TEST(ctx.platform() == ctx2.platform());
+            TEST(ctx.device() == ctx2.device());
+#else
             TEST(ctx.platform()() == ctx2.platform()());
             TEST(ctx.device()() == ctx2.device()());
+#endif
         }
     
 
@@ -47,7 +52,7 @@ int main(int argc,char **argv)
             p[i] = -5.0 + i;
         a.to_device(q2);
 #if VULKAN_API
-        tart::program_ptr& prg = dp::gpu::Cache::instance().get_program(ctx,"bias","ACTIVATION",int(dp::StandardActivations::relu));
+        tart::program_ptr prg = dp::gpu::Cache::instance().get_program(ctx,"bias","ACTIVATION",int(dp::StandardActivations::relu));
         tart::kernel_ptr k = prg->getKernel("activation_inplace");
         int pos=0;
         k->setArg(pos++,int(a.shape().total_size()));
