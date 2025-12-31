@@ -80,7 +80,12 @@ namespace dlprim {
 			cl::Buffer const &
 #endif
 			buffer,
-			cl_ulong offset, Shape const &s, DataType d, bool is_train) :
+#if VULKAN_API
+			uint64_t offset, 
+#else
+			cl_ulong offset, 
+#endif
+			Shape const &s, DataType d, bool is_train) :
         specs_(new TensorSpecs(s,d,is_train)),
 		host_(new Tensor::HostMem()),
         cpu_tensor_(false),
@@ -189,7 +194,7 @@ namespace dlprim {
 		{
 			host_->alloc(full_capacity_);
 		}
-		return static_cast<char*>(host_->mHostMem.data()) + offset_ * size_of_data_type(dtype());
+		return (char*)(host_->mHostMem.data()) + offset_ * size_of_data_type(dtype());
 #else
 		if(!host_->p) {
 			host_->alloc(full_capacity_);

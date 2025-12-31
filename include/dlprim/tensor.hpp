@@ -122,7 +122,7 @@ namespace dlprim {
 #endif
 				buffer,
 #if VULKAN_API
-				size_t
+				uint64_t
 #else
 				cl_ulong
 #endif
