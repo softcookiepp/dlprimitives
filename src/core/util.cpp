@@ -30,7 +30,7 @@ namespace core {
         Context ctx(q);
         bool use_io_type = dtype_src == dtype_dst;
 #if VULKAN_API
-		tart::program_ptr& prog = gpu::Cache::instance().get_program(ctx,"copy_strided",
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"copy_strided",
                                 "dtype_src",data_type_to_opencl_type(dtype_src,use_io_type),
                                 "dtype_tgt",data_type_to_opencl_type(dtype_dst,use_io_type),
                                 "DIMS",dims);
@@ -50,9 +50,9 @@ namespace core {
         tart::kernel_ptr k = prog->getKernel("copy");
         int p=0;
         for(int i=0;i<dims;i++) {
-            k->setArg(p++,cl_ulong(shape[i]));
-            k->setArg(p++,cl_ulong(src_strides[i]));
-            k->setArg(p++,cl_ulong(dst_strides[i]));
+            k->setArg(p++,uint64_t(shape[i]));
+            k->setArg(p++,uint64_t(src_strides[i]));
+            k->setArg(p++,uint64_t(dst_strides[i]));
         }
         k->setArg(p++,src);
         k->setArg(p++,src_offset);
