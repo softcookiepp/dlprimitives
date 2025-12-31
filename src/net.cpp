@@ -854,7 +854,11 @@ namespace dlprim {
                 workspace_,
                 ec);
             if(sync && ctx_.is_opencl_context())
+#if VULKAN_API
+                e.queue()->sync();
+#else
                 e.queue().finish();
+#endif
         }
     }
     
@@ -873,7 +877,11 @@ namespace dlprim {
                 workspace_,
                 ec);
             if(sync && ctx_.is_opencl_context()) {
+#if VULKAN_API
+                e.queue()->sync();
+#else
                 e.queue().finish();
+#endif
             }
 
         }
