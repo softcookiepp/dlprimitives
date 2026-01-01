@@ -344,6 +344,7 @@ if(NOT BUILD_CORE_ONLY)
     add_executable(dlprim_flops tools/flops.cpp)
     add_executable(test_random tests/test_random.cpp)
     add_executable(test_gemm tests/test_gemm.cpp)
+    add_executable(sanity_check tests/sanity_check.cpp)
 
     target_link_libraries(test_from_template dlprim)
     target_link_libraries(mnist dlprim)
@@ -355,6 +356,7 @@ if(NOT BUILD_CORE_ONLY)
     target_link_libraries(test_net dlprim)
     target_link_libraries(test_random dlprim)
     target_link_libraries(test_gemm dlprim)
+    target_link_libraries(sanity_check dlprim)
 
 endif()
 
