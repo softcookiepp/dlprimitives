@@ -23,7 +23,7 @@ namespace core {
         switch(dt) {
 #if VULKAN_API
 		case  double_data:  k->setArg(p++, double(value)); break;
-        case  float_data:   k->setArg(p++, float(value)); break;
+        case  float_data:   k->setArg(p++, (float)(value)); break;
         case  half_data:    k->setArg(p++, float(value)); break; // half goes as float to kernel parameter
         case  int64_data:   k->setArg(p++, int64_t(value)); break;
         case  int32_data:   k->setArg(p++, int(value)); break;
@@ -116,6 +116,7 @@ namespace core {
             y.set_arg(k,p);
         for(double w:ws)
             bind_as_dtype(k,p,w,ref_type);
+		std::cout << "p: " << p << std::endl;
         k->run({total}, {1});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"pointwise",
