@@ -6,7 +6,7 @@
 /// MIT License, see LICENSE.TXT
 ///
 ///////////////////////////////////////////////////////////////////////////////
-#include "defs.glsl"
+#include "common/defs.glsl"
 
 layout(binding = 0, std430) buffer y_buf { dtype y[]; };
 layout(binding = 1, std430) buffer dy_buf { dtype dy[]; };

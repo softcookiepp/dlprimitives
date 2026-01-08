@@ -7,7 +7,7 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 #include "defs.glsl"
-#include "workgroup.glsl"
+#include "common/workgroup.glsl"
 
 layout(binding = 0, std430) buffer a_buf { dtype a[]; };
 layout(binding = 1, std430) buffer c_buf { dtype c[]; };
