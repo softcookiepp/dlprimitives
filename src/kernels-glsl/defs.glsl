@@ -6,15 +6,17 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
-#extension GL_EXT_shader_64bit_indexing : require
+
+// this is not implemented yet, if it ever will be
+#define USE_BDA 0
 
 // OpenCL semantics, because why not
-#define get_global_id(dim) uint64_t(gl_GlobalInvocationID[dim])
-#define get_local_id(dim) uint64_t(gl_LocalInvocationID[dim])
-#define get_group_id(dim) uint64_t(gl_WorkGroupID[dim])
-#define get_global_size(idx) uint64_t(gl_NumWorkGroups[idx] * gl_WorkGroupSize[idx])
-#define get_local_size(idx) uint64_t(gl_WorkGroupSize[idx])
-#define get_num_groups(dim) uint64_t(gl_NumWorkGroups[dim])
+#define get_global_id(dim) gl_GlobalInvocationID[dim]
+#define get_local_id(dim) gl_LocalInvocationID[dim]
+#define get_group_id(dim) gl_WorkGroupID[dim]
+#define get_global_size(idx) gl_NumWorkGroups[idx] * gl_WorkGroupSize[idx]
+#define get_local_size(idx) gl_WorkGroupSize[idx]
+#define get_num_groups(dim) gl_NumWorkGroups[dim]
 
 #define ACTIVATION_IDENTITY 0
 #define ACTIVATION_RELU     1
