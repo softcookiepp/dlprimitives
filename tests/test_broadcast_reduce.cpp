@@ -202,6 +202,11 @@ bool equal(dp::Tensor a,dp::Tensor b,dp::ExecutionContext const &q,int eps = 0)
                 std::cout << i << ": " << a.data<int64_t>()[i] << " " << b.data<int64_t>()[i] << std::endl;
             }
         }
+        else if(a.dtype() == dlprim::int32_data) {
+            for(size_t i=0;i<a.shape().total_size();i++) {
+                std::cout << i << ": " << a.data<int32_t>()[i] << " " << b.data<int32_t>()[i] << std::endl;
+            }
+        }
         /*else if(a.dtype() == dlprim::half_data) {
             for(size_t i=0;i<a.shape().total_size();i++) {
                 std::cout << i << ": " << a.data<my_half>()[i].to_int() << " " << b.data<my_half>()[i].to_int() << std::endl;
