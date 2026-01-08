@@ -303,7 +303,7 @@ endif()
 
 if(USE_VULKAN_API)
 	target_compile_definitions(dlprim_core PUBLIC VULKAN_API)
-	target_include_directories(dlprim_core PUBLIC tart/include tart/VulkanMemoryAllocator/include)
+	target_include_directories(dlprim_core PUBLIC tart/include tart/VulkanMemoryAllocator/include tart/xxhashct)
 endif()
 
 if(NOT BUILD_CORE_ONLY)
