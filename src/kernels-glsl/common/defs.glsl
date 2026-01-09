@@ -25,11 +25,12 @@
 #define ACTIVATION_RELU6    4
 
 #ifndef dtype
-#define dtype float
-#define dtype2 vec2
-#define dtype4 vec4
-#define DTYPE_MAX FLT_MAX
-#define DTYPE_MIN FLT_MIN
+	#define sizeof_dtype 4
+	#define dtype float
+	#define dtype2 vec2
+	#define dtype4 vec4
+	#define DTYPE_MAX FLT_MAX
+	#define DTYPE_MIN FLT_MIN
 #endif
 
 
