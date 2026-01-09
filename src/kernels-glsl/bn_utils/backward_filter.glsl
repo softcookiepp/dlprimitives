@@ -54,7 +54,8 @@ void main()
 
     float dys = dy_sum[i + dy_sum_offset];
 
-    if(use_gamma) {
+    if(use_gamma)
+    {
         float dG = (dyx_sum[i + dyx_sum_offset] - mean[i + mean_offset]*dys) / sqrt(var[i + var_offset] + eps); 
         if(factor_gamma == 0)
             dgamma[i + dgamma_offset] = dG;
@@ -62,7 +63,8 @@ void main()
             dgamma[i + dgamma_offset] = dgamma[i + dgamma_offset]*factor_gamma + dG;
     }
     
-    if(use_beta) {
+    if(use_beta)
+    {
         if(factor_beta == 0)
             dbeta[i + dbeta_offset] = dys;
         else
