@@ -8,7 +8,9 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 // this is not implemented yet, if it ever will be
-#define USE_BDA 0
+#ifndef USE_BDA
+	#define USE_BDA 0
+#endif
 
 // OpenCL semantics, because why not
 #define get_global_id(dim) gl_GlobalInvocationID[dim]

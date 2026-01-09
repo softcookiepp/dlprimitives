@@ -19,16 +19,20 @@
 
 layout(local_size_x = WG_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 0, std430) readonly buffer x_buf { float x[]; };
-#if BACKWARD == 1
-	layout(binding = 1, std430) readonly buffer dy_buf { float dy[]; };
-	layout(binding = 2 std430) buffer dyx_sum_buf { float dyx_sum[]; };
-	layout(binding = 3 std430) buffer dy_sum_buf { float dy_sum[]; };
-#else
-	#if SECOND_REDUCE_SIZE == 1
-		layout(binding = 1, std430) buffer x_mean_buf { float x_mean[]; };
-		layout(binding = 2, std430) buffer x_var_buf { float x_var[]; };
+#if USE_BDA == 0
+	layout(binding = 0, std430) readonly buffer x_buf { float x[]; };
+	#if BACKWARD == 1
+		layout(binding = 1, std430) readonly buffer dy_buf { float dy[]; };
+		layout(binding = 2, std430) buffer dyx_sum_buf { float dyx_sum[]; };
+		layout(binding = 3, std430) buffer dy_sum_buf { float dy_sum[]; };
 	#else
+		#if SECOND_REDUCE_SIZE == 1
+			layout(binding = 1, std430) buffer x_mean_buf { float x_mean[]; };
+			layout(binding = 2, std430) buffer x_var_buf { float x_var[]; };
+		#else
+			layout(binding = 1, std430) buffer x_sum_buf { float x_sum[]; };
+			layout(binding = 2, std430) buffer x2_sum_buf { float x2_sum[]; };
+		#endif
 	#endif
 #endif
 
