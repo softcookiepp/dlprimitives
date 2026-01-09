@@ -28,7 +28,7 @@ layout(push_constant, std430) uniform backward_test
 	float factor;
 };
         
-        void main()     
+void main()     
 {
     uint b  = get_global_id(DIM_B);
     uint f  = get_global_id(DIM_F);
