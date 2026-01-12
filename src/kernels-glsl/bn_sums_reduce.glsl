@@ -20,7 +20,7 @@
 // this might get confusing.
 // #if SECOND_REDUCE_SIZE > 1
 layout(local_size_x = SECOND_REDUCE_SIZE, local_size_y = 1, local_size_z = 1) in;
-
+layout(local_size_x = SECOND_REDUCE_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) readonly buffer s1_buf { float s1[]; };

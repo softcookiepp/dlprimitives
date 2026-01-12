@@ -6,8 +6,8 @@
 /// MIT License, see LICENSE.TXT
 ///
 ///////////////////////////////////////////////////////////////////////////////
-#include "common/defs.glsl"
-#include "common/reduce.glsl"
+#include "../common/defs.glsl"
+#include "../common/reduce.glsl"
 
 #ifndef SECOND_REDUCE_SIZE
 #define SECOND_REDUCE_SIZE 1
@@ -15,56 +15,74 @@
 
 #include "defs.glsl"
 
-__attribute__((reqd_work_group_size(WG_SIZE,1,1)))
+layout(local_size_x = WG_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-layout(local_size_x = SECOND_REDUCE_SIZE, local_size_y = 1, local_size_z = 1) in;
+#if USE_BDA == 0
+	layout(binding = 0, std430) readonly buffer inp_buf { float inp[]; };
+	layout(binding = 1, std430) buffer kern_buf { float kern[]; };
+	layout(binding = 1, std430) readonly buffer outp_buf { float outp[]; };
+#endif
 
-void conv_bw_filter(
-          int batch,int height,int width,
-          __global float const *input,ulong input_offset,
-          __global float *kern,ulong kernel_offset,
-          __global float const *output,ulong output_offset
-#if SECOND_REDUCE_SIZE == 1
-          ,float factor
-#endif          
-          )
+layout(push_constant, std430) uniform conv_bw_filter
 {
-    input   += input_offset;
-    output  += output_offset;
-    kern    += kernel_offset;
+	uint batch;uint height;uint width;
+#if USE_BDA
+	__global float const *inp;
+#endif
+	uint inp_offset;
+#if USE_BDA
+	__global float *kern;
+#endif
+	uint kernel_offset;
+#if USE_BDA
+	__global float const *outp;
+#endif
+	uint outp_offset;
+#if SECOND_REDUCE_SIZE == 1
+	float factor;
+#endif          
+};
 
-    int k = get_global_id(1);
+REDUCE_PREPARE(WG_SIZE,float);
+
+void main()
+{
+    uint _inp_offset = inp_offset;
+    uint _outp_offset = outp_offset;
+    uint _kernel_offset = kernel_offset;
+
+    uint k = get_global_id(1);
     if( k > KERN * KERN * CHANNELS)
         return;
 
-    int dk = k % (KERN * KERN);
-    int d  = k / (KERN * KERN); 
+    uint dk = k % (KERN * KERN);
+    uint d  = k / (KERN * KERN); 
 
-    int dr = dk / KERN;
-    int dc = dk % KERN;
+    uint dr = dk / KERN;
+    uint dc = dk % KERN;
 
-    input  += d * (width * height);
-    output += d * (width * height);
+    _inp_offset  += d * (width * height);
+    _outp_offset += d * (width * height);
 
-    int items = batch * (width * height);
-    const int wg_size2 = WG_SIZE * SECOND_REDUCE_SIZE;
-    int items_per_wg = (items + wg_size2 - 1) / wg_size2;
-    int my_start = items_per_wg * get_global_id(0); // it is same as local id for 1stage reduce
-    int my_end   = min(my_start + items_per_wg,items);
+    uint items = batch * (width * height);
+    const uint wg_size2 = WG_SIZE * SECOND_REDUCE_SIZE;
+    uint items_per_wg = (items + wg_size2 - 1) / wg_size2;
+    uint my_start = items_per_wg * get_global_id(0); // it is same as local id for 1stage reduce
+    uint my_end   = min(my_start + items_per_wg,items);
 
     float sum = 0;
-    int b  = my_start / (width * height);
-    int rc = my_start % (width * height);
-    int r = rc / width;
-    int c = rc % width;
+    uint b  = my_start / (width * height);
+    uint rc = my_start % (width * height);
+    uint r = rc / width;
+    uint c = rc % width;
 
-    #pragma unroll(16)
-    for(int index = my_start;index <my_end;index ++) {
-        int sr = r - KERN/2 + dr;
-        int sc = c - KERN/2 + dc;
+    //#pragma unroll(16)
+    for(uint index = my_start;index <my_end;index ++) {
+        uint sr = r - KERN/2 + dr;
+        uint sc = c - KERN/2 + dc;
         if(b < batch && 0<=sr && sr < height && 0 <= sc && sc < width) {
-            float y = output[b*(CHANNELS * height * width) + r  * width +c ];
-            float x =  input[b*(CHANNELS * height * width) + sr * width +sc];
+            float y = outp[b*(CHANNELS * height * width) + r  * width +c + _outp_offset];
+            float x =  inp[b*(CHANNELS * height * width) + sr * width +sc + _inp_offset];
             sum += x*y;
         }
         c++;
@@ -78,47 +96,18 @@ void conv_bw_filter(
         }
     }
 
-    REDUCE_PREPARE(WG_SIZE,float);
-
-    my_work_group_reduce_add(sum);
+    my_work_group_reduce_add(sum, WG_SIZE);
 
     if(get_local_id(0) == 0) {
         #if SECOND_REDUCE_SIZE == 1
         if(factor == 0)
-            kern[k] = sum;
+            kern[k + _kernel_offset] = sum;
         else
-            kern[k] = mad(kern[k],factor,sum);
+            kern[k + _kernel_offset] = fma(kern[k + _kernel_offset],factor,sum);
         #else
             #define STRIDE (KERN * KERN * CHANNELS)
-            kern[k + STRIDE * get_group_id(0)] = sum;
+            kern[k + STRIDE * get_group_id(0) + _kernel_offset] = sum;
         #endif
     }
 
 }
-
-#if SECOND_REDUCE_SIZE > 1
-__kernel
-__attribute__((reqd_work_group_size(SECOND_REDUCE_SIZE,1,1)))
-void reduce(__global float const * restrict partial_values,ulong partial_values_offset,__global float * restrict sums,ulong sums_offset,float factor)
-{
-    sums += sums_offset;
-    partial_values += partial_values_offset;
-    int k = get_global_id(1);
-    if(k > KERN * KERN * CHANNELS)
-        return;
-    
-    REDUCE_PREPARE(SECOND_REDUCE_SIZE,float);
-
-    float val = partial_values[k + get_local_id(0) * STRIDE];
-
-    my_work_group_reduce_add(val);
-
-    if(get_local_id(0) == 0) {
-        if(factor == 0)
-            sums[k] = val;
-        else
-            sums[k] = mad(sums[k],factor,val);
-    }    
-}
-
-#endif
