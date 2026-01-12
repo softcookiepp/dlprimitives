@@ -18,7 +18,7 @@
 #endif
 
 // this might get confusing.
-#if SECOND_REDUCE_SIZE > 1
+// #if SECOND_REDUCE_SIZE > 1
 layout(local_size_x = SECOND_REDUCE_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 
@@ -82,7 +82,7 @@ void main()
     sum[0] = s1[read_pos + s1_offset];
     sum[1] = s2[read_pos + s2_offset];
     
-    my_work_group_reduce_add_x2(sum);
+    my_work_group_reduce_add_x2(sum, SECOND_REDUCE_SIZE);
 
     if(get_local_id(0) == 0)
     {
@@ -98,4 +98,4 @@ void main()
     }    
 }
 
-#endif
+//#endif

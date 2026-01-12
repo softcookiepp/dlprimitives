@@ -6,7 +6,7 @@
 /// MIT License, see LICENSE.TXT
 ///
 ///////////////////////////////////////////////////////////////////////////////
-#include "defs.glsl"
+#include "common/defs.glsl"
 #include "common/workgroup.glsl"
 
 layout(binding = 0, std430) buffer a_buf { dtype a[]; };

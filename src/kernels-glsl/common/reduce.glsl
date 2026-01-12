@@ -17,13 +17,13 @@
 #else
 
 // this is incompatible with GLSL
-#define REDUCE_PREPARE(WG_SIZE,dtype) shared dtype my_reduce[WG_SIZE]
-#define REDUCE_USING_OP(myval,reduce_op) \
+#define REDUCE_PREPARE(wg_size, dtype) shared dtype my_reduce[wg_size]
+#define REDUCE_USING_OP(myval,reduce_op, wg_size) \
     do { \
         uint lid = my_get_local_wg_id(); \
         my_reduce[lid] = myval; \
         barrier(); \
-        const uint WGS = WG_SIZE; \
+        const uint WGS = wg_size; \
         for(uint i=WGS / 2;i>0; i>>= 1) { \
             if(lid < i) { \
                 my_reduce[lid] = reduce_op(my_reduce[lid],my_reduce[lid+i]); \
@@ -36,7 +36,7 @@
 #define REDUCE_OP_ADD(x,y) ((x) + (y))
 #define REDUCE_OP_MAX(x,y) max((x),(y))
 
-#define my_work_group_reduce_add(val) REDUCE_USING_OP(val,REDUCE_OP_ADD)
-#define my_work_group_reduce_max(val) REDUCE_USING_OP(val,REDUCE_OP_MAX)
+#define my_work_group_reduce_add(val, wg_size) REDUCE_USING_OP(val,REDUCE_OP_ADD, wg_size)
+#define my_work_group_reduce_max(val, wg_size) REDUCE_USING_OP(val,REDUCE_OP_MAX, wg_size)
 
 #endif

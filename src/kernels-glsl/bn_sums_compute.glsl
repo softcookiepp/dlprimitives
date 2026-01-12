@@ -149,7 +149,7 @@ void main()
 
     vec2 sums = vec2(sum1, sum2);
 
-    my_work_group_reduce_add_x2(sums);
+    my_work_group_reduce_add_x2(sums, WG_SIZE);
     sum1 = sums[0];
     sum2 = sums[1];
 

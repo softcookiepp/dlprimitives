@@ -13,8 +13,12 @@
 #define SECOND_REDUCE_SIZE 1
 #endif
 
-__kernel
+#include "defs.glsl"
+
 __attribute__((reqd_work_group_size(WG_SIZE,1,1)))
+
+layout(local_size_x = SECOND_REDUCE_SIZE, local_size_y = 1, local_size_z = 1) in;
+
 void conv_bw_filter(
           int batch,int height,int width,
           __global float const *input,ulong input_offset,

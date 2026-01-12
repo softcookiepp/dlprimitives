@@ -69,7 +69,7 @@ void main()
         val += dy[batch * batch_scale + feature * SIZE_2D + rcpos + dy_offset];
     }
     
-    my_work_group_reduce_add(val);
+    my_work_group_reduce_add(val, WG_SIZE);
 
     uint pos = feature * dx_stride + dx_pos;
     

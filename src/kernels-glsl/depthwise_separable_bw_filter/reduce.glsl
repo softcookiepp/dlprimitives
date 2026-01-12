@@ -48,7 +48,7 @@ void main()
     
     float val = partial_values[k + get_local_id(0) * STRIDE + partial_values_offset];
 
-    my_work_group_reduce_add(val);
+    my_work_group_reduce_add(val, SECOND_REDUCE_SIZE);
 
     if(get_local_id(0) == 0) {
         if(factor == 0)
