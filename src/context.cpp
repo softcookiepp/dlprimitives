@@ -202,7 +202,8 @@ namespace dlprim {
         if(is_cpu_context())
             return "CPU";
 #if VULKAN_API
-		return device_->getMetadata().name();
+		std::string name = device_->getMetadata().name();
+		return name;
 #else
         std::string plat = platform_.getInfo<CL_PLATFORM_NAME>().c_str();
         std::string dev  = device_.getInfo<CL_DEVICE_NAME>().c_str();
