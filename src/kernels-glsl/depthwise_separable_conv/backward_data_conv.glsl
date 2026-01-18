@@ -21,7 +21,7 @@
 #define PATCH_W (PATCH_COLS + KERN - 1)
 
 #if USE_BDA == 0
-	layout(binding = 0, std430) buffer inp_buffer { uint inp[]; }; // declared as uint and bitcast as float to make atomic operations easier
+	layout(binding = 0, std430) buffer inp_buffer { atomic_dtype inp[]; }; // declared as uint and bitcast as float to make atomic operations easier
 	layout(binding = 1, std430) readonly buffer kern_buffer { float kern[]; };
 	layout(binding = 2, std430) readonly buffer outp_buffer { float outp[]; };
 #endif

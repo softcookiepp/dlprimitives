@@ -7,6 +7,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
+// whether or not to use float32 atomics.
+#ifndef ATOMIC_FLOAT32
+	#define ATOMIC_FLOAT32 1
+#endif
+#if ATOMIC_FLOAT32
+	#extension GL_EXT_shader_atomic_float : require
+#endif
+
 // this is not implemented yet, if it ever will be
 #ifndef USE_BDA
 	#define USE_BDA 0
@@ -33,6 +41,15 @@
 	#define dtype4 vec4
 	#define DTYPE_MAX FLT_MAX
 	#define DTYPE_MIN FLT_MIN
+	#if ATOMIC_FLOAT32
+		#define atomic_dtype dtype
+		#define dtype_to_atomic(v) v
+		#define atomic_to_dtype(v) v
+	#else
+		#define atomic_dtype uint
+		#define dtype_to_atomic(v) floatBitsToUint(v)
+		#define atomic_to_dtype(v) uintBitsToFloat(v)
+	#endif
 #endif
 
 
