@@ -9,7 +9,7 @@
 
 // whether or not to use float32 atomics.
 #ifndef ATOMIC_FLOAT32
-	#define ATOMIC_FLOAT32 1
+	#define ATOMIC_FLOAT32 0
 #endif
 #if ATOMIC_FLOAT32
 	#extension GL_EXT_shader_atomic_float : require
