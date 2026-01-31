@@ -58,6 +58,11 @@
 	#endif
 #endif
 
+#ifndef itype
+	// just default to 32 bit for now just so we can test to ensure it compiles
+	#define itype int
+#endif
+
 
 #ifndef ACTIVATION
 #define ACTIVATION ACTIVATION_IDENTITY
