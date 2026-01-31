@@ -7,39 +7,53 @@
 
 
 
-__kernel 
-void nearest_bwd(
-        int N,int items_per_thread,
-        int srcH,int srcW,
-        int tgtH,int tgtW,
-        float scale_y,float scale_x,
-        float offset,
-        __global dtype* dx,ulong dx_offset,
-        __global dtype const * dy,ulong dy_offset,float beta)
+layout(push_constant, std430) uniform nearest_bwd
 {
-    int n0 = get_global_id(2) * items_per_thread;
-    int n1 = min(n0 + items_per_thread,N);
-    int src_r = get_global_id(0);
-    int src_c = get_global_id(1);
+	uint N;
+	uint items_per_thread;
+	uint srcH;
+	uint srcW;
+	uint tgtH;
+	uint tgtW;
+	float scale_y;
+	float scale_x;
+	float offset;
+#if USE_BDA
+	__global dtype* dx;
+#endif
+	uint dx_offset;
+#if USE_BDA
+	__global dtype const * dy;
+#endif
+	uint dy_offset;
+	float beta;
+};
+        
+void main()
+{
+    uint n0 = get_global_id(2) * items_per_thread;
+    uint n1 = min(n0 + items_per_thread,N);
+    uint src_r = get_global_id(0);
+    uint src_c = get_global_id(1);
     if(n0 >= N || src_r>= srcH || src_c>= srcW)
         return;
 
-    int step_src = srcW*srcH;
-    int step_tgt = tgtW*tgtH;
+    uint step_src = srcW*srcH;
+    uint step_tgt = tgtW*tgtH;
     dx += dx_offset + n0 * step_src;
     dy += dy_offset + n0 * step_tgt;
 
-    int tgt_r0 = get_tgt_pos(src_r,  scale_y, tgtH, offset);
-    int tgt_r1 = get_tgt_pos(src_r+1,scale_y, tgtH, offset);
-    int tgt_c0 = get_tgt_pos(src_c,  scale_x, tgtW, offset);
-    int tgt_c1 = get_tgt_pos(src_c+1,scale_x, tgtW, offset);
+    uint tgt_r0 = get_tgt_pos(src_r,  scale_y, tgtH, offset);
+    uint tgt_r1 = get_tgt_pos(src_r+1,scale_y, tgtH, offset);
+    uint tgt_c0 = get_tgt_pos(src_c,  scale_x, tgtW, offset);
+    uint tgt_c1 = get_tgt_pos(src_c+1,scale_x, tgtW, offset);
    
     dx += src_r * srcW + src_c;
 
-    for(int n=n0;n<n1;n++) {
+    for(uint n=n0;n<n1;n++) {
         dtype grad = 0;
-        for(int r=tgt_r0;r<tgt_r1;r++) {
-            for(int c=tgt_c0;c<tgt_c1;c++) {
+        for(uint r=tgt_r0;r<tgt_r1;r++) {
+            for(uint c=tgt_c0;c<tgt_c1;c++) {
                 grad += dy[r*tgtW+c];
             }
         }
