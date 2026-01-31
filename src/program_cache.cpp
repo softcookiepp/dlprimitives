@@ -138,8 +138,7 @@ cl::Program
 	// at some point the OpenCL C codegen will be adapted for GLSL; that day has not come
 	std::cout << "BUILD ARGS: " << sparams << std::endl;
 	tart::shader_module_ptr mod = ctx.device()->compileCL(code, sparams);
-	tart::cl_program_ptr clprg = ctx.device()->createCLProgram(mod);
-	tart::program_ptr prg = ctx.device()->createProgram(clprg);
+	tart::program_ptr prg = ctx.device()->createProgram(mod);
 	return prg;
 #else
     cl::Program prg(ctx.context(),code);
