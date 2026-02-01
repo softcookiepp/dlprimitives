@@ -1,13 +1,7 @@
 #version 450
-///////////////////////////////////////////////////////////////////////////////
-///
-/// Copyright (c) 2021-2022 Artyom Beilis <artyomtnk@yahoo.com>
-///
-/// MIT License, see LICENSE.TXT
-///
-///////////////////////////////////////////////////////////////////////////////
-#include "common/defs.glsl"
-#include "common/workgroup.glsl"
+
+#include "../common/defs.glsl"
+#include "../common/workgroup.glsl"
 
 layout(binding = 0, std430) buffer a_buf { dtype a[]; };
 layout(binding = 1, std430) buffer c_buf { dtype c[]; };
@@ -17,11 +11,11 @@ layout(push_constant, std430) uniform activation
 {
 	uint size;
 #if USE_BDA
-	__global dtype *a;
+	dtype_addr_rw a;
 #endif
 	uint a_offset;
 #if USE_BDA
-	__global dtype *c,
+	dtype_addr_rw c;
 #endif
 	uint c_offset;
 };

@@ -77,6 +77,45 @@ namespace core {
             DLPRIM_CHECK(ref_type == ys[i].dtype());
         }
         std::ostringstream params,loads,saves;
+#if VULKAN_API
+		size_t bindingIndex = 0;
+		std::stringstream bufferDefs;
+		for (size_t i = 0; i < xs.size(); i += 1)
+		{
+			// wait. we can't have macros within macros. this will not work.
+			
+			//params << "\n#if USE_BDA\n dtype_addr_ro px" << i << ";\n#endif\n"
+			//	<< "uint px" << i << "_offset;\n";
+			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
+				<< i << "_buf { dtype px" << i << "[]; };\n";
+			loads << "	dtype x" << i << " = px" << i << "[index + px" << i << "_offset]; ";
+			bindingIndex += 1;
+		}
+		for (size_t i = 0; i < ys.size(); i += 1)
+		{
+			//params << "\n#if USE_BDA\ndtype_addr_rw py" << i << "; #endif\n"
+			//	<< "uint py" << i << "_offset;\n";
+			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
+				<< i << "_buf { dtype py" << i << "[]; };\n";
+			loads << "dtype y" << i << ";\n";
+			saves << "py" << i << "[index] = y" << i << ";\n"; // no offset?
+			bindingIndex += 1;
+		}
+		
+		std::string param_dtype = data_type_to_opencl_param_type(ref_type);
+		for (size_t i = 0; i < ws.size(); i += 1)
+		{
+			params << "\n" << param_dtype << " w" << i << ";\n";
+		}
+		
+		// what is this for? we will find out later I guess
+		std::ostringstream code_fixed;
+        for(size_t i=0;i<code.size();i++)
+            if(code[i]=='\n')
+                code_fixed << "\\\n";
+            else
+                code_fixed << code[i];
+#else
         for(size_t i=0;i<xs.size();i++) {
             params<<", __global dtype const *px" << i<< ", ulong px"<<i<<"_offset ";
             loads<<"dtype x"<<i<<"=px"<<i<<"[index + px"<<i<<"_offset]; ";
@@ -99,9 +138,12 @@ namespace core {
                 code_fixed << "\\\n";
             else
                 code_fixed << code[i];
+#endif
+		
 #if VULKAN_API
         tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"pointwise",
                                                                            "dtype",data_type_to_opencl_type(ref_type),
+                                                                           "#BUFFER_DEFS", bufferDefs.str(),
                                                                            "#PARAMS",params.str(),
                                                                            "#LOADS",loads.str(),
                                                                            "#SAVES",saves.str(),

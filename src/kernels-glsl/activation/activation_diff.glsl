@@ -1,31 +1,27 @@
 #version 450
-///////////////////////////////////////////////////////////////////////////////
-///
-/// Copyright (c) 2021-2022 Artyom Beilis <artyomtnk@yahoo.com>
-///
-/// MIT License, see LICENSE.TXT
-///
-///////////////////////////////////////////////////////////////////////////////
-#include "common/defs.glsl"
 
-layout(binding = 0, std430) buffer y_buf { dtype y[]; };
-layout(binding = 1, std430) buffer dy_buf { dtype dy[]; };
-layout(binding = 2, std430) buffer dx_buf { dtype dx[]; };
+#include "../common/defs.glsl"
+#include "../common/workgroup.glsl"
 
+#if USE_BDA == 0
+	layout(binding = 0, std430) buffer y_buf { dtype y[]; };
+	layout(binding = 1, std430) buffer dy_buf { dtype dy[]; };
+	layout(binding = 2, std430) buffer dx_buf { dtype dx[]; };
+#endif
 
 layout(push_constant, std430) uniform activation_diff
 {
 	uint size;
 #if USE_BDA
-	__global dtype *y,
+	dtype_addr_rw y;
 #endif
 	uint y_offset;
 #if USE_BDA
-	__global dtype *dy,
+	dtype_addr_rw dy;
 #endif
 	uint dy_offset;
 #if USE_BDA
-	__global dtype *dx,
+	dtype_addr_rw dx;
 #endif
 	uint dx_offset;
 	dtype beta;

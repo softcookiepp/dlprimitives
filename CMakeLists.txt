@@ -121,8 +121,8 @@ endif()
 
 
 if(USE_VULKAN_API)
-	file(GLOB CL_SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-clspv/*.cl)
-	file(GLOB CL_HEADERS  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-clspv/*.h)
+	file(GLOB CL_SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl/*.glsl)
+	file(GLOB CL_HEADERS  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-clspv/*.glslh)
 else()
 	file(GLOB CL_SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/*.cl)
 	file(GLOB CL_HEADERS  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/*.h)
@@ -223,16 +223,30 @@ else()
     message("  Python dlprim: disabled")
 endif()
 
-add_custom_command(
-                  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp 
-                  DEPENDS
-                  ${CL_SOURCES} ${CL_HEADERS} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/build_source.py
-                  COMMAND 
-                  ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/build_source.py 
-                    -o ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp
-                    -I ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels
-                    ${CL_SOURCES}
-                  )
+if(USE_VULKAN_API)
+	add_custom_command(
+				  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp 
+				  DEPENDS
+				  ${CL_SOURCES} ${CL_HEADERS} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl/build_source.py
+				  COMMAND 
+				  ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl/build_source.py 
+					-o ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp
+					-I ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl
+					${CL_SOURCES}
+				  )
+else()
+	add_custom_command(
+					  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp 
+					  DEPENDS
+					  ${CL_SOURCES} ${CL_HEADERS} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/build_source.py
+					  COMMAND 
+					  ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/build_source.py 
+						-o ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp
+						-I ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels
+						${CL_SOURCES}
+					  )
+endif()
+
 set(DLPRIM_CORE_SRC
         src/context.cpp
         src/tensor.cpp
