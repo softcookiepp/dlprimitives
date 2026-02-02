@@ -1,12 +1,5 @@
 #version 450
-///////////////////////////////////////////////////////////////////////////////
-///
-/// Copyright (c) 2021-2022 Artyom Beilis <artyomtnk@yahoo.com>
-///
-/// MIT License, see LICENSE.TXT
-///
-///////////////////////////////////////////////////////////////////////////////
-#include "common/defs.glsl"
+#include "../common/defs.glsl"
 
 #ifndef DIMS
 	// just for testing purposes
@@ -43,11 +36,11 @@ layout(push_constant, std430) uniform copy
 	uint d7;uint s7;uint t7;
 #endif
 #if USE_BDA
-	__global dtype_src const *src;
+	dtype_addr_ro src;
 #endif
 	uint src_offset;
 #if USE_BDA
-	__global dtype_tgt *tgt;
+	dtype_addr_rw tgt;
 #endif
 	uint tgt_offset;
 };

@@ -14,15 +14,15 @@ layout(push_constant, std430) uniform backward_test
 {
 	uint batches; uint channels; uint HW;
 #if USE_BDA
-	__global float *dx;
+	dtype_addr_rw dx;
 #endif
 	uint dx_offset;
 #if USE_BDA
-	__global float const *dy;
+	dtype_addr_ro dy;
 #endif
 	uint dy_offset;
 #if USE_BDA
-	__global float const *a;
+	dtype_addr_ro a;
 #endif
 	uint a_offset;
 	float factor;

@@ -6,8 +6,8 @@
 /// MIT License, see LICENSE.TXT
 ///
 ///////////////////////////////////////////////////////////////////////////////
-#include "common/defs.glsl"
-#include "common/reduce2.glsl"
+#include "../common/defs.glsl"
+#include "../common/reduce2.glsl"
 
 #ifndef SECOND_REDUCE_SIZE
 #define SECOND_REDUCE_SIZE 1

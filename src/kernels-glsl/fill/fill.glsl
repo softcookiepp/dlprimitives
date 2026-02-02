@@ -1,13 +1,6 @@
 #version 450
-///////////////////////////////////////////////////////////////////////////////
-///
-/// Copyright (c) 2021-2022 Artyom Beilis <artyomtnk@yahoo.com>
-///
-/// MIT License, see LICENSE.TXT
-///
-///////////////////////////////////////////////////////////////////////////////
-#include "common/defs.glsl"
-#include "common/workgroup.glsl"
+#include "../common/defs.glsl"
+#include "../common/workgroup.glsl"
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) writeonly buffer p_buf { dtype p[]; };

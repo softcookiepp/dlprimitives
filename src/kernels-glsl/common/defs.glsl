@@ -92,4 +92,12 @@
 #   error "Unknown activation"
 #endif 
 
+#ifndef USE_UNROLL
+	#define USE_UNROLL 0
+#endif
 
+#if USE_UNROLL
+	#define UNROLL(d)
+#else
+	#define UNROLL(d)
+#endif

@@ -1,7 +1,7 @@
 #version 450
 
-#include "common/defs.glsl"
-#include "common/workgroup.glsl"
+#include "../common/defs.glsl"
+#include "../common/workgroup.glsl"
 
 #if USE_BDA == 0
 BUFFER_DEFS

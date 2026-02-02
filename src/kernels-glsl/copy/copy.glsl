@@ -1,12 +1,5 @@
 #version 450
-///////////////////////////////////////////////////////////////////////////////
-///
-/// Copyright (c) 2021-2022 Artyom Beilis <artyomtnk@yahoo.com>
-///
-/// MIT License, see LICENSE.TXT
-///
-///////////////////////////////////////////////////////////////////////////////
-#include "common/defs.glsl"
+#include "../common/defs.glsl"
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) buffer target_buf { dtype target[]; };
@@ -21,11 +14,11 @@ layout(push_constant, std430) uniform copy
 	uint dim1_src;uint dim1_src_offset;
 	uint dim2;
 #if USE_BDA
-	__global dtype *target;
+	dtype_addr_rw target;
 #endif
 	uint target_offset;
 #if USE_BDA
-	__global dtype const *source;
+	dtype_addr_ro source;
 #endif
 	uint source_offset;
 	dtype scale;

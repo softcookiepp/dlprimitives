@@ -1,6 +1,6 @@
 #version 450
-#include "common/defs.glsl"
-#include "common/workgroup.glsl"
+#include "../common/defs.glsl"
+#include "../common/workgroup.glsl"
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) buffer dx_buf { dtype dx[]; };
@@ -13,15 +13,15 @@ layout(push_constant, std430) uniform nll_loss_backward
 	uint batch;
 	uint channel;
 #if USE_BDA
-	__global dtype *dx;
+	dtype_addr_rw dx;
 #endif
 	uint dx_offset;
 #if USE_BDA
-	__global itype const *label;
+	itype_addr_ro label;
 #endif
 	uint label_offset;
 #if USE_BDA
-	__global dtype const *dy;
+	dtype_addr_ro dy;
 #endif
 	uint dy_offset;
 	dtype scale;

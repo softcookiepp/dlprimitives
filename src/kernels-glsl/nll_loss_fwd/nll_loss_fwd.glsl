@@ -1,6 +1,6 @@
 #version 450
-#include "common/defs.glsl"
-#include "common/reduce.glsl"
+#include "../common/defs.glsl"
+#include "../common/reduce.glsl"
 
 #ifndef WG_SIZE
 #define WG_SIZE 256
@@ -24,15 +24,15 @@ layout(push_constant, std430) uniform nll_loss_forward
 	uint batch;
 	uint channels;
 #if USE_BDA
-	__global dtype const *data;
+	dtype_addr_ro data;
 #endif
 	uint  data_offset;
 #if USE_BDA
-	__global itype const *label;
+	itype_addr_ro label;
 #endif
 	uint  label_offset;
 #if USE_BDA
-	__global dtype *outp;
+	dtype_addr_rw outp;
 #endif
 	uint  outp_offset;
 	dtype scale;
