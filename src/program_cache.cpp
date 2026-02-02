@@ -76,47 +76,43 @@ cl::Program
 	auto& entryPointMap = ks->second;
     //std::string const &source_text = ks->second;
     std::ostringstream prepend;
-    std::ostringstream ss;
     bool combine = false;
 
-    bool enable_half = ctx.device()->getMetadata().half_;
-    for(size_t i=0;i<params.size();i++) {
-        if(i > 0)
-            ss<<" ";
+    std::vector<std::string> options;
+    for(size_t i=0;i<params.size();i++)
+    {
         if(params[i].name.c_str()[0]=='#') {
             prepend << "#define " << params[i].name.c_str() + 1 << " " << params[i].value << "\n";
             combine=true;
         }
-        else {
-            ss << "-D" << params[i].name <<"=" <<params[i].value;
+        else
+        {
+			std::stringstream optSS;
+			optSS << "-D" << params[i].name <<"=" <<params[i].value;
+            options.push_back(optSS.str());
         }
     }
-    if(enable_half) {
+    
+    // TODO: put other extensions here, probably
+    if(ctx.device()->getMetadata().half_)
+    {
         prepend << "#define ENABLE_FP16 1\n";
         combine=true;
     }
-	
-	std::map<std::string, std::string> entryPointSources;
+    
+	std::map<std::string, tart::shader_module_ptr> entryPointModules;
 	for (auto& pair : entryPointMap)
 	{
-		entryPointSources[pair.first] = "#version 450\n" + (combine ? prepend.str() + pair.second : pair.second);
-		std::cout << entryPointSources[pair.first];
+		const std::string src = "#version 450\n" + (combine ? prepend.str() + pair.second : pair.second);
+		entryPointModules[pair.first] = ctx.device()->compileGLSL(src, options);
 	}
-    //std::string const &code = (combine ? prepend.str() + source_text : source_text);
-    std::string sparams = ss.str();
-    
+	
     #ifdef DEBUG_CACHE_TIMES
     TimeWriter guard(source);
     #endif
-
-	// just make the program correctly.
-	// for now it will use clspv
-	// at some point the OpenCL C codegen will be adapted for GLSL; that day has not come
-	std::cout << "BUILD ARGS: " << sparams << std::endl;
+    
 	// this may be more complicated than I thought :c
-	//tart::shader_module_ptr mod = ctx.device()->compileGLSL(code, sparams);
-	//tart::shader_module_ptr mod = ctx.device()->compileGLSL(code);
-	tart::program_ptr prg = ctx.device()->createProgram(entryPointSources);
+	tart::program_ptr prg = ctx.device()->createProgram(entryPointModules);
 	return prg;
 	// end
 #else
