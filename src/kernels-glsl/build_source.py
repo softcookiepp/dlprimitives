@@ -44,7 +44,7 @@ def get_sources(files,search_dirs):
 					content = preprocess_includes(fpath, [d])
 					if "void main()" in content:
 						ep_name = os.path.splitext(fn)[0]
-						program_entry_points[ep_name] = content
+						program_entry_points[ep_name] = content.replace("#version 450", "")
 				if len(program_entry_points) > 0:
 					sources[program_name] = program_entry_points
 	return sources;

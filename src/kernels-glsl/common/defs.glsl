@@ -1,10 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////
-///
-/// Copyright (c) 2021-2022 Artyom Beilis <artyomtnk@yahoo.com>
-///
-/// MIT License, see LICENSE.TXT
-///
-///////////////////////////////////////////////////////////////////////////////
+
 // constant thingies
 #define FLT_MAX 3.402823466e+38
 #define FLT_MIN 1.175494351e-38
@@ -12,6 +6,14 @@
 #define DBL_MIN 2.2250738585072014e-308
 
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+#ifndef ENABLE_FP16
+	#define ENABLE_FP16 0
+#endif
+#if ENABLE_FP16
+	#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
+	#extension GL_EXT_shader_16bit_storage : require
+#endif
 
 // whether or not to use float32 atomics.
 #ifndef ATOMIC_FLOAT32

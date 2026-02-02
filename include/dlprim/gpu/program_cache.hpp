@@ -94,8 +94,11 @@ namespace dlprim {
             return cl::NDRange(x,y,z);
 #endif
         }
-
+#if VULKAN_API
+		extern std::map<std::string, std::map<std::string,std::string>> kernel_sources;
+#else
         extern std::map<std::string,std::string> kernel_sources;
+#endif
 
         struct Parameter {
             Parameter(std::string const &n,int v):

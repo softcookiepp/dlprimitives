@@ -43,7 +43,7 @@ public:
 
     struct Data {
 #if VULKAN_API
-		tart::event_ptr event = nullptr;
+		tart::event_ptr event = std::make_shared<tart::Event>();
 		std::string name = "";
 #else
         cl::Event event;

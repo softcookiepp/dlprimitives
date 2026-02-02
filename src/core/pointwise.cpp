@@ -86,8 +86,9 @@ namespace core {
 			
 			//params << "\n#if USE_BDA\n dtype_addr_ro px" << i << ";\n#endif\n"
 			//	<< "uint px" << i << "_offset;\n";
+			params << "uint px" << i << "_offset;\n";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
-				<< i << "_buf { dtype px" << i << "[]; };\n";
+				<< i << "_buf { dtype px" << i << "[]; }; ";
 			loads << "	dtype x" << i << " = px" << i << "[index + px" << i << "_offset]; ";
 			bindingIndex += 1;
 		}
@@ -95,8 +96,9 @@ namespace core {
 		{
 			//params << "\n#if USE_BDA\ndtype_addr_rw py" << i << "; #endif\n"
 			//	<< "uint py" << i << "_offset;\n";
+			params << "uint py" << i << "_offset;\n";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
-				<< i << "_buf { dtype py" << i << "[]; };\n";
+				<< i << "_buf { dtype py" << i << "[]; }; ";
 			loads << "dtype y" << i << ";\n";
 			saves << "py" << i << "[index] = y" << i << ";\n"; // no offset?
 			bindingIndex += 1;

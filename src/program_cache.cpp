@@ -69,9 +69,64 @@ cl::Program
 #endif
 	Cache::build_program(Context  &ctx,std::string const &source,std::vector<Parameter> const &params)
 {
+#if VULKAN_API
+	auto ks = kernel_sources.find(source);
+    if(ks == kernel_sources.end())
+        throw ValidationError("Unknow program source " + source);
+	auto& entryPointMap = ks->second;
+    //std::string const &source_text = ks->second;
+    std::ostringstream prepend;
+    std::ostringstream ss;
+    bool combine = false;
+
+    bool enable_half = ctx.device()->getMetadata().half_;
+    for(size_t i=0;i<params.size();i++) {
+        if(i > 0)
+            ss<<" ";
+        if(params[i].name.c_str()[0]=='#') {
+            prepend << "#define " << params[i].name.c_str() + 1 << " " << params[i].value << "\n";
+            combine=true;
+        }
+        else {
+            ss << "-D" << params[i].name <<"=" <<params[i].value;
+        }
+    }
+    if(enable_half) {
+        prepend << "#define ENABLE_FP16 1\n";
+        combine=true;
+    }
+	
+	std::map<std::string, std::string> entryPointSources;
+	for (auto& pair : entryPointMap)
+	{
+		entryPointSources[pair.first] = "#version 450\n" + (combine ? prepend.str() + pair.second : pair.second);
+		std::cout << entryPointSources[pair.first];
+	}
+    //std::string const &code = (combine ? prepend.str() + source_text : source_text);
+    std::string sparams = ss.str();
+    
+    #ifdef DEBUG_CACHE_TIMES
+    TimeWriter guard(source);
+    #endif
+
+	// just make the program correctly.
+	// for now it will use clspv
+	// at some point the OpenCL C codegen will be adapted for GLSL; that day has not come
+	std::cout << "BUILD ARGS: " << sparams << std::endl;
+	// this may be more complicated than I thought :c
+	//tart::shader_module_ptr mod = ctx.device()->compileGLSL(code, sparams);
+	//tart::shader_module_ptr mod = ctx.device()->compileGLSL(code);
+	tart::program_ptr prg = ctx.device()->createProgram(entryPointSources);
+	return prg;
+	// end
+#else
     auto ks = kernel_sources.find(source);
     if(ks == kernel_sources.end())
         throw ValidationError("Unknow program source " + source);
+	for (auto& pair : ks)
+	{
+		std::cout << pair.first << "\n" << pair.second << std::endl;
+	}
     std::string const &source_text = ks->second;
     std::ostringstream prepend;
     std::ostringstream ss;
@@ -139,7 +194,8 @@ cl::Program
 	std::cout << "BUILD ARGS: " << sparams << std::endl;
 #if 1
 	// this may be more complicated than I thought :c
-	tart::shader_module_ptr mod = ctx.device()->compileGLSL(code, sparams);
+	//tart::shader_module_ptr mod = ctx.device()->compileGLSL(code, sparams);
+	tart::shader_module_ptr mod = ctx.device()->compileGLSL(code);
 	tart::program_ptr prg = ctx.device()->createProgram(mod);
 	return prg;
 #else
@@ -188,6 +244,7 @@ cl::Program
     }
     #endif
     return prg;
+#endif
 #endif
 }
 

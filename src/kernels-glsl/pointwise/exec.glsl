@@ -16,7 +16,7 @@ layout(push_constant, std430) uniform exec
 
 void main()
 {
-    ulong index=get_global_id(0);
+    uint index=get_global_id(0);
     if(index>=total)
         return;
     LOADS
