@@ -787,6 +787,7 @@ namespace core {
             std::cerr << "Items per thread/wg_size/nd_range:" << items_per_wi << "/" << wg_size << "/" << nd_range<< std::endl;
 #endif            
 #if VULKAN_API
+			std::cout << "COMPUTE_CODE: " << compute_code << std::endl;
             tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast_reduce",
                                                                                "REDUCE_DIMS",reduce_dims.size(),
                                                                                "SMALL_REDUCTION",small_reduction,

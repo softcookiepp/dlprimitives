@@ -568,9 +568,15 @@ void test_reduce(dp::ExecutionContext const &q)
         auto op = dp::core::PointwiseOperationBroadcastReduce::create(
             ctx,{a.specs()},{c0.specs(),c1.specs()},
             0,dp::float_data,
-            "y0=x0; y1=-x0;",
+#if VULKAN_API
+            "y0=typeof_y0(x0); y1=typeof_y1(-x0);",
             "reduce_y0 = 0; reduce_y1 = 0;" ,
             "reduce_y0 += y0; reduce_y1 += y1;");
+#else
+			"y0=x0; y1=-x0;",
+            "reduce_y0 = 0; reduce_y1 = 0;" ,
+            "reduce_y0 += y0; reduce_y1 += y1;");
+#endif
         dp::Tensor ws;
         if(op->workspace() > 0)
             ws = dp::Tensor(ctx,dp::Shape(op->workspace()),dp::uint8_data);

@@ -66,7 +66,11 @@ namespace core {
     void fill_tensor(Tensor &t,double value,ExecutionContext const &e)
     {
         Context ctx(e);
+#if VULKAN_API
+        pointwise_operation({},{t},{value},"y0=typeof_y0(w0);",e);
+#else
         pointwise_operation({},{t},{value},"y0=w0;",e);
+#endif
     }
 
 #if VULKAN_API
