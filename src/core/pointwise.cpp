@@ -161,7 +161,9 @@ namespace core {
         for(double w:ws)
             bind_as_dtype(k,p,w,ref_type);
 		std::cout << "p: " << p << std::endl;
-        k->run({total}, {1, 1, 1});
+		std::vector<uint32_t> local(3, 1);
+		local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
+        k->run({total}, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"pointwise",
                                                                            "dtype",data_type_to_opencl_type(ref_type),
@@ -414,7 +416,8 @@ namespace core {
             bind_as_dtype(k,p,ws[i],dts[i]);
         }
         std::vector<uint32_t> range = get_broadcast_ndrange(ref);
-        std::vector<uint32_t> local;
+        std::vector<uint32_t> local(3, 1);
+        local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
 		k->run(range, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
@@ -533,7 +536,7 @@ namespace core {
 
             if(second_stage_stride_ != 1) {
 #if VULKAN_API
-                kernel_->setArg(p++,uint64_t(second_stage_stride_));
+                kernel_->setArg(p++,uint32_t(second_stage_stride_));
 #else
                 kernel_.setArg(p++,cl_ulong(second_stage_stride_));
 #endif
@@ -542,6 +545,10 @@ namespace core {
 			std::vector<uint32_t> glob(range_.size());
 			for (size_t i = 0; i < glob.size(); i += 1)
 				glob[i] = range_[i]/wg_range_[i];
+			if (fixed_wg_)
+				wg_range_.resize(0);
+			else
+				wg_range_.resize(3, 1);
 			if(second_stage_stride_ == 1) {
 				kernel_->run(glob, wg_range_);
             }
@@ -731,6 +738,9 @@ namespace core {
             }
             int items_per_wi,nd_range;
             if(small_reduction == 0) {
+#if VULKAN_API
+				fixed_wg_ = true;
+#endif
                 items_per_wi = (total_reduce + wg_size - 1) / wg_size;
                 if(items_per_wi >= 256) {
                     second_stage_stride_ = 256;
@@ -860,6 +870,7 @@ namespace core {
 #if VULKAN_API
 		std::vector<uint32_t> range_,wg_range_;
         tart::kernel_ptr kernel_;
+        bool fixed_wg_ = false;
 #else
         cl::NDRange range_,wg_range_;
         cl::Kernel kernel_;
