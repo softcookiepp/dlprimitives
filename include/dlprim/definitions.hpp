@@ -232,6 +232,27 @@ namespace dlprim {
     }
     inline std::string data_type_to_opencl_type(DataType dt,bool io_type=false,bool kernel_param = false)
     {
+#if VULKAN_API
+		switch(dt) {
+        case double_data: return "double";
+        case int64_data: return "int64_t";
+        case uint64_data: return "uint64_t";
+
+        case float_data: return "float";
+        case int32_data: return "int";
+        case uint32_data: return "uint";
+
+        case half_data: return (kernel_param ? "float" : "float16_t");
+        case bfloat16_data: return (io_type ? "uint16_t" : "float" );
+        case int16_data: return "int16_t";
+        case uint16_data: return "uint16_t";
+
+        case int8_data: return "int8_t";
+        case uint8_data: return "uint8_t";
+        default:
+            throw NotImplementedError("Unsupported data type");
+        }
+#else
         switch(dt) {
         case double_data: return "double";
         case int64_data: return "long";
@@ -251,6 +272,7 @@ namespace dlprim {
         default:
             throw NotImplementedError("Unsupported data type");
         }
+#endif
     }
     inline std::string data_type_to_opencl_param_type(DataType dt)
     {

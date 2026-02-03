@@ -1,16 +1,11 @@
-///////////////////////////////////////////////////////////////////////////////
-///
-/// Copyright (c) 2021-2022 Artyom Beilis <artyomtnk@yahoo.com>
-///
-/// MIT License, see LICENSE.TXT
-///
-///////////////////////////////////////////////////////////////////////////////
-typedef struct Shape {
+
+struct Shape
+{
     uint s[DIMS];
-} Shape;
+};
 
 
-inline Shape get_pos_broadcast(Shape limits)
+Shape get_pos_broadcast(Shape limits)
 {
     Shape r;
 #if DIMS <= 1

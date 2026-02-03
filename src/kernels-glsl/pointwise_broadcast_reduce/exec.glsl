@@ -145,8 +145,8 @@ bool valid_pos(Shape pos,Shape limits)
     // #pragma unroll
     for(uint i=0;i<DIMS;i++)
         if(pos.s[i] >= limits.s[i])
-            return 0;
-    return 1;
+            return false;
+    return true;
 
 }
 

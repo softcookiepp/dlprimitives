@@ -5,16 +5,6 @@
 #define DBL_MAX 1.7976931348623158e+308
 #define DBL_MIN 2.2250738585072014e-308
 
-#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
-
-#ifndef ENABLE_FP16
-	#define ENABLE_FP16 0
-#endif
-#if ENABLE_FP16
-	#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
-	#extension GL_EXT_shader_16bit_storage : require
-#endif
-
 // whether or not to use float32 atomics.
 #ifndef ATOMIC_FLOAT32
 	#define ATOMIC_FLOAT32 0

@@ -86,7 +86,7 @@ namespace core {
 			
 			//params << "\n#if USE_BDA\n dtype_addr_ro px" << i << ";\n#endif\n"
 			//	<< "uint px" << i << "_offset;\n";
-			params << "uint px" << i << "_offset;\n";
+			params << "uint px" << i << "_offset; ";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
 				<< i << "_buf { dtype px" << i << "[]; }; ";
 			loads << "	dtype x" << i << " = px" << i << "[index + px" << i << "_offset]; ";
@@ -96,7 +96,7 @@ namespace core {
 		{
 			//params << "\n#if USE_BDA\ndtype_addr_rw py" << i << "; #endif\n"
 			//	<< "uint py" << i << "_offset;\n";
-			params << "uint py" << i << "_offset;\n";
+			params << "uint py" << i << "_offset; ";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
 				<< i << "_buf { dtype py" << i << "[]; }; ";
 			loads << "dtype y" << i << ";\n";
@@ -107,7 +107,7 @@ namespace core {
 		std::string param_dtype = data_type_to_opencl_param_type(ref_type);
 		for (size_t i = 0; i < ws.size(); i += 1)
 		{
-			params << "\n" << param_dtype << " w" << i << ";\n";
+			params << param_dtype << " w" << i << "; ";
 		}
 		
 		// what is this for? we will find out later I guess
@@ -161,7 +161,7 @@ namespace core {
         for(double w:ws)
             bind_as_dtype(k,p,w,ref_type);
 		std::cout << "p: " << p << std::endl;
-        k->run({total}, {1});
+        k->run({total}, {1, 1, 1});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"pointwise",
                                                                            "dtype",data_type_to_opencl_type(ref_type),
@@ -353,26 +353,39 @@ namespace core {
             strides[i] = shapes[i].broadcast_strides(ref);
         }
         
+        size_t bindingIndex = 0;
+		std::stringstream bufferDefs;
+		std::stringstream typeDefs;
         std::ostringstream params,loads,saves;
         for(size_t i=0;i<xs.size();i++) {
             std::string type = data_type_to_opencl_type(xs[i].dtype());
-            params<<", __global " << type << " const *px" << i<< ", ulong px"<<i<<"_offset, Shape strides" << i;
-            loads<<type << " x"<<i<<"=px"<<i<<"[get_offset(index,strides" << i << ",px"<<i<<"_offset)];\\\n";
-            loads<<"typedef " << type << " typeof_x" << i << ";\\\n";
+            params << "uint px" << i << "_offset; Shape strides" << i << "; ";
+			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
+				<< i << "_buf { " << type << " px" << i << "[]; }; ";
+			bindingIndex += 1;
+            
+            //params<<", __global " << type << " const *px" << i<< ", ulong px"<<i<<"_offset, Shape strides" << i;
+            loads<<type << " x"<<i<<"=px"<<i<<"[get_offset(index,strides" << i << ",px"<<i<<"_offset)]; ";
+            typeDefs << "#define typeof_x" << i << " " << type << "\n";
         }
         for(size_t i=0;i<ys.size();i++) {
             std::string type = data_type_to_opencl_type(ys[i].dtype());
-            params<<", __global "<<type << " *py" << i<< ", ulong py"<<i<<"_offset";
+            params << "uint py" << i << "_offset; ";
+			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
+				<< i << "_buf { " << type << " py" << i << "[]; }; ";
+			bindingIndex += 1;
+            
+            //params<<", __global "<<type << " *py" << i<< ", ulong py"<<i<<"_offset";
             loads<<type << " y"<<i<<";\\\n";
-            saves<<"py"<<i<<"[get_direct_offset(index,limit,py"<<i<<"_offset)]=y"<<i<<";\\\n";
-            loads<<"typedef " << type << " typeof_y" << i << ";\\\n";
+            saves<<"py"<<i<<"[get_direct_offset(index,limit,py"<<i<<"_offset)]=y"<<i<<";\n";
+            typeDefs << "#define typeof_y" << i << " " << type << "\n";
         }
-        loads << "typedef " << data_type_to_opencl_type(target_type) <<  " target_type;\\\n";
+        typeDefs << "#define target_type " << data_type_to_opencl_type(target_type) << "\n";
 
         for(size_t i=0;i<ws.size();i++) {
             std::string type = data_type_to_opencl_param_type(dts[i]);
             params<<", "<<type<< " w" <<i;
-            loads<<"typedef " << type << " typeof_w" << i << ";\\\n";
+            typeDefs << "#define typeof_w" << i << " " << type << "\n";
         }
 
         loads << '\n';
@@ -380,6 +393,8 @@ namespace core {
 #if VULKAN_API
 		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
                                                                            "DIMS",ref.size(),
+                                                                           "$TYPEDEFS", typeDefs.str(),
+                                                                           "#BUFFER_DEFS", bufferDefs.str(),
                                                                            "#PARAMS",params.str(),
                                                                            "#LOADS",loads.str(),
                                                                            "#SAVES",saves.str(),

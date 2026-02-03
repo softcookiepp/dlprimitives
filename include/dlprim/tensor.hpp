@@ -206,7 +206,7 @@ namespace dlprim {
         /// Always uses 64 bit ulong even of the device 32 bit. 
         ///
 #if VULKAN_API
-        uint64_t device_offset()
+        uint32_t device_offset()
 #else
         cl_ulong device_offset() 
 #endif
@@ -320,7 +320,11 @@ namespace dlprim {
         std::shared_ptr<TensorSpecs> specs_;
         std::shared_ptr<HostMem> host_;
         bool cpu_tensor_;
+#if VULKAN_API
+        uint32_t offset_;
+#else
         int offset_;
+#endif
 #if VULKAN_API
 		tart::buffer_ptr buffer_;
 		// for deallocation

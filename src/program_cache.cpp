@@ -81,7 +81,12 @@ cl::Program
     std::vector<std::string> options;
     for(size_t i=0;i<params.size();i++)
     {
-        if(params[i].name.c_str()[0]=='#') {
+		const char startChar = params[i].name.c_str()[0];
+		if (startChar == '$')
+		{
+			prepend << "\n" << params[i].value << "\n";
+		}
+        else if(startChar == '#') {
             prepend << "#define " << params[i].name.c_str() + 1 << " " << params[i].value << "\n";
             combine=true;
         }
@@ -89,16 +94,23 @@ cl::Program
         {
 			std::stringstream optSS;
 			optSS << "-D" << params[i].name <<"=" <<params[i].value;
+			std::cout << "OPTION: " << optSS.str() << "\n";
             options.push_back(optSS.str());
         }
     }
+    tart::DeviceMetadata meta = ctx.device()->getMetadata();
+    // storage extensions
+    if (meta.half_ || meta.short_) prepend << "#extension GL_EXT_shader_16bit_storage : require\n";
+    if(meta.char_) prepend << "#extension GL_EXT_shader_8bit_storage : require\n";
     
-    // TODO: put other extensions here, probably
-    if(ctx.device()->getMetadata().half_)
-    {
-        prepend << "#define ENABLE_FP16 1\n";
-        combine=true;
-    }
+    // arithmetic types
+    if(meta.double_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_float64 : require\n";
+    if(meta.half_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require\n";
+    if(meta.long_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require\n";
+    if(meta.short_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require\n";
+    if(meta.char_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require\n";
+    
+    if (prepend.str().size() > 0) combine = true;
     
 	std::map<std::string, tart::shader_module_ptr> entryPointModules;
 	for (auto& pair : entryPointMap)
