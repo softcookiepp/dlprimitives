@@ -413,7 +413,7 @@ namespace core {
             bind_as_dtype(k,p,ws[i],dts[i]);
         }
         std::vector<uint32_t> range = get_broadcast_ndrange(ref);
-        std::vector<uint32_t> local(range.size(), 1);
+        std::vector<uint32_t> local;
 		k->run(range, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
