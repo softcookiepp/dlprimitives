@@ -7,6 +7,7 @@
 #error "DIMS must be defined"
 #endif
 
+#include "../common/defs.glsl"
 #include "../common/broadcast_dims.glsl"
 #if SMALL_REDUCTION
 	#include "../common/workgroup.glsl"
@@ -56,7 +57,7 @@ uint get_reduce_offset(Shape s, Shape strides)
 #if REDUCE_DIMS == 0
 	#define next_pos(limits, pos) {} // nothing
 #elif REDUCE_DIMS == 1
-	#define next_pos(limits, pos) { pos[0] += 1; }
+	#define next_pos(limits, pos) { pos.s[0] += 1; }
 #elif REDUCE_DIMS == 2
 	#define next_pos(limits, pos) \
 	{ \
@@ -134,8 +135,8 @@ bool valid_save_pos(Shape pos, Shape limits)
     // #pragma unroll
     for(uint i=REDUCE_DIMS;i<DIMS;i++)
         if(pos.s[i] >= limits.s[i])
-            return 0;
-    return 1;
+            return false;
+    return true;
 
 }
 
@@ -153,14 +154,18 @@ bool valid_pos(Shape pos,Shape limits)
 #if USE_BDA
 	#error "not implemented"
 #else
-	//#define PARAM_INPUT(type,I) ,__global type const *px##I,uint px##I##_offset,Shape xstrides##I
-	#define PARAM_INPUT(type,I) layout(set = 0, binding = I, std430) readonly px##I##_buf { type px##I[]; };
+	#define PARAM_INPUT_BUF(type, I, bind) layout(binding = bind, std430) readonly buffer px##I##_buf { type px##I[]; };
+	#define PARAM_INPUT_BUF_OFFSET(type, I) uint px##I##_p = 0; 
+	#define PARAM_INPUT(type,I) uint px##I##_offset; Shape xstrides##I;
+	
+	#define PARAM_OUTPUT_BUF_OFFSET(type, ptype, I) uint py##I##_p = 0;
+	#define PARAM_OUTPUT_BUF(type, ptype, I, bind) layout(binding = bind) buffer py##I##_buf { type py##I[]; };
 	#if TWO_STAGE_REDUCTION == 1
-		#define PARAM_OUTPUT(type,ptype,I) ,__global type *py##I,uint py##I##_offset,Shape ystrides##I
+		#define PARAM_OUTPUT(type, ptype, I) uint py##I##_offset; Shape ystrides##I;
 	#else
-		#define PARAM_OUTPUT(type,ptype,I) ,__global type *py##I,uint py##I##_offset,Shape ystrides##I,ptype alpha##I,ptype beta##I
+		#define PARAM_OUTPUT(type, ptype, I) uint py##I##_offset; Shape ystrides##I; ptype alpha##I; ptype beta##I;
 	#endif
-	#define PAPAM_WEIGHT(type, I) ,type w##I
+	#define PARAM_WEIGHT(type, I) type w##I; 
 #endif
 
 
@@ -168,8 +173,8 @@ bool valid_pos(Shape pos,Shape limits)
     uint input_offset_##I = get_base_offset(index,xstrides##I,px##I##_offset); \
     type x##I;
 
-#define LOAD_INPUT(I) x##I = px##I[input_offset_##I + get_reduce_offset(index,xstrides##I)];
-#define SAVE_OUTPUT(I) py##I[get_base_offset(index,ystrides##I,py##I##_offset)] = reduce_y##I;
+#define LOAD_INPUT(I) x##I = px##I[input_offset_##I + get_reduce_offset(index,xstrides##I) + px##I##_p];
+#define SAVE_OUTPUT(I) py##I[get_base_offset(index,ystrides##I,py##I##_offset) + px##I##_p] = reduce_y##I;
 
 #define my_get_local_wg_id() ((get_local_id(2) * get_local_size(1) * get_local_size(0)) + (get_local_id(1) * get_local_size(0)) + get_local_id(0))
 
@@ -187,42 +192,50 @@ bool valid_pos(Shape pos,Shape limits)
 #if SMALL_REDUCTION == 1
 #define LOAD_REDUCED_SAVE_GLOBAL(I) \
 do { \
-    py##I += get_base_offset(index,ystrides##I,py##I##_offset); \
+    py##I##_p += get_base_offset(index,ystrides##I,py##I##_offset); \
     reduce_y##I *= alpha##I; \
-    if(beta##I)  \
-        *py##I = beta##I * *py##I + reduce_y##I; \
+    if(bool(beta##I))  \
+        py##I[py##I##_p] = beta##I * py##I[py##I##_p] + reduce_y##I; \
     else \
-        *py##I = reduce_y##I; \
-}while(0)
+        py##I[py##I##_p] = reduce_y##I; \
+}while(false);
 #elif TWO_STAGE_REDUCTION == 0
 #define LOAD_REDUCED_SAVE_GLOBAL(I) \
 do { \
     y##I = alpha##I * my_reduce_##I[0]; \
-    py##I += get_base_offset(index,ystrides##I,py##I##_offset); \
-    if(beta##I) \
-        *py##I = beta##I * *py##I + y##I; \
+    py##I##_p += get_base_offset(index,ystrides##I,py##I##_offset); \
+    if(bool(beta##I)) \
+        py##I[py##I##_p] = beta##I * py##I[py##I##_p] + y##I; \
     else \
-        *py##I = y##I; \
-} while(0)
+        py##I[py##I##_p] = y##I; \
+} while(false);
 #else //TWO_STAGE_REDUCTION == 1
 #define LOAD_REDUCED_SAVE_GLOBAL(I) \
 do { \
-    py##I += py##I##_offset + get_group_id(0); \
-    py##I += reduce_stride * get_base_offset(index,ystrides##I,0); \
-    *py##I = my_reduce_##I[0]; \
-} while(0)
+    py##I##_p += py##I##_offset + get_group_id(0); \
+    py##I##_p += reduce_stride * get_base_offset(index,ystrides##I,0); \
+    py##I[py##I##_p] = my_reduce_##I[0]; \
+} while(false);
 #endif
 
+#if USE_BDA
+	#error "not implemented!"
+#else
+	BUFFER_DEFS
+#endif
 
-__kernel 
-void exec(Shape limit 
-                   PARAMS
-#if TWO_STAGE_REDUCTION == 1
-                   ,uint reduce_stride
-#endif                                      
-                   )
-
+layout(push_constant, std430) uniform exec
 {
+	Shape limit;
+	PARAMS
+#if TWO_STAGE_REDUCTION == 1
+	uint reduce_stride;
+#endif                                      
+};
+
+void main()
+{
+	BUFFER_OFFSETS
 #if REDUCE_DIMS == 0
     #if ITEMS_PER_WI > 1
     #error "Invalid Items per wi size"
@@ -237,7 +250,7 @@ void exec(Shape limit
     PREPARE_LOAD_INPUT_ALL
     REDUCE_INIT_ALL
 
-    #pragma unroll(8)
+    //#pragma unroll(8)
     for(uint item=0;item < ITEMS_PER_WI;item++) {
         if(valid_pos(index,limit)) {
             LOAD_INPUT_ALL
@@ -245,7 +258,7 @@ void exec(Shape limit
             REDUCE
         }
 #if ITEMS_PER_WI > 1
-        next_pos(limit,&index);
+        next_pos(limit, index);
         reduce_item ++;
 #endif
     }
@@ -256,7 +269,7 @@ void exec(Shape limit
 
     SAVE_REDUCE_ALL
     
-    barrier(CLK_LOCAL_MEM_FENCE); 
+    barrier(); 
     for(uint i= WG_SIZE / 2;i>0; i>>= 1) { 
         if(lid < i) { 
             uint nxt = lid+i;
@@ -264,7 +277,7 @@ void exec(Shape limit
             REDUCE
             SAVE_REDUCE_ALL
         } 
-        barrier(CLK_LOCAL_MEM_FENCE); 
+        barrier(); 
     } 
     if(lid == 0) {
         if(valid_save_pos(index0,limit)) {
