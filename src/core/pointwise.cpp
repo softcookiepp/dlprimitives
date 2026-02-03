@@ -189,7 +189,7 @@ namespace core {
     template<int size>
     struct CLShape {
 #if VULKAN_API
-		uint64_t s[size];
+		uint32_t s[size];
 #else
         cl_ulong s[size];
 #endif
@@ -384,7 +384,7 @@ namespace core {
 
         for(size_t i=0;i<ws.size();i++) {
             std::string type = data_type_to_opencl_param_type(dts[i]);
-            params<<", "<<type<< " w" <<i;
+            params << type << " w" << i << "; ";
             typeDefs << "#define typeof_w" << i << " " << type << "\n";
         }
 
