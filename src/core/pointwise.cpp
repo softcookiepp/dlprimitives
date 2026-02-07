@@ -160,7 +160,6 @@ namespace core {
             y.set_arg(k,p);
         for(double w:ws)
             bind_as_dtype(k,p,w,ref_type);
-		std::cout << "p: " << p << std::endl;
 		std::vector<uint32_t> local(3, 1);
 		local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
         k->run({total}, local);
@@ -644,6 +643,7 @@ namespace core {
             std::stringstream BUFFER_DEFS;
             std::stringstream BUFFER_OFFSETS; // in order to emulate pointer math
             std::stringstream TYPE_DEFS;
+            std::stringstream REDUCE_INIT_SHARED;
             size_t bindIndex = 0;
             for(size_t i=0;i<xs.size();i++) {
                 std::string type = data_type_to_opencl_type(xs[i].dtype());
@@ -668,7 +668,7 @@ namespace core {
                 BUFFER_DEFS << "PARAM_OUTPUT_BUF" << suffix_out_buf;
                 BUFFER_OFFSETS << "PARAM_OUTPUT_BUF_OFFSET" << suffix_out;
                 PARAMS << "PARAM_OUTPUT" << suffix_out;
-                REDUCE_INIT_ALL << "REDUCE_INIT"<<suffix << ";\\\n";
+                REDUCE_INIT_SHARED << "REDUCE_INIT"<<suffix << ";";
                 LOAD_REDUCE_ALL << "LOAD_REDUCE("<<i<<");\\\n";
                 SAVE_REDUCE_ALL << "SAVE_REDUCE("<<i<<");\\\n";
                 LOAD_REDUCED_SAVE_GLOBAL_ALL << "LOAD_REDUCED_SAVE_GLOBAL("<<i<<");\\\n";
@@ -787,7 +787,6 @@ namespace core {
             std::cerr << "Items per thread/wg_size/nd_range:" << items_per_wi << "/" << wg_size << "/" << nd_range<< std::endl;
 #endif            
 #if VULKAN_API
-			std::cout << "COMPUTE_CODE: " << compute_code << std::endl;
             tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast_reduce",
                                                                                "REDUCE_DIMS",reduce_dims.size(),
                                                                                "SMALL_REDUCTION",small_reduction,
@@ -801,6 +800,7 @@ namespace core {
                                                                                "#PARAMS",PARAMS.str(),
                                                                                "#PREPARE_LOAD_INPUT_ALL",PREPARE_LOAD_INPUT_ALL.str(),
                                                                                "#REDUCE_INIT_ALL",REDUCE_INIT_ALL.str(),
+                                                                               "#REDUCE_INIT_SHARED", REDUCE_INIT_SHARED.str(),
                                                                                "#LOAD_INPUT_ALL",LOAD_INPUT_ALL.str(),
                                                                                "#LOAD_REDUCE_ALL",LOAD_REDUCE_ALL.str(),
                                                                                "#SAVE_REDUCE_ALL",SAVE_REDUCE_ALL.str(),

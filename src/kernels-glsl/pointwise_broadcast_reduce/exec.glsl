@@ -179,11 +179,10 @@ bool valid_pos(Shape pos,Shape limits)
 #define my_get_local_wg_id() ((get_local_id(2) * get_local_size(1) * get_local_size(0)) + (get_local_id(1) * get_local_size(0)) + get_local_id(0))
 
 #if SMALL_REDUCTION == 1
-#define REDUCE_INIT(type,I) type reduce_y##I,y##I;
+#define REDUCE_INIT(type,I) type reduce_y##I, y##I
 #else
 #define REDUCE_INIT(type,I) \
-    __local type my_reduce_##I[WG_SIZE]; \
-    type reduce_y##I,y##I; 
+    shared type my_reduce_##I[WG_SIZE]; type reduce_y##I, y##I 
 #endif    
 
 #define SAVE_REDUCE(I) my_reduce_##I[lid] = reduce_y##I;
@@ -232,6 +231,8 @@ layout(push_constant, std430) uniform exec
 	uint reduce_stride;
 #endif                                      
 };
+
+REDUCE_INIT_SHARED
 
 void main()
 {

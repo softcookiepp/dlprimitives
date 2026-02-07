@@ -228,7 +228,11 @@ void test_pointwise(dp::ExecutionContext const &q)
         auto ref=make_tensor<Type>(q,dp::Shape(3,2),{6,8,10,12,14,16});
         dp::Tensor c(ctx,dp::Shape(3,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
+#if VULKAN_API
         pointwise_operation({a,b},{c},{},"y0=x0+x1;",q);
+#else
+        pointwise_operation({a,b},{c},{},"y0=x0+x1;",q);
+#endif
         TEST(equal(c,ref,q));
     }
     {
@@ -444,8 +448,13 @@ void test_reduce(dp::ExecutionContext const &q)
         dp::Tensor c1(ctx,dp::Shape(1,2),a.dtype());
         std::cout << a <<"+"<<"->"<<c0 << "x" << c1<<","<<c1<<std::endl;
         pointwise_operation_broadcast_reduce({a},{c0,c1},{},
+#if VULKAN_API
+                    "y0=typeof_y0(x0); y1=typeof_y1(reduce_item);",
+                    "reduce_y0 = -100; reduce_y1 = -1;" ,"if(y0 > reduce_y0) { reduce_y0 = y0; reduce_y1 = y1; }",q);
+#else
                     "y0=x0; y1=reduce_item;",
                     "reduce_y0 = -100; reduce_y1 = -1;" ,"if(y0 > reduce_y0) { reduce_y0 = y0; reduce_y1 = y1; }",q);
+#endif
         TEST(equal(c0,ref0,q));
         TEST(equal(c1,ref1,q));
     }
