@@ -542,6 +542,8 @@ namespace core {
             }
 #if VULKAN_API
 			std::vector<uint32_t> glob(range_.size());
+			wg_range_.resize(3, 1);
+			if (wg_size_ > 0) wg_range_[0] = wg_size_; 
 			for (size_t i = 0; i < glob.size(); i += 1)
 				glob[i] = range_[i]/wg_range_[i];
 			if (fixed_wg_)
