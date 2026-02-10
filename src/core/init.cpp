@@ -67,7 +67,7 @@ namespace core {
     {
         Context ctx(e);
 #if VULKAN_API
-        pointwise_operation({},{t},{value},"y0=typeof_y0(w0);",e);
+        pointwise_operation({},{t},{value},"y0=dtype(w0);",e);
 #else
         pointwise_operation({},{t},{value},"y0=w0;",e);
 #endif
@@ -106,7 +106,7 @@ namespace core {
         k->setArg(p++,philox_seq);
         k->setArg(p++,p1);
         k->setArg(p++,p2);
-        k->run({(total+3)/4}, {1});
+        k->run({(total+3)/4}, {1, 1, 1});
 #else
         k.setArg(p++,total);
         t.set_arg(k,p);
