@@ -34,7 +34,7 @@ int main(int argc,char **argv)
         dp::ExecutionContext q = ctx.make_execution_context();
         dp::Context ctx2(q);
         dp::ExecutionContext q2 = ctx2.make_execution_context();
-
+		
         if(ctx.is_opencl_context()) {
 #if VULKAN_API
 			TEST(ctx.platform() == ctx2.platform());
@@ -57,7 +57,7 @@ int main(int argc,char **argv)
         int pos=0;
         k->setArg(pos++,int(a.shape().total_size()));
         a.set_arg(k,pos);
-        k->run({a.shape().total_size()}, {1});
+        k->run({a.shape().total_size()}, {1, 1 ,1});
         a.to_host(q2,false);
 #else
         cl::Program const &prg = dp::gpu::Cache::instance().get_program(ctx,"bias","ACTIVATION",int(dp::StandardActivations::relu));

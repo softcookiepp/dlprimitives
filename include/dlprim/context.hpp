@@ -479,7 +479,11 @@ public:
 #endif
 		platform()
     {
+#if VULKAN_API
+		return device_;
+#else
         return platform_;
+#endif
     }
     /// Get OpenCL device object
 #if VULKAN_API

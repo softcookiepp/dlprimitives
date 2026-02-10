@@ -8,7 +8,7 @@
 
 layout(push_constant, std430) uniform activation_inplace
 {
-	int tensor_size;
+	uint tensor_size;
 #if USE_BDA
 	dtype_addr_rw data;
 #endif

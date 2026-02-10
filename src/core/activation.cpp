@@ -27,7 +27,7 @@ namespace core {
 #endif
         int p=0;
 #if VULKAN_API
-		size_t size = x.shape().total_size();
+		uint32_t size = x.shape().total_size();
         k->setArg(p++,size);
         x.set_arg(k,p);
         y.set_arg(k,p);
@@ -38,9 +38,11 @@ namespace core {
         y.set_arg(k,p);
 #endif
 #if VULKAN_API
-		// gotta figure out how to best map pipeline semantics
-		// likely will end up changing tart yet again...
-		throw std::runtime_error("not implemented yet!");
+		std::vector<uint32_t> wg({256, 1, 1});
+		std::vector<uint32_t> gr = gpu::round_range(size, wg);
+		for (size_t i = 0; i < gr.size(); i += 1)
+			gr[i] = gr[i] / wg[i];
+		k->run(gr, wg);
 #else
         cl::NDRange wg(256);
         cl::NDRange gr=gpu::round_range(size,wg);
@@ -54,7 +56,6 @@ namespace core {
 		tart::program_ptr const &prog = gpu::Cache::instance().get_program(ctx,"activation",
                                                     "ACTIVATION",int(activation));
         tart::kernel_ptr k = prog->getKernel("activation_diff");
-        
         
         int p=0;
         uint64_t size = y.shape().total_size();
