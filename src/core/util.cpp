@@ -14,8 +14,8 @@ namespace dlprim {
 namespace core {
     void copy_strided(  Shape shape,
 #if VULKAN_API
-                        tart::buffer_ptr& src, uint64_t src_offset, Shape src_strides,
-                        tart::buffer_ptr& dst, uint64_t dst_offset, Shape dst_strides,
+                        tart::buffer_ptr& src, uint32_t src_offset, Shape src_strides,
+                        tart::buffer_ptr& dst, uint32_t dst_offset, Shape dst_strides,
 #else
                         cl::Buffer const &src,cl_ulong src_offset,Shape src_strides,
                         cl::Buffer const &dst,cl_ulong dst_offset,Shape dst_strides,
@@ -50,15 +50,15 @@ namespace core {
         tart::kernel_ptr k = prog->getKernel("copy");
         int p=0;
         for(int i=0;i<dims;i++) {
-            k->setArg(p++,uint64_t(shape[i]));
-            k->setArg(p++,uint64_t(src_strides[i]));
-            k->setArg(p++,uint64_t(dst_strides[i]));
+            k->setArg(p++, uint32_t(shape[i]));
+            k->setArg(p++, uint32_t(src_strides[i]));
+            k->setArg(p++, uint32_t(dst_strides[i]));
         }
         k->setArg(p++,src);
         k->setArg(p++,src_offset);
         k->setArg(p++,dst);
         k->setArg(p++,dst_offset);
-        std::vector<uint32_t> local(range.size(), 1);
+        std::vector<uint32_t> local;
         k->run(range, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"copy_strided",

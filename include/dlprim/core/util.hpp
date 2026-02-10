@@ -13,8 +13,8 @@ namespace core {
 
     void copy_strided(  Shape shape,
 #if VULKAN_API
-                        tart::buffer_ptr& src, uint64_t src_offset, Shape src_strides,
-                        tart::buffer_ptr& dst, uint64_t dst_offset, Shape dst_strides,
+                        tart::buffer_ptr& src, uint32_t src_offset, Shape src_strides,
+                        tart::buffer_ptr& dst, uint32_t dst_offset, Shape dst_strides,
 #else
                         cl::Buffer const &src,cl_ulong src_offset,Shape src_strides,
                         cl::Buffer const &dst,cl_ulong dst_offset,Shape dst_strides,

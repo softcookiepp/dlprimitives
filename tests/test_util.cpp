@@ -84,6 +84,7 @@ int main(int argc,char **argv)
                         Tensor y_ref(ctx,s,float_data);
                         Tensor y(ctx,s,float_data);
                         x.to_device(q,vals_x.data());
+                        //core::pointwise_operation_broadcast({x},{y_ref},{},"y0=x0;",q);
                         core::pointwise_operation_broadcast({x},{y_ref},{},"y0=x0;",q);
                         core::copy_strided(s,x.device_buffer(),x.device_offset(),strides_src,
                                              y.device_buffer(),y.device_offset(),strides_tgt,
