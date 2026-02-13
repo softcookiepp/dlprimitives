@@ -411,6 +411,9 @@ private:
 ///
 ///
 class Context {
+#if VULKAN_API
+	tart::Instance mInstance;
+#endif
 public:
     /// Device used with the context, CPU or OpenCL device.
     enum ContextType {

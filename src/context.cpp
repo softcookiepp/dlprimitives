@@ -214,7 +214,7 @@ namespace dlprim {
     void Context::select_opencl_device(int p,int d)
     {
 #if VULKAN_API
-		tart::Instance& instance = tart::init();
+		tart::Instance& instance = mInstance;
 		if (d >= instance.getNumDevices() )
 			throw ValidationError("No such device : " + std::to_string(d));
 		device_ = instance.createDevice(d);
