@@ -9,6 +9,7 @@
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/ops/scal.hpp>
 #include <iostream>
+#include <clblast_vk.h>
 
 namespace dlprim {
 namespace gpu {
@@ -825,69 +826,24 @@ namespace gpu {
         int ci_,co_,k_,pad_,s_;
     };
 
-#if VULKAN_API && 0
+#if VULKAN_API
 	// dlprim's existing GEMM kernels are too difficult for me to port to GLSL.
 	// So I am simply taking the stuff I developed for CLBlast and putting it here!
 	
-	class DirectSGEMM : public GEMM
+	class BlasSGEMM : public GEMM
 	{
     public:
-        DirectSGEMM(Context &ctx, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0)
+        BlasSGEMM(Context &ctx, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0)
         {
 			if (act != StandardActivations::identity)
 				throw std::runtime_error("non-identity activations not implemented yet");
 			if (bias > 0)
 				throw std::runtime_error("bias not implemented!");
-            mProgram = Cache::instance().get_program(ctx,"xgemm",
-                                        "ACTIVATION",int(act));
-			// just save the transpose status; this is all we need for now...
-			mATrans = atrans;
-			mBTrans = btrans;
+			mDevice = ctx.device();
+			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
+			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
         }
         
-        
-        // Process the user-arguments, computes secondary parameters
-		static void ProcessArguments(const bool a_transpose, const bool b_transpose,
-			const size_t m, const size_t n, const size_t k, size_t& a_one, size_t& a_two,
-			size_t& b_one, size_t& b_two, size_t& c_one, size_t& c_two, bool& a_do_transpose,
-			bool& b_do_transpose, bool& c_do_transpose)// bool& a_conjugate, bool& b_conjugate)
-		{
-			// Makes sure all dimensions are larger than zero
-			if ((m == 0) || (n == 0) || (k == 0)) 
-				throw std::invalid_argument("invalid dimension!");
-
-			// Computes whether or not the matrices are transposed in memory. This is based on their layout
-			// (row or column-major) and whether or not they are requested to be pre-transposed. Note
-			// that the Xgemm kernel expects either matrices A and C (in case of row-major) or B (in case of
-			// col-major) to be transformed, so transposing requirements are not the same as whether or not
-			// the matrix is actually transposed in memory.
-			const auto a_rotated = a_transpose;
-			const auto b_rotated = b_transpose;
-			const auto c_rotated = true;
-			// gemm kernel id will always resolve to 0, since we are only using the direct version for now
-			a_do_transpose = a_rotated;
-			b_do_transpose = !b_rotated;
-			c_do_transpose = c_rotated;
-		#if 0
-			// Not going to implement this quite yet; dlprimitives does not support complex data types
-			a_conjugate = (a_transpose == Transpose::kConjugate);
-			b_conjugate = (b_transpose == Transpose::kConjugate);
-		#endif
-
-			// Computes the first and second dimensions of the 3 matrices taking into account whether the
-			// matrices are rotated or not
-			a_one = (a_rotated) ? k : m;
-			a_two = (a_rotated) ? m : k;
-			b_one = (b_rotated) ? n : k;
-			b_two = (b_rotated) ? k : n;
-			c_one = (c_rotated) ? n : m;
-			c_two = (c_rotated) ? m : n;
-		}
-        
-        static int round_up_div(int x,int y)
-        {
-            return (x + y - 1)/y;
-        }
         virtual void gemm(int M,int N,int K,
 						tart::buffer_ptr &a,
 						uint32_t offset_a,
@@ -904,125 +860,18 @@ namespace gpu {
                           int size_of_c,
                           ExecutionContext const &ein)
         {
-
-            ExecutionContext e;
-            
-            // Computes the transpose/conjugate options and sets the a/b/c sizes based on that
-			bool a_do_transpose, b_do_transpose, c_do_transpose, a_conjugate, b_conjugate;
-			size_t a_one, a_two, b_one, b_two, c_one, c_two;
-			// layout will always be row major
-			// wait. this will need to come during gemm call...
-			ProcessArguments(mATrans, mBTrans, M, N, K, a_one, a_two, b_one, b_two,
-				c_one, c_two, a_do_transpose, b_do_transpose, c_do_transpose);
-				
-			// Now we choose a kernel and other stuff based on this criteria.
-			const std::string kernelName = (a_do_transpose) ? (b_do_transpose ? "xgemm_direct_tt" : "xgemm_direct_tn")
-				: (b_do_transpose ? "xgemm_direct_nt" : "xgemm_direct_nn" );
-            tart::kernel_ptr kernel = mProgram->getKernel(kernelName);
-            
-#if 0
-			// Sets the kernel arguments
-			kernel->setArg(0, static_cast<int>(M));
-			kernel->setArg(1, static_cast<int>(N));
-			kernel->setArg(2, static_cast<int>(K));
-			kernel->setArg(3, static_cast<float>(1.0)); // alpha is always 1.0
-			kernel->setArg(4, beta);
-			kernel->setArg(5, a);
-			kernel->setArg(6, static_cast<int>(offset_a));
-			kernel->setArg(7, static_cast<int>(lda));
-			kernel->setArg(8, b);
-			kernel->setArg(9, static_cast<int>(offset_b));
-			kernel->setArg(10, static_cast<int>(ldb));
-			kernel->setArg(11, c);
-			kernel->setArg(12, static_cast<int>(offset_c));
-			kernel->setArg(13, static_cast<int>(ldc));
-			kernel->setArg(14, static_cast<int>(c_do_transpose));
-			#if 1
-				// complex matmul is not supported in dlprim yet, so we just set as false for this kernel
-				kernel->setArg(15, static_cast<int>(0));
-				kernel->setArg(16, static_cast<int>(0));
-			#else
-				kernel->setArg(15, static_cast<int>(a_conjugate));
-				kernel->setArg(16, static_cast<int>(b_conjugate));
-			#endif
-
-			// provide the same buffers twice to get around GLSL's lack of pointer casting
-			kernel->setArg(17, a);
-			kernel->setArg(18, b);
-
-			// Computes the global and local thread sizes
-			const auto m_ceiled = Ceil(m, db_["WGD"]); // is 8, usually
-			const auto n_ceiled = Ceil(n, db_["WGD"]);
-			const auto global =
-				std::vector<size_t>{//	CeilDiv(m * db_["MDIMCD"], db_["WGD"]),
-														//	CeilDiv(n * db_["NDIMCD"], db_["WGD"])
-														(m_ceiled * db_["MDIMCD"]) / db_["WGD"], (n_ceiled * db_["NDIMCD"]) / db_["WGD"]};
-			const auto local = std::vector<size_t>{db_["MDIMCD"], db_["NDIMCD"]};
-
-			// Launches the kernel
-			RunKernel(kernel, queue_, device_, global, local, event_);
-#endif
-            
-            int kernel_runs = 1 + int(sep_act_) + int(sep_scale_);
-            if(sep_scale_) {
-                scale(size_of_c,beta,c,offset_c,ein.generate_series_context(0,kernel_runs));
-                e=ein.generate_series_context(1,kernel_runs);
-                beta = 1.0;
-            }
-            else {
-                e=ein;
-            }
-            int ind=0;
-            kernel_->setArg(ind++,M);
-            kernel_->setArg(ind++,N);
-            kernel_->setArg(ind++,K);
-            kernel_->setArg(ind++,a);
-            kernel_->setArg(ind++,offset_a);
-            kernel_->setArg(ind++,lda);
-            kernel_->setArg(ind++,b);
-            kernel_->setArg(ind++,offset_b);
-            kernel_->setArg(ind++,ldb);
-            kernel_->setArg(ind++,c);
-            kernel_->setArg(ind++,offset_c);
-            kernel_->setArg(ind++,ldc);
-            kernel_->setArg(ind++,beta);
-            if(bias_) {
-                DLPRIM_CHECK(bias != nullptr);
-                kernel_->setArg(ind++,*bias);
-                kernel_->setArg(ind++,bias_offset);
-            }
-            else {
-                DLPRIM_CHECK(bias == nullptr);
-            }
-
-            int gs0,gs1,ls0,ls1;
-            calc_dims(gs0,ls0,gs1,ls1,M,N);
-			std::vector<uint32_t> global,local;
-
-			global = {gs0/ls0,gs1/ls1};
-			local =  {ls0,ls1};
-
-			// correct global size
-			for (size_t i = 0; i < global.size(); i += 1)
-			{
-				global[i] = global[i]/local[i];
-			}
-			// weeeeeeeeeeeeeee
-			kernel_->run(global, {});
-#if 0
-            if(sep_act_) {
-                auto e2 = ein.generate_series_context(kernel_runs-1,kernel_runs);
-                activation(size_of_c,c,offset_c,e2);
-            }
-#endif
+			const float alpha = 1.0;
+			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
+				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
         }
 
     private:
 		// here we store program, since there are multiple kernels
 		tart::program_ptr mProgram = nullptr;
+		tart::device_ptr mDevice = nullptr;
 		
-		bool mATrans;
-		bool mBTrans;
+		clblast::Transpose mATrans;
+		clblast::Transpose mBTrans;
 		
 		bool mSepAct = false;
     };
@@ -1038,7 +887,9 @@ namespace gpu {
             int im2col_chan)
     {
 #if VULKAN_API
-		throw std::runtime_error("not yet implemented!");
+		DLPRIM_CHECK(dtype == float_data);
+		std::unique_ptr<GEMM> g = std::make_unique<BlasSGEMM>(ctx,trans_a,trans_b,M,N,K,bias,act,im2col_chan);
+		return g;
 #else
         DLPRIM_CHECK(dtype == float_data);
         std::unique_ptr<GEMM> g(new StandardSGEMM(ctx,trans_a,trans_b,M,N,K,bias,act,im2col_chan));
