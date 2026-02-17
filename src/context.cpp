@@ -217,7 +217,7 @@ namespace dlprim {
 		tart::Instance& instance = mInstance;
 		if (d >= instance.getNumDevices() )
 			throw ValidationError("No such device : " + std::to_string(d));
-		device_ = instance.createDevice(d);
+		device_ = instance.getDevice(d);
 		context_ = device_;
 #else
         std::vector<cl::Platform> platforms;
