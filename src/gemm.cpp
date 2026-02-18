@@ -619,7 +619,51 @@ namespace gpu {
         bool zorder_;
     };
     
-
+#if VULKAN_API
+	class BlasConvSGEMM : public GEMM
+	{
+		tart::device_ptr mDevice;
+		clblast::Transpose mATrans;
+		clblast::Transpose mBTrans;
+	public:
+		BlasConvSGEMM(  Context &ctx,
+                    GemmOpMode op_mode,
+                    bool atrans,bool btrans,
+                    int M,int N,int K,
+                    int kernel[2],int dilate[2],int padding[2],int stride[2],int groups,
+                    int src_channels,int src_rows,int src_cols,
+                    int tgt_rows,int tgt_cols,
+                    int bias,
+                    StandardActivations act,
+                    int im2col_chan = 0)
+		{
+			mDevice = ctx.device();
+			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
+			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
+		}
+		
+		virtual void gemm(int M,int N,int K,
+						tart::buffer_ptr &a,
+						uint32_t offset_a,
+						int lda,
+						tart::buffer_ptr &b,
+						uint32_t offset_b,
+						int ldb,
+						tart::buffer_ptr &c,
+						uint32_t offset_c,
+						int ldc,
+						tart::buffer_ptr bias,
+						uint32_t bias_offset,
+                          float beta,
+                          int size_of_c,
+                          ExecutionContext const &ein)
+        {
+			throw std::runtime_error("BlasConvSGEMM::gemm not yet implemented");
+		}
+		
+		
+	};
+#endif
     class ConvSGEMM : public GEMM, public StandardSGEMMBase {
     public:
         ConvSGEMM(  Context &ctx,
