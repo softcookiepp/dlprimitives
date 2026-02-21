@@ -487,6 +487,52 @@ namespace gpu {
         bool bias_;
     };
 
+#if VULKAN_API
+	class BlasBatchSGEMM
+	{
+		tart::device_ptr mDevice = nullptr;
+		clblast::Transpose mATrans;
+		clblast::Transpose mBTrans;
+	public:
+		BlasBatchSGEMM(Context &ctx, bool atrans,bool btrans,
+			int M,int N,int K, StandardActivations &act)
+		{
+			mDevice = ctx.device();
+			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
+			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
+		}
+		
+		virtual void gemm(int batches,int M,int N,int K,
+			tart::buffer_ptr a, uint32_t offset_a, int batch_stride_a, int lda,
+			tart::buffer_ptr b, uint32_t offset_b, int batch_stride_b, int ldb,
+			tart::buffer_ptr c, uint32_t offset_c, int batch_stride_c, int ldc,
+			float beta, ExecutionContext const &e)
+        {
+			//throw std::runtime_error("BlasBatchSGEMM::gemm not implemented");
+			
+			// adjust matrices based on offset; maybe it will work here?
+			size_t byte_offset_a = offset_a*sizeof(float);
+			size_t byte_offset_b = offset_b*sizeof(float);
+			size_t byte_offset_c = offset_c*sizeof(float);
+			if (offset_a > 0)
+				a = a->view(byte_offset_a);
+			if (offset_b > 0)
+				b = b->view(byte_offset_b);
+			if (offset_c > 0)
+				c = c->view(byte_offset_c);
+			if (offset_a | offset_b | offset_c)
+				std::cout << "\nWE GOTS AN OFFSET" << std::endl;
+			const float alpha = 1.0;
+			clblast::GemmStridedBatched(clblast::Layout::kRowMajor, mATrans, mBTrans,
+				M, N, K, alpha,
+				a, 0, lda, batch_stride_a,
+				b, 0, ldb, batch_stride_b,
+				beta,
+				c, 0, ldc, batch_stride_c,
+				batches, mDevice);
+		}
+	};
+#endif
 
     class BatchSGEMM : public StandardSGEMMBase {
     public:
@@ -998,7 +1044,21 @@ namespace gpu {
                           float beta,
                           ExecutionContext const &e)
     {
+#if VULKAN_API
+		DLPRIM_CHECK(dt == float_data);
+        
+        StandardActivations act = StandardActivations::identity;
+        Context ctx(e);
+        BlasBatchSGEMM gemm_opt(ctx,trans_a,trans_b,M,N,K,act);
+        gemm_opt.gemm(Batch,M,N,K,
+                a,offset_a,batch_stride_a,lda,
+                b,offset_b,batch_stride_b,ldb,
+                c,offset_c,batch_stride_c,ldc,
+                beta,
+                e);
+#else
         DLPRIM_CHECK(dt == float_data);
+        
         StandardActivations act = StandardActivations::identity;
         Context ctx(e);
         BatchSGEMM gemm_opt(ctx,trans_a,trans_b,M,N,K,act);
@@ -1008,7 +1068,7 @@ namespace gpu {
                 c,offset_c,batch_stride_c,ldc,
                 beta,
                 e);
-
+#endif
     }
 
 
