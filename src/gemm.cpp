@@ -523,13 +523,24 @@ namespace gpu {
 			if (offset_a | offset_b | offset_c)
 				std::cout << "\nWE GOTS AN OFFSET" << std::endl;
 			const float alpha = 1.0;
-			clblast::GemmStridedBatched(clblast::Layout::kRowMajor, mATrans, mBTrans,
-				M, N, K, alpha,
-				a, 0, lda, batch_stride_a,
-				b, 0, ldb, batch_stride_b,
-				beta,
-				c, 0, ldc, batch_stride_c,
-				batches, mDevice);
+			if (M == N == K == 1)
+			{
+				// This is just a batch of 1x1 matrices.
+				// As such, it can simply be treated as scalar multiplication.
+				
+				
+				throw std::runtime_error("WHY ARE YOU USING 1???");
+			}
+			else
+			{
+				clblast::GemmStridedBatched(clblast::Layout::kRowMajor, mATrans, mBTrans,
+					M, N, K, alpha,
+					a, 0, lda, batch_stride_a,
+					b, 0, ldb, batch_stride_b,
+					beta,
+					c, 0, ldc, batch_stride_c,
+					batches, mDevice);
+			}
 		}
 	};
 #endif
