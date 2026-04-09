@@ -523,7 +523,8 @@ namespace gpu {
 			if (offset_a | offset_b | offset_c)
 				std::cout << "\nWE GOTS AN OFFSET" << std::endl;
 			const float alpha = 1.0;
-			if (M == N == K == 1)
+			//if (M == N == K == 1)
+			if (false)
 			{
 				// This is just a batch of 1x1 matrices.
 				// As such, it can simply be treated as scalar multiplication.
