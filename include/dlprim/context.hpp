@@ -412,7 +412,7 @@ private:
 ///
 class Context {
 #if VULKAN_API
-	tart::Instance mInstance;
+	static tart::Instance sInstance;
 #endif
 public:
     /// Device used with the context, CPU or OpenCL device.
@@ -477,7 +477,7 @@ public:
 
 #if VULKAN_API
 	// get tart instance
-	tart::Instance& getInstance() { return mInstance; }
+	tart::Instance& getInstance() { return sInstance; }
 #endif
     
     /// Get OpenCL platform object
