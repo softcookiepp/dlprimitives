@@ -477,7 +477,7 @@ public:
 
 #if VULKAN_API
 	// get tart instance
-	tart::Instance& getInstance() { return sInstance; }
+	static tart::Instance& getInstance() { return sInstance; }
 #endif
     
     /// Get OpenCL platform object
