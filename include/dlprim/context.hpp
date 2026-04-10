@@ -474,6 +474,12 @@ public:
     {
         return type_ == ocl;
     }
+
+#if VULKAN_API
+	// get tart instance
+	tart::Instance& getInstance() { return mInstance; }
+#endif
+    
     /// Get OpenCL platform object
 #if VULKAN_API
 	tart::device_ptr
