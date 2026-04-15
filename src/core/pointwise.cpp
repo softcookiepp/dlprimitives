@@ -402,6 +402,7 @@ namespace core {
                                                                            "#SAVES",saves.str(),
                                                                            "#CALC",format_code(code));
         tart::kernel_ptr k = prog->getKernel("exec");
+        tart::device_ptr device = prog->getDevice();
         int p=0;
         bind_shape(k,p,ref);
         for(size_t i=0;i<xs.size();i++) {
@@ -417,6 +418,8 @@ namespace core {
         std::vector<uint32_t> range = get_broadcast_ndrange(ref);
         std::vector<uint32_t> local(3, 1);
         local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
+        // well this is going to be a pain in the bum
+        //device->validateWorkSize(range);
 		k->run(range, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
