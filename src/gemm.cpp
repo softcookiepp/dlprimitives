@@ -1011,7 +1011,11 @@ namespace gpu {
             int im2col_chan)
     {
 #if VULKAN_API
-		throw std::runtime_error("not yet implemented!");
+		DLPRIM_CHECK(dtype == float_data); // for now, this will be made different later!
+		std::unique_ptr<GEMM> g = std::make_unique<BlasConvSGEMM>(ctx, op_mode,
+			trans_a, trans_b, M, N, K, kernel,dilate, padding,stride, groups,
+			src_channels, src_rows, src_cols, tgt_rows, tgt_cols, bias,act,im2col_chan);
+		return g;
 #else
         DLPRIM_CHECK(dtype == float_data);
         std::unique_ptr<GEMM> g(new ConvSGEMM(ctx,op_mode,
