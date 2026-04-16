@@ -683,6 +683,7 @@ namespace gpu {
 		tart::device_ptr mDevice;
 		clblast::Transpose mATrans;
 		clblast::Transpose mBTrans;
+		
 	public:
 		BlasConvSGEMM(  Context &ctx,
                     GemmOpMode op_mode,
@@ -717,6 +718,11 @@ namespace gpu {
                           ExecutionContext const &ein)
         {
 			throw std::runtime_error("BlasConvSGEMM::gemm not yet implemented");
+			const float alpha = 1.0;
+#if 0
+			clblast::Convgemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
+				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
+#endif
 		}
 		
 		
@@ -1010,7 +1016,7 @@ namespace gpu {
             StandardActivations act,
             int im2col_chan)
     {
-#if VULKAN_API
+#if 0
 		DLPRIM_CHECK(dtype == float_data); // for now, this will be made different later!
 		std::unique_ptr<GEMM> g = std::make_unique<BlasConvSGEMM>(ctx, op_mode,
 			trans_a, trans_b, M, N, K, kernel,dilate, padding,stride, groups,
