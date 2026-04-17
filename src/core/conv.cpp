@@ -71,17 +71,17 @@ namespace core {
 			Shape  in_shape(in.shape()[0],in.shape()[1]/config.groups,in.shape()[2],in.shape()[3]);
 			Shape out_shape(out.shape()[0],out.shape()[1]/config.groups,out.shape()[2],out.shape()[3]);
 			
-			
-			
-			
-			for(int b=0;b<batch;b++) {
-				for(int g=0;g<config.groups;g++) {
+			for(int b=0;b<batch;b++)
+			{
+				for(int g=0;g<config.groups;g++)
+				{
 					size_t imgOffset = sizeof(float)*(in_size_no_batch *b + g * step_groups_in * in.shape()[2] * in.shape()[3]);
 					size_t omgOffset = sizeof(float)*(out_size_no_batch*b + g * step_groups_out * out.shape()[2] * out.shape()[3]);
 					tart::buffer_ptr img = in.device_buffer()->view(imgOffset);
 					tart::buffer_ptr omg = out.device_buffer()->view(omgOffset);
 					switch(mode) {
-					case GemmOpMode::forward: {
+					case GemmOpMode::forward:
+					{
 #if 1
 							throw std::runtime_error("not implemented!");
 #else
