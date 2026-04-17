@@ -677,12 +677,17 @@ namespace gpu {
         bool zorder_;
     };
     
-#if VULKAN_API
+#if 0 //VULKAN_API
 	class BlasConvSGEMM : public GEMM
 	{
 		tart::device_ptr mDevice;
 		clblast::Transpose mATrans;
 		clblast::Transpose mBTrans;
+		
+		GemmOpMode mGemmOpMode;
+		size_t mSrcChannels;
+		size_t mDstChannels;
+		
 		
 	public:
 		BlasConvSGEMM(  Context &ctx,
@@ -694,8 +699,15 @@ namespace gpu {
                     int tgt_rows,int tgt_cols,
                     int bias,
                     StandardActivations act,
-                    int im2col_chan = 0)
+                    int im2col_chan = 0):
+			mGemmOpMode(op_mode),
+			mSrcChannels(src_channels),
+			
+			
 		{
+			
+			if (mGemmOpMode != GemmOpMode::forward)
+				throw std::runtime_error("only forward is implemented right now :c");
 			mDevice = ctx.device();
 			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
 			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
@@ -717,12 +729,71 @@ namespace gpu {
                           int size_of_c,
                           ExecutionContext const &ein)
         {
-			throw std::runtime_error("BlasConvSGEMM::gemm not yet implemented");
-			const float alpha = 1.0;
-#if 0
-			clblast::Convgemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
-				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
-#endif
+			// Ok, so. batch should be N / out channels.
+			// How do we get the out channels???
+			size_t batch = N / mDstChannels;
+			float *imcols = static_cast<float *>(ws);
+			float *kernel = W.data<float>();
+			int im2col_rows = out.shape()[2]*out.shape()[3];
+			int kernel_cols = config.channels_in / config.groups * config.kernel[0] * config.kernel[1];
+			int in_size_no_batch = in.shape().size_no_batch();
+			int out_size_no_batch = out.shape().size_no_batch();
+			int step_groups_out = config.channels_out / config.groups;
+			int step_groups_in  = config.channels_in  / config.groups;
+			int step_kernel = step_groups_out * step_groups_in * config.kernel[0] * config.kernel[1];
+			Shape  in_shape(in.shape()[0],in.shape()[1]/config.groups,in.shape()[2],in.shape()[3]);
+			Shape out_shape(out.shape()[0],out.shape()[1]/config.groups,out.shape()[2],out.shape()[3]);
+			for(int b=0;b<batch;b++) {
+				for(int g=0;g<config.groups;g++) {
+					float *img = in.data<float>()  + in_size_no_batch *b + g * step_groups_in * in.shape()[2] * in.shape()[3];
+					float *omg = out.data<float>() + out_size_no_batch*b + g * step_groups_out * out.shape()[2] * out.shape()[3];
+					switch(mode) {
+					case GemmOpMode::forward: {
+							im2col<details::Im2ColOp>(in_shape,out_shape,img,imcols,config);
+							cblas_sgemm(CblasRowMajor,CblasNoTrans, CblasTrans,
+									config.channels_out / config.groups,im2col_rows,kernel_cols,
+									1.0f,
+									kernel + step_kernel * g,kernel_cols,
+									imcols,kernel_cols,
+									fwd_beta,
+									omg,
+									im2col_rows);
+							if(config.bias) {
+								float *bias = bias_tensor->data<float>() + g * step_groups_out;
+								int plane_size = out.shape()[2]*out.shape()[3];
+								for(int i=0;i<step_groups_out;i++) {
+									cblas_saxpy(plane_size,1.0f,bias + i,0,omg + plane_size*i,1);
+								}
+							}
+						}
+						break;
+					case GemmOpMode::backward_filter: {
+							im2col<details::Im2ColOp>(in_shape,out_shape,img,imcols,config);
+							cblas_sgemm(CblasRowMajor,CblasNoTrans, CblasNoTrans,
+									config.channels_out / config.groups,kernel_cols,im2col_rows,
+									1.0f,
+									omg,im2col_rows,
+									imcols,kernel_cols,
+									1.0f,
+									kernel + step_kernel * g,kernel_cols
+									);
+						}
+						break;
+					case GemmOpMode::backward_data: {
+							cblas_sgemm(CblasRowMajor,CblasTrans, CblasNoTrans,
+									im2col_rows, kernel_cols, config.channels_out / config.groups,
+									1.0f,
+									omg,im2col_rows,
+									kernel + step_kernel * g,kernel_cols,
+									0.0f,
+									imcols,kernel_cols
+									);
+							im2col<details::Col2ImOp>(in_shape,out_shape,img,imcols,config);
+						}
+						break;
+					} // switch
+				}
+			}
 		}
 		
 		
