@@ -677,7 +677,7 @@ namespace gpu {
         bool zorder_;
     };
     
-#if 0 //VULKAN_API
+#if VULKAN_API
 	class BlasConvSGEMM : public GEMM
 	{
 		tart::device_ptr mDevice;
@@ -687,7 +687,11 @@ namespace gpu {
 		GemmOpMode mGemmOpMode;
 		size_t mSrcChannels;
 		size_t mDstChannels;
-		
+		std::array<size_t, 2> mKernel;
+		std::array<size_t, 2> mDilate;
+		std::array<size_t, 2> mPadding;
+		std::array<size_t, 2> mStride;
+		size_t mGroups;
 		
 	public:
 		BlasConvSGEMM(  Context &ctx,
@@ -700,10 +704,14 @@ namespace gpu {
                     int bias,
                     StandardActivations act,
                     int im2col_chan = 0):
+			//StandardSGEMMBase(ctx,M,N,K,false,false,act),
 			mGemmOpMode(op_mode),
 			mSrcChannels(src_channels),
-			
-			
+			mKernel({kernel[0], kernel[1]}),
+			mDilate({dilate[0], dilate[1]}),
+			mPadding({padding[0], padding[1]}),
+			mStride({stride[0], stride[1]}),
+			mGroups(groups)
 		{
 			
 			if (mGemmOpMode != GemmOpMode::forward)
@@ -729,71 +737,19 @@ namespace gpu {
                           int size_of_c,
                           ExecutionContext const &ein)
         {
-			// Ok, so. batch should be N / out channels.
-			// How do we get the out channels???
-			size_t batch = N / mDstChannels;
-			float *imcols = static_cast<float *>(ws);
-			float *kernel = W.data<float>();
-			int im2col_rows = out.shape()[2]*out.shape()[3];
-			int kernel_cols = config.channels_in / config.groups * config.kernel[0] * config.kernel[1];
-			int in_size_no_batch = in.shape().size_no_batch();
-			int out_size_no_batch = out.shape().size_no_batch();
-			int step_groups_out = config.channels_out / config.groups;
-			int step_groups_in  = config.channels_in  / config.groups;
-			int step_kernel = step_groups_out * step_groups_in * config.kernel[0] * config.kernel[1];
-			Shape  in_shape(in.shape()[0],in.shape()[1]/config.groups,in.shape()[2],in.shape()[3]);
-			Shape out_shape(out.shape()[0],out.shape()[1]/config.groups,out.shape()[2],out.shape()[3]);
-			for(int b=0;b<batch;b++) {
-				for(int g=0;g<config.groups;g++) {
-					float *img = in.data<float>()  + in_size_no_batch *b + g * step_groups_in * in.shape()[2] * in.shape()[3];
-					float *omg = out.data<float>() + out_size_no_batch*b + g * step_groups_out * out.shape()[2] * out.shape()[3];
-					switch(mode) {
-					case GemmOpMode::forward: {
-							im2col<details::Im2ColOp>(in_shape,out_shape,img,imcols,config);
-							cblas_sgemm(CblasRowMajor,CblasNoTrans, CblasTrans,
-									config.channels_out / config.groups,im2col_rows,kernel_cols,
-									1.0f,
-									kernel + step_kernel * g,kernel_cols,
-									imcols,kernel_cols,
-									fwd_beta,
-									omg,
-									im2col_rows);
-							if(config.bias) {
-								float *bias = bias_tensor->data<float>() + g * step_groups_out;
-								int plane_size = out.shape()[2]*out.shape()[3];
-								for(int i=0;i<step_groups_out;i++) {
-									cblas_saxpy(plane_size,1.0f,bias + i,0,omg + plane_size*i,1);
-								}
-							}
-						}
-						break;
-					case GemmOpMode::backward_filter: {
-							im2col<details::Im2ColOp>(in_shape,out_shape,img,imcols,config);
-							cblas_sgemm(CblasRowMajor,CblasNoTrans, CblasNoTrans,
-									config.channels_out / config.groups,kernel_cols,im2col_rows,
-									1.0f,
-									omg,im2col_rows,
-									imcols,kernel_cols,
-									1.0f,
-									kernel + step_kernel * g,kernel_cols
-									);
-						}
-						break;
-					case GemmOpMode::backward_data: {
-							cblas_sgemm(CblasRowMajor,CblasTrans, CblasNoTrans,
-									im2col_rows, kernel_cols, config.channels_out / config.groups,
-									1.0f,
-									omg,im2col_rows,
-									kernel + step_kernel * g,kernel_cols,
-									0.0f,
-									imcols,kernel_cols
-									);
-							im2col<details::Col2ImOp>(in_shape,out_shape,img,imcols,config);
-						}
-						break;
-					} // switch
-				}
-			}
+#if 1
+			throw std::runtime_error("not implemented");
+#else
+			clblast::Convgemm(clblast::KernelMode::kCrossCorrelation, mSrcChannels, M, N,
+				mKernel[0], mKernel[1], mPadding[0], mPadding[1],
+				mStride[0], mStride[1], mDilate[0], mDilate[1],
+				const size_t num_kernels,
+				mGroups, // const size_t batch_count,
+				a, offset_a,
+				b, offset_b,
+				c, offset_c,
+				mDevice);
+#endif
 		}
 		
 		
@@ -1087,7 +1043,7 @@ namespace gpu {
             StandardActivations act,
             int im2col_chan)
     {
-#if 0
+#if 1
 		DLPRIM_CHECK(dtype == float_data); // for now, this will be made different later!
 		std::unique_ptr<GEMM> g = std::make_unique<BlasConvSGEMM>(ctx, op_mode,
 			trans_a, trans_b, M, N, K, kernel,dilate, padding,stride, groups,

@@ -83,6 +83,12 @@ namespace core {
 					case GemmOpMode::forward:
 					{
 #if 1
+	#if 0
+							clblast::Im2col(clblast::KernelMode::kCrossCorrelation, in_shape[1], const size_t height, const size_t width,
+								config.kernel[0], config.kernel[1], config.pad[0], config.pad[1],
+								config.stride[0], config.stride[1], config.dilate[0], config.dilate[1],
+								img, 0, omg, 0, e.queue() );
+	#endif
 							throw std::runtime_error("not implemented!");
 #else
 							im2col<details::Im2ColOp>(in_shape,out_shape,img,imcols,config);
