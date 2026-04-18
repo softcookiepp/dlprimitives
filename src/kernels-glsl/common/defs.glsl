@@ -50,6 +50,8 @@
 	#endif
 #endif
 
+#define cmp_gt(a, b) (dtype(a) > dtype(b) )
+
 #ifndef itype
 	// just default to 32 bit for now just so we can test to ensure it compiles
 	#define itype int
