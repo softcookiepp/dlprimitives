@@ -10,8 +10,8 @@
 	layout(binding = 3, std430) readonly buffer dyx_sum_buf { float dyx_sum[]; };
 	layout(binding = 4, std430) buffer gamma_in_buf { float gamma_in[]; };
 	layout(binding = 5, std430) buffer x_factor_buf { float x_factor[]; };
-	layout(binding = 5, std430) buffer dy_factor_buf { float dy_factor[]; };
-	layout(binding = 5, std430) buffer offset_buf { float offset[]; };
+	layout(binding = 6, std430) buffer dy_factor_buf { float dy_factor[]; };
+	layout(binding = 7, std430) buffer offset_buf { float offset[]; };
 #endif
 
 
