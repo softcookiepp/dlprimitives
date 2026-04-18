@@ -687,10 +687,10 @@ namespace gpu {
 		GemmOpMode mGemmOpMode;
 		size_t mSrcChannels;
 		size_t mDstChannels;
-		std::array<size_t, 2> mKernel;
-		std::array<size_t, 2> mDilate;
-		std::array<size_t, 2> mPadding;
-		std::array<size_t, 2> mStride;
+		const std::vector<size_t> mKernel;
+		const std::vector<size_t> mDilate;
+		const std::vector<size_t> mPadding;
+		const std::vector<size_t> mStride;
 		size_t mGroups;
 		
 	public:
@@ -737,18 +737,18 @@ namespace gpu {
                           int size_of_c,
                           ExecutionContext const &ein)
         {
-#if 1
+#if 0
 			throw std::runtime_error("not implemented");
 #else
-			clblast::Convgemm(clblast::KernelMode::kCrossCorrelation, mSrcChannels, M, N,
-				mKernel[0], mKernel[1], mPadding[0], mPadding[1],
-				mStride[0], mStride[1], mDilate[0], mDilate[1],
-				const size_t num_kernels,
+			clblast::Convgemm<float>(clblast::KernelMode::kCrossCorrelation, mSrcChannels, (size_t)M, (size_t)N,
+				size_t(mKernel[0]), size_t(mKernel[1]), size_t(mPadding[0]), size_t(mPadding[1]),
+				size_t(mStride[0]), size_t(mStride[1]), size_t(mDilate[0]), size_t(mDilate[1]),
+				mDstChannels, //const size_t num_kernels,
 				mGroups, // const size_t batch_count,
-				a, offset_a,
-				b, offset_b,
-				c, offset_c,
-				mDevice);
+				a, (size_t)offset_a,
+				b, (size_t)offset_b,
+				c, (size_t)offset_c,
+				mDevice, nullptr);
 #endif
 		}
 		
