@@ -11,23 +11,25 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(push_constant, std430) uniform softmax
 {
-	int batch,
-	int channels,
-	int extra_batch,
+	uint batch,
+	uint channels,
+	uint extra_batch,
 #if USE_BDA
 	__global dtype const *in,
 #endif
-	ulong  data_offset,
+	uint  data_offset,
 #if USE_BDA
 	__global dtype *out,
 #endif
-	ulong  out_offset
+	uint  out_offset
 };
+
+REDUCE_PREPARE(WG_SIZE, dtype);
 
 void main()
 {
-    inp += data_offset;
-    outp += out_offset;
+    uint inp_ = data_offset;
+    uint outp_ = out_offset;
     
     long b = get_global_id(0);
     long eb = get_global_id(2);
@@ -40,26 +42,30 @@ void main()
 
     int c = get_global_id(1) * ITEMS_PER_WI;
 
-    in += b * channels * extra_batch + eb;
-    out += b * channels * extra_batch + eb;
+    inp_ += (b * channels * extra_batch + eb);
+    outp_ += (b * channels * extra_batch + eb);
     
-    REDUCE_PREPARE(WG_SIZE,dtype);
+    // REDUCE_PREPARE(WG_SIZE, dtype);
 
     dtype val = -DTYPE_MAX;
 
     #if ITEMS_PER_WI <= LOCAL_ITEMS_LIMIT
         dtype values[ITEMS_PER_WI];
-        #pragma unroll
-        for(int i=0;i<ITEMS_PER_WI;i++) {
-            if(c+i < channels) {
-                values[i] = in[(c+i)*step];
-                val = max(val,values[i]);
+        UNROLL(ITEMS_PER_WI)
+        for(uint i=0; i < ITEMS_PER_WI; i++)
+        {
+            if(c+i < channels)
+            {
+                values[i] = inp[(c+i)*step + inp_];
+                val = max(val, values[i]);
             }
         }
     #else
-        for(int i=0;i<ITEMS_PER_WI;i++) {
-            if(c+i < channels) {
-                val = max(val,in[(c+i)*step]);
+        for(int i=0;i<ITEMS_PER_WI;i++)
+        {
+            if(c+i < channels)
+            {
+                val = max(val, inp[(c+i)*step + inp_]);
             }
         }
     #endif
@@ -71,22 +77,25 @@ void main()
     dtype sum = 0;
 
     #if ITEMS_PER_WI <= LOCAL_ITEMS_LIMIT
-        #pragma unroll
-        for(int i=0;i<ITEMS_PER_WI;i++) {
+        UNROLL(ITEMS_PER_WI)
+        for(uint i=0; i < ITEMS_PER_WI; i++) {
             if(c+i < channels) {
                 #if LOG_SM == 1
-                sum += exp(values[i] - maxv);
+					sum += exp(values[i] - maxv);
                 #else
-                sum += values[i] = exp(values[i] - maxv);
+					sum += values[i] = exp(values[i] - maxv);
                 #endif
             }
         }
     #else
-        for(int i=0;i<ITEMS_PER_WI;i++) {
-            if(c+i < channels) {
-                dtype tmp = exp(in[(c+i)*step] - maxv);
+		UNROLL(ITEMS_PER_WI)
+        for(uint i=0; i < ITEMS_PER_WI; i++)
+        {
+            if(c+i < channels)
+            {
+                dtype tmp = exp(inp[(c+i)*step + inp_] - maxv);
                 #if LOG_SM == 0
-                out[(c+i)*step] = tmp;
+					outp[(c+i)*step + outp_] = tmp;
                 #endif
                 sum += tmp;
             }
@@ -95,29 +104,34 @@ void main()
     my_work_group_reduce_add(sum);
 
     #if LOG_SM == 0
-    val = (dtype)1 / sum;
+		val = (dtype)1 / sum;
     #else
-    val = -log(sum);
+		val = -log(sum);
     #endif
 
     #if ITEMS_PER_WI <= LOCAL_ITEMS_LIMIT
-        #pragma unroll
-        for(int i=0;i<ITEMS_PER_WI;i++) {
-            if(c + i < channels) {
+        UNROLL(ITEMS_PER_WI)
+        for(uint i = 0; i < ITEMS_PER_WI; i++)
+        {
+            if(c + i < channels)
+            {
                 #if LOG_SM == 1
-                out[(c+i)*step] = values[i] - maxv + val;
+					outp[(c+i)*step + outp_] = values[i] - maxv + val;
                 #else
-                out[(c+i)*step] = values[i] * val;
+					outp[(c+i)*step + outp_] = values[i] * val;
                 #endif
             }
         }
     #else
-        for(int i=0;i<ITEMS_PER_WI;i++) {
-            if(c + i < channels) {
+		UNROLL(ITEMS_PER_WI)
+        for(uint i=0; i < ITEMS_PER_WI; i++)
+        {
+            if(c + i < channels)
+            {
                 #if LOG_SM == 1
-                out[(c+i)*step] = in[(c+i)*step] - maxv + val;
+					outp[(c+i)*step + outp_] = inp[(c+i)*step + inp_] - maxv + val;
                 #else
-                out[(c+i)*step] *= val;
+					outp[(c+i)*step + outp_] *= val;
                 #endif
             }
         }
