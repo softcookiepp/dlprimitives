@@ -48,8 +48,9 @@ namespace core {
         y.set_arg(kernel,p);
 
         std::vector<uint32_t> gr({b0,nd_range/wg_size,b2});
-        std::vector<uint32_t> wg({1,wg_size,1});
-        kernel->run(gr, wg);
+        //std::vector<uint32_t> wg({1,wg_size,1});
+        //kernel->run(gr, wg);
+        kernel->run(gr, {});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"softmax",
                             "WG_SIZE",wg_size,
