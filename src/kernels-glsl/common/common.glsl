@@ -385,12 +385,12 @@
 dtype erf(dtype x)
 {
 	// adapted from: https://www.johndcook.com/blog/python_erf/
-	dtype a1 =  0.254829592;
-    dtype a2 = -0.284496736;
-    dtype a3 =  1.421413741;
-    dtype a4 = -1.453152027;
-    dtype a5 =  1.061405429;
-    dtype p  =  0.3275911;
+	dtype a1 =  dtype(0.254829592);
+    dtype a2 = dtype(-0.284496736);
+    dtype a3 =  dtype(1.421413741);
+    dtype a4 = dtype(-1.453152027);
+    dtype a5 =  dtype(1.061405429);
+    dtype p  =  dtype(0.3275911);
     
     precise dtype sign = x > 0.0 ? 1.0 : -1.0;
     x = abs(x);
