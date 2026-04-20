@@ -56,7 +56,7 @@ void main()
 {
     uint inp_ = data_offset;
     uint outp_ = out_offset;
-    uint out_diff_ += out_diff_offset;
+    uint out_diff_ = out_diff_offset;
     
     uint b = get_global_id(0);
     uint eb = get_global_id(2);
