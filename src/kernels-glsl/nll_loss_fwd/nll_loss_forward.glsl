@@ -53,7 +53,7 @@ void main()
     dtype sum = 0;
     #endif
 
-    // #pragma unroll
+    UNROLL(ITEMS_PER_WI)
     for(uint i=0;i<ITEMS_PER_WI;i++,item++) {
         if(item < batch) {
             uint index = uint(label[item + label_]);
