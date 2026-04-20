@@ -103,8 +103,7 @@ void main()
         }
     #endif
     my_work_group_reduce_add(sum, WG_SIZE);
-    // just for the sake of testing stuff
-    sum = 1.0;
+    barrier();
 
     #if LOG_SM == 0
 		val = dtype(1) / sum;
