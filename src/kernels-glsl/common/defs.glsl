@@ -1,3 +1,7 @@
+#ifndef COMMON_GLSL
+#define COMMON_GLSL
+	// just to prevent the other header from interfering
+#endif
 
 // constant thingies
 #define FLT_MAX 3.402823466e+38
