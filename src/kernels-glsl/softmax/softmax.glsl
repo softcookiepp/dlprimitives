@@ -31,9 +31,9 @@ void main()
     uint inp_ = data_offset;
     uint outp_ = out_offset;
     
-    long b = get_global_id(0);
-    long eb = get_global_id(2);
-    long step = extra_batch;
+    uint b = get_global_id(0);
+    uint eb = get_global_id(2);
+    uint step = extra_batch;
 
     if(b >= batch)
         return;
