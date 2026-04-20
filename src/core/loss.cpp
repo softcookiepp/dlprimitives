@@ -199,7 +199,7 @@ namespace core {
         y.set_arg(kernel,p);
         kernel->setArg(p++,scale);
         std::vector<uint32_t> wg({wg_size, 1, 1});
-        kernel->run({1, 1, 1}, wg);
+        kernel->run({1, 1, 1}, {});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_fwd",
                             "WG_SIZE",wg_size,
@@ -253,7 +253,7 @@ namespace core {
         kernel->setArg(p++,scale);
         kernel->setArg(p++,factor);
         std::vector<uint32_t> nd(in_shape[1],in_shape[0]);
-        kernel->run(nd, {1, 1});
+        kernel->run(nd, {});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_bwd",
                             "REDUCE",int(reduce),
