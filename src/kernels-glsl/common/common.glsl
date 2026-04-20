@@ -380,10 +380,21 @@
 	//int GetGroupID0() { return int(gl_WorkGroupID.x); }
 #endif
 
-// =================================================================================================
+dtype erf(dtype x)
+{
+	// adapted from: https://www.johndcook.com/blog/python_erf/
+	const dtype a1 =  0.254829592;
+    const dtype a2 = -0.284496736;
+    const dtype a3 =  1.421413741;
+    const dtype a4 = -1.453152027;
+    const dtype a5 =  1.061405429;
+    const dtype p  =  0.3275911;
+    
+    precise dtype sign = x > 0.0 ? 1.0 : -1.0;
+    x = abs(x);
+    dtype t = dtype( 1.0/(1.0 + p*x) );
+    precise dtype y = (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp( (-x)*x);
+    return sign*y;
+}
 
-// End of the C++11 raw string literal
 #endif
-//)"
-
-// =================================================================================================
