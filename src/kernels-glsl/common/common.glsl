@@ -401,7 +401,7 @@ dtype erf(dtype x)
 	precise dtype sign = x > dtype(0.0) ? dtype(1.0) : dtype(-1.0);
 	x = dtype(abs(x));
 	dtype t = dtype( dtype(1.0)/(dtype(1.0) + p*x) );
-	precise dtype y = (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp( (-x)*x);
+	precise dtype y = dtype( (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp( (-x)*x) );
 	return sign*y;
 }
 
