@@ -22,51 +22,72 @@
 #include "../common/atomic.glsl"
 #endif
 
-#define LOCAL_ITEMS_LIMIT 32
+layout(local_size_x = 1, local_size_y = WG_SIZE, local_size_z = 1) in;
 
+#if USE_BDA == 0
+	layout(binding = 0, std430) buffer inp_buf {dtype inp[]; };
+	layout(binding = 1, std430) readonly buffer outp_buf {dtype outp[]; };
+	layout(binding = 2, std430) readonly buffer out_diff_buf {dtype out_diff[]; };
+#endif
 
-__kernel 
-__attribute__((reqd_work_group_size(1,WG_SIZE,1)))
-void softmax_backward(int batch,int channels,int extra_batch,
-             __global dtype *in,ulong  data_offset,
-             __global dtype const *out,ulong  out_offset,
-             __global dtype const *out_diff,ulong  out_diff_offset,
-             dtype factor
-             )
+layout() uniform softmax_backward
 {
-    in += data_offset;
-    out += out_offset;
-    out_diff += out_diff_offset;
+	uint batch;
+	uint channels;
+	uint extra_batch;
+#if USE_BDA
+	__global dtype *in;
+#endif
+	uint  data_offset;
+#if USE_BDA
+	__global dtype const *out;
+#endif
+	uint  out_offset;
+#if USE_BDA
+	__global dtype const *out_diff;
+#endif
+	uint out_diff_offset;
+	dtype factor;
+};
+
+REDUCE_PREPARE(WG_SIZE,dtype);
+
+void main()
+{
+    uint inp_ = data_offset;
+    uint outp_ = out_offset;
+    uint out_diff_ += out_diff_offset;
     
-    long b = get_global_id(0);
-    long eb = get_global_id(2);
+    uint b = get_global_id(0);
+    uint eb = get_global_id(2);
 
     if(b >= batch)
         return;
     if(eb >= extra_batch)
         return;
-    long step = extra_batch;
+    uint step = extra_batch;
 
-    int c = get_global_id(1) * ITEMS_PER_WI;
+    uint c = get_global_id(1) * ITEMS_PER_WI;
 
-    in += b * channels * extra_batch + eb;
-    out += b * channels * extra_batch + eb;
-    out_diff += b * channels * extra_batch + eb;
+    inp_ += b * channels * extra_batch + eb;
+    outp_ += b * channels * extra_batch + eb;
+    out_diff_ += b * channels * extra_batch + eb;
     
     dtype sum = 0;
-    REDUCE_PREPARE(WG_SIZE,dtype);
 
     #if ITEMS_PER_WI <= LOCAL_ITEMS_LIMIT
-    #pragma unroll(ITEMS_PER_WI)
+		UNROLL(ITEMS_PER_WI)
     #else
-    #pragma unroll(LOCAL_ITEMS_LIMIT)
+		UNROLL(LOCAL_ITEMS_LIMIT)
     #endif
-    for(int i=0;i<ITEMS_PER_WI;i++) {
-        if(c+i < channels) {
+    for(uint i = 0; i < ITEMS_PER_WI; i++)
+    {
+        if(c+i < channels)
+        {
             #if LOG_SM == 1
-            sum += out_diff[(c+i) * step];
+				sum += out_diff[(c+i) * step + out_diff_];
             #else
-            sum += out_diff[(c+i)*step] * out[(c+i)*step];
+				sum += out_diff[(c+i)*step + out_diff_] * outp[(c+i)*step + outp_];
             #endif
         }
     }
@@ -74,21 +95,23 @@ void softmax_backward(int batch,int channels,int extra_batch,
     my_work_group_reduce_add(sum);
 
     #if ITEMS_PER_WI <= LOCAL_ITEMS_LIMIT
-    #pragma unroll(ITEMS_PER_WI)
+		UNROLL(ITEMS_PER_WI)
     #else
-    #pragma unroll(LOCAL_ITEMS_LIMIT)
+		UNROLL(LOCAL_ITEMS_LIMIT)
     #endif
-    for(int i=0;i<ITEMS_PER_WI;i++) {
-        if(c + i < channels) {
+    for(uint i = 0; i < ITEMS_PER_WI; i++)
+    {
+        if(c + i < channels)
+        {
             #if LOG_SM == 1
-            float dxval = out_diff[(c+i)*step] - exp(out[(c+i)*step]) * sum;
+				float dxval = out_diff[(c+i)*step + out_diff_] - exp(outp[(c+i)*step + outp_]) * sum;
             #else
-            float dxval = (out_diff[(c+i)*step] - sum) * out[(c+i)*step]; 
+				float dxval = (out_diff[(c+i)*step + out_diff_] - sum) * outp[(c+i)*step + outp_]; 
             #endif
             if(factor == 0)
-                in[(c+i)*step] = dxval;
+                inp[(c+i)*step + inp_] = dxval;
             else
-                in[(c+i)*step] = factor * in[(c+i)*step] + dxval;
+                inp[(c+i)*step + inp_] = factor * inp[(c+i)*step + inp_] + dxval;
         }
     }
 }
