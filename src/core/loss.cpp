@@ -18,6 +18,8 @@ namespace core {
         DLPRIM_CHECK(y.dtype() == x.dtype());
         int sm_range=x.shape()[1];
 #if 1
+		// band-aid solution over a bigger problem.
+		// need to find out why the kernel isn't working.
 		int wg_size = 1;
 #else
         int wg_size;
@@ -170,7 +172,11 @@ namespace core {
         std::string itype;
         switch(lbl.dtype()) {
         case int32_data: itype = "int"; break;
+#if VULKAN_API
+        case int64_data: itype = "int64_t"; break;
+#else
         case int64_data: itype = "long"; break;
+#endif
         case float_data: itype = "float"; break;
         default: throw NotImplementedError("Unsupported type");
         }
