@@ -232,7 +232,11 @@ namespace core {
         std::string itype;
         switch(lbl.dtype()) {
         case int32_data: itype = "int"; break;
+#if VULKAN_API
+        case int64_data: itype = "int64_t"; break;
+#else
         case int64_data: itype = "long"; break;
+#endif
         case float_data: itype = "float"; break;
         default: throw NotImplementedError("Unsupported type");
         }
