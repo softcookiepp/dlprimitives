@@ -92,7 +92,7 @@ void main()
         }
     }
 
-    my_work_group_reduce_add(sum);
+    my_work_group_reduce_add(sum, WG_SIZE);
 
     #if ITEMS_PER_WI <= LOCAL_ITEMS_LIMIT
 		UNROLL(ITEMS_PER_WI)

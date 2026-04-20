@@ -71,7 +71,7 @@ void main()
     #endif
 
 
-    my_work_group_reduce_max(val);
+    my_work_group_reduce_max(val, WG_SIZE);
     dtype maxv = val;
 
     dtype sum = 0;
