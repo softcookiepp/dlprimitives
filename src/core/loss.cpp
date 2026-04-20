@@ -257,7 +257,7 @@ namespace core {
         kernel->setArg(p++,scale);
         kernel->setArg(p++,factor);
         std::vector<uint32_t> nd(in_shape[1],in_shape[0]);
-        kernel->run(nd, {1, 1});
+        kernel->run(nd, {1, 1, 1});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_bwd",
                             "REDUCE",int(reduce),
