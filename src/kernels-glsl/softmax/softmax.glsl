@@ -40,7 +40,7 @@ void main()
     if(eb >= extra_batch)
         return;
 
-    int c = get_global_id(1) * ITEMS_PER_WI;
+    uint c = get_global_id(1) * ITEMS_PER_WI;
 
     inp_ += (b * channels * extra_batch + eb);
     outp_ += (b * channels * extra_batch + eb);
@@ -61,7 +61,7 @@ void main()
             }
         }
     #else
-        for(int i=0;i<ITEMS_PER_WI;i++)
+        for(uint i=0;i<ITEMS_PER_WI;i++)
         {
             if(c+i < channels)
             {
