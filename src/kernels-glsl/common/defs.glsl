@@ -93,8 +93,10 @@
 	#define USE_UNROLL 0
 #endif
 
-#if USE_UNROLL
-	#define UNROLL(d)
-#else
-	#define UNROLL(d)
+#ifndef UNROLL
+	#if USE_UNROLL
+		#define UNROLL(d)
+	#else
+		#define UNROLL(d)
+	#endif
 #endif
