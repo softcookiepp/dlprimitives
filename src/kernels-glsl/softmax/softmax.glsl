@@ -11,17 +11,17 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(push_constant, std430) uniform softmax
 {
-	uint batch,
-	uint channels,
-	uint extra_batch,
+	uint batch;
+	uint channels;
+	uint extra_batch;
 #if USE_BDA
 	__global dtype const *in,
 #endif
-	uint  data_offset,
+	uint  data_offset;
 #if USE_BDA
 	__global dtype *out,
 #endif
-	uint  out_offset
+	uint  out_offset;
 };
 
 REDUCE_PREPARE(WG_SIZE, dtype);
