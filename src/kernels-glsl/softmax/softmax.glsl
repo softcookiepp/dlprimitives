@@ -46,6 +46,7 @@ void main()
     outp_ += (b * channels * extra_batch + eb);
     
     // REDUCE_PREPARE(WG_SIZE, dtype);
+    REDUCE_FILL(DTYPE_MIN);
 
     dtype val = DTYPE_MIN;
 
@@ -56,6 +57,8 @@ void main()
         {
             if(c+i < channels)
             {
+				dtype vi = inp[(c+i)*step + inp_];
+				val = max(val, vi);
                 values[i] = inp[(c+i)*step + inp_];
                 val = max(val, values[i]);
             }

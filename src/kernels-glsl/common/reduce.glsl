@@ -15,6 +15,13 @@
 
 // this is incompatible with GLSL
 #define REDUCE_PREPARE(wg_size, dtype) shared dtype my_reduce[wg_size]
+#define REDUCE_FILL(value) \
+{ \
+	uint lid = my_get_local_wg_id(); \
+	my_reduce[lid] = value; \
+	barrier(); \
+}
+
 #define REDUCE_USING_OP(myval,reduce_op, wg_size) \
     do { \
         uint lid = my_get_local_wg_id(); \
