@@ -58,7 +58,11 @@ namespace core {
         tart::kernel_ptr k = prog->getKernel("activation_diff");
         
         int p=0;
+#if VULKAN_API
+        uint32_t size = y.shape().total_size();
+#else
         uint64_t size = y.shape().total_size();
+#endif
         k->setArg(p++,size);
         y.set_arg(k,p);
         dy.set_arg(k,p);
