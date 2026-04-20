@@ -101,7 +101,7 @@ void main()
             }
         }
     #endif
-    my_work_group_reduce_add(sum);
+    my_work_group_reduce_add(sum, WG_SIZE);
 
     #if LOG_SM == 0
 		val = (dtype)1 / sum;
