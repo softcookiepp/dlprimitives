@@ -47,7 +47,7 @@ layout(push_constant, std430) uniform softmax_backward
 	__global dtype const *out_diff;
 #endif
 	uint out_diff_offset;
-	dtype factor;
+	float factor;
 };
 
 REDUCE_PREPARE(WG_SIZE,dtype);
@@ -108,10 +108,10 @@ void main()
             #else
 				float dxval = (out_diff[(c+i)*step + out_diff_] - sum) * outp[(c+i)*step + outp_]; 
             #endif
-            if(factor == 0)
+            if(factor == 0.0f)
                 inp[(c+i)*step + inp_] = dxval;
             else
-                inp[(c+i)*step + inp_] = factor * inp[(c+i)*step + inp_] + dxval;
+                inp[(c+i)*step + inp_] = dtype(factor) * inp[(c+i)*step + inp_] + dxval;
         }
     }
 }

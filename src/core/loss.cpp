@@ -41,11 +41,11 @@ namespace core {
         int b0 = in_shape[0];
         int b2 = in_shape.size() == 3 ? in_shape[2] : 1;
         int p = 0;
-        kernel->setArg(p++,b0);
-        kernel->setArg(p++,sm_range);
-        kernel->setArg(p++,b2);
-        x.set_arg(kernel,p);
-        y.set_arg(kernel,p);
+        kernel->setArg(p++, (uint32_t)b0);
+        kernel->setArg(p++, (uint32_t)sm_range);
+        kernel->setArg(p++, (uint32_t)b2);
+        x.set_arg(kernel, p);
+        y.set_arg(kernel, p);
 
         std::vector<uint32_t> gr({b0,nd_range/wg_size,b2});
         //std::vector<uint32_t> wg({1,wg_size,1});
@@ -107,13 +107,13 @@ namespace core {
         int b0 = in_shape[0];
         int b2 = in_shape.size() == 3 ? in_shape[2] : 1;
         int p = 0;
-        kernel->setArg(p++,b0);
-        kernel->setArg(p++,sm_range);
-        kernel->setArg(p++,b2);
-        dx.set_arg(kernel,p);
-        y.set_arg(kernel,p);
-        dy.set_arg(kernel,p);
-        kernel->setArg(p++,factor);
+        kernel->setArg(p++, (uint32_t)b0);
+        kernel->setArg(p++, (uint32_t)sm_range);
+        kernel->setArg(p++, (uint32_t)b2);
+        dx.set_arg(kernel, p);
+        y.set_arg(kernel, p);
+        dy.set_arg(kernel, p);
+        kernel->setArg(p++, factor);
 
         std::vector<uint32_t> gr({b0,nd_range/wg_size,b2});
         std::vector<uint32_t> wg({1,wg_size,1});
