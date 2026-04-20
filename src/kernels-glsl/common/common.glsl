@@ -382,22 +382,24 @@
 	//int GetGroupID0() { return int(gl_WorkGroupID.x); }
 #endif
 
-dtype erf(dtype x)
-{
-	// adapted from: https://www.johndcook.com/blog/python_erf/
-	dtype a1 =  dtype(0.254829592);
-    dtype a2 = dtype(-0.284496736);
-    dtype a3 =  dtype(1.421413741);
-    dtype a4 = dtype(-1.453152027);
-    dtype a5 =  dtype(1.061405429);
-    dtype p  =  dtype(0.3275911);
-    
-    precise dtype sign = x > dtype(0.0) ? dtype(1.0) : dtype(-1.0);
-    x = abs(x);
-    dtype t = dtype( dtype(1.0)/(dtype(1.0) + p*x) );
-    precise dtype y = (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp( (-x)*x);
-    return sign*y;
-}
+#if PRECISION == 16 || PRECISION == 32 || PRECISION == 64 || dtype == float || dtype == double || dtype == float16_t
+	dtype erf(dtype x)
+	{
+		// adapted from: https://www.johndcook.com/blog/python_erf/
+		dtype a1 =  dtype(0.254829592);
+		dtype a2 = dtype(-0.284496736);
+		dtype a3 =  dtype(1.421413741);
+		dtype a4 = dtype(-1.453152027);
+		dtype a5 =  dtype(1.061405429);
+		dtype p  =  dtype(0.3275911);
+		
+		precise dtype sign = x > dtype(0.0) ? dtype(1.0) : dtype(-1.0);
+		x = abs(x);
+		dtype t = dtype( dtype(1.0)/(dtype(1.0) + p*x) );
+		precise dtype y = (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp( (-x)*x);
+		return sign*y;
+	}
+#endif
 
 // End of the C++11 raw string literal
 #endif
