@@ -9,12 +9,9 @@
 #define CUSTOM_REDUCE 0
 #endif
 
+#ifndef my_get_local_wg_id
 #define my_get_local_wg_id() ((get_local_id(2) * get_local_size(1) * get_local_size(0)) + (get_local_id(1) * get_local_size(0)) + get_local_id(0))
-#if __OPENCL_VERSION__ >= 200 && !CUSTOM_REDUCE
-	#define REDUCE_PREPARE(WG_SIZE,dtype) do {} while(0)
-	#define my_work_group_reduce_add(val) do { val = work_group_reduce_add(val); } while(0)
-	#define my_work_group_reduce_max(val) do { val = work_group_reduce_max(val); } while(0)
-#else
+#endif
 
 // this is incompatible with GLSL
 #define REDUCE_PREPARE(wg_size, dtype) shared dtype my_reduce[wg_size]
@@ -38,5 +35,3 @@
 
 #define my_work_group_reduce_add(val, wg_size) REDUCE_USING_OP(val,REDUCE_OP_ADD, wg_size)
 #define my_work_group_reduce_max(val, wg_size) REDUCE_USING_OP(val,REDUCE_OP_MAX, wg_size)
-
-#endif
