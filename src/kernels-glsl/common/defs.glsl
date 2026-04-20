@@ -19,12 +19,15 @@
 #endif
 
 // OpenCL semantics, because why not
+#ifndef CL_ALIASES
+#define CL_ALIASES
 #define get_global_id(dim) gl_GlobalInvocationID[dim]
 #define get_local_id(dim) gl_LocalInvocationID[dim]
 #define get_group_id(dim) gl_WorkGroupID[dim]
 #define get_global_size(idx) gl_NumWorkGroups[idx] * gl_WorkGroupSize[idx]
 #define get_local_size(idx) gl_WorkGroupSize[idx]
 #define get_num_groups(dim) gl_NumWorkGroups[dim]
+#endif
 
 #define ACTIVATION_IDENTITY 0
 #define ACTIVATION_RELU     1

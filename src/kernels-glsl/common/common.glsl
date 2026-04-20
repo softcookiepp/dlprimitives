@@ -349,34 +349,36 @@
 	#define USE_STAGGERED_INDICES 0
 #endif
 
-// because I am extremely lazy hehe
-#define get_global_id(dim) int(gl_GlobalInvocationID[dim])
-#define get_local_id(dim) int(gl_LocalInvocationID[dim])
-#define get_group_id(dim) int(gl_WorkGroupID[dim])
-#define get_global_size(idx) int(gl_NumWorkGroups[idx] * gl_WorkGroupSize[idx])
-#define get_local_size(idx) int(gl_WorkGroupSize[idx])
-#define get_num_groups(dim) int(gl_NumWorkGroups[dim])
+#ifndef CL_ALIASES
+#define CL_ALIASES
+#define get_global_id(dim) gl_GlobalInvocationID[dim]
+#define get_local_id(dim) gl_LocalInvocationID[dim]
+#define get_group_id(dim) gl_WorkGroupID[dim]
+#define get_global_size(idx) gl_NumWorkGroups[idx] * gl_WorkGroupSize[idx]
+#define get_local_size(idx) gl_WorkGroupSize[idx]
+#define get_num_groups(dim) gl_NumWorkGroups[dim]
+#endif
 
 // Staggered/shuffled group indices to avoid partition camping (AMD GPUs). Formula's are taken from:
 // http://docs.nvidia.com/cuda/samples/6_Advanced/transpose/doc/MatrixTranspose.pdf
 // More details: https://github.com/CNugteren/CLBlast/issues/53
 #if USE_STAGGERED_INDICES == 1 && GEMMK == 0
-	int GetGroupIDFlat() {
+	uint GetGroupIDFlat() {
 		return get_group_id(0) + get_num_groups(0) * get_group_id(1);
 		//return gl_WorkGroupID.x + gl_NumWorkGroups.x * gl_WorkGroupID.y;
 	}
-	int GetGroupID1() {
+	uint GetGroupID1() {
 		return (GetGroupIDFlat()) % get_num_groups(1);
 		//return int((GetGroupIDFlat()) % gl_NumWorkGroups.y);
 	}
-	int GetGroupID0() {
+	uint GetGroupID0() {
 		return ((GetGroupIDFlat() / get_num_groups(1)) + GetGroupID1()) % get_num_groups(0);
 		//return int(((GetGroupIDFlat() / gl_NumWorkGroups.y) + GetGroupID1()) % gl_WorkGroupSize.x);
 	}
 #else
-	int GetGroupID1() { return get_group_id(1); }
+	uint GetGroupID1() { return get_group_id(1); }
 	//int GetGroupID1() { return int(gl_WorkGroupID.y); }
-	int GetGroupID0() { return get_group_id(0); }
+	uint GetGroupID0() { return get_group_id(0); }
 	//int GetGroupID0() { return int(gl_WorkGroupID.x); }
 #endif
 
@@ -397,4 +399,8 @@ dtype erf(dtype x)
     return sign*y;
 }
 
+// End of the C++11 raw string literal
 #endif
+//)"
+
+// =================================================================================================
