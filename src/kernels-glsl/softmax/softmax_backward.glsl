@@ -30,7 +30,7 @@ layout(local_size_x = 1, local_size_y = WG_SIZE, local_size_z = 1) in;
 	layout(binding = 2, std430) readonly buffer out_diff_buf {dtype out_diff[]; };
 #endif
 
-layout() uniform softmax_backward
+layout(push_constant, std430) uniform softmax_backward
 {
 	uint batch;
 	uint channels;
