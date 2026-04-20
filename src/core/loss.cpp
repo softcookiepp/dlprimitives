@@ -17,7 +17,9 @@ namespace core {
         DLPRIM_CHECK(y.shape()==x.shape());
         DLPRIM_CHECK(y.dtype() == x.dtype());
         int sm_range=x.shape()[1];
-
+#if 1
+		int wg_size = 1;
+#else
         int wg_size;
         if(sm_range <= 64)
             wg_size = 64;
@@ -25,6 +27,7 @@ namespace core {
             wg_size = 128;
         else 
             wg_size = 256;
+#endif
         
         int items_per_wi = (sm_range + wg_size - 1) / wg_size;
 
