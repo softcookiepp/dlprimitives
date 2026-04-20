@@ -6,7 +6,7 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) readonly buffer inp_buf { dtype inp[]; };
-	layout(binding = 1, std430) writeonly buffer outp_buf { dtype outp[]; };
+	layout(binding = 1, std430) buffer outp_buf { dtype outp[]; };
 #endif
 
 layout(push_constant, std430) uniform softmax
@@ -83,7 +83,8 @@ void main()
                 #if LOG_SM == 1
 					sum += exp(values[i] - maxv);
                 #else
-					sum += values[i] = exp(values[i] - maxv);
+					values[i] = exp(values[i] - maxv);
+					sum += values[i];
                 #endif
             }
         }
@@ -106,7 +107,7 @@ void main()
     #if LOG_SM == 0
 		val = (dtype)1 / sum;
     #else
-		val = -log(sum);
+		val = (-1.0)*log(sum);
     #endif
 
     #if ITEMS_PER_WI <= LOCAL_ITEMS_LIMIT
