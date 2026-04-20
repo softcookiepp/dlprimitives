@@ -382,7 +382,7 @@
 	//int GetGroupID0() { return int(gl_WorkGroupID.x); }
 #endif
 
-#if PRECISION == 16 || PRECISION == 32 || PRECISION == 64 || dtype == float || dtype == double || dtype == float16_t
+#if dtype == float || dtype == double || dtype == float16_t
 	dtype erf(dtype x)
 	{
 		// adapted from: https://www.johndcook.com/blog/python_erf/
