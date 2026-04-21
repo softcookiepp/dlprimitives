@@ -12,6 +12,9 @@
 #define SECOND_REDUCE_SIZE 1
 #endif
 
+#define KERN_PAD_H ((KERN-1)*DILATE_H/2)
+#define KERN_PAD_W ((KERN-1)*DILATE_W/2)
+
 __kernel
 __attribute__((reqd_work_group_size(WG_SIZE,1,1)))
 void conv_bw_filter(
@@ -55,8 +58,8 @@ void conv_bw_filter(
 
     #pragma unroll(16)
     for(int index = my_start;index <my_end;index ++) {
-        int sr = r - KERN/2 + dr;
-        int sc = c - KERN/2 + dc;
+        int sr = r - KERN_PAD_H + dr * DILATE_H;
+        int sc = c - KERN_PAD_W + dc * DILATE_W;
         if(b < batch && 0<=sr && sr < height && 0 <= sc && sc < width) {
             float y = output[b*(CHANNELS * height * width) + r  * width +c ];
             float x =  input[b*(CHANNELS * height * width) + sr * width +sc];

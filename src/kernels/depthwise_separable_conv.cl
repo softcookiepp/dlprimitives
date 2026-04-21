@@ -12,10 +12,11 @@
 #define DIM_C 1
 #define DIM_BD 2
 
-#define KERN_PAD ((KERN-1)/2)
+#define KERN_PAD_H ((KERN-1)*DILATE_H/2)
+#define KERN_PAD_W ((KERN-1)*DILATE_W/2)
 
-#define PATCH_H (PATCH_ROWS + KERN - 1)
-#define PATCH_W (PATCH_COLS + KERN - 1)
+#define PATCH_H (PATCH_ROWS + (KERN - 1)*DILATE_H)
+#define PATCH_W (PATCH_COLS + (KERN - 1)*DILATE_W)
 
 __kernel
 void conv(int batch,int height,int width,
@@ -40,7 +41,7 @@ void conv(int batch,int height,int width,
 
     kern += d * KERN * KERN;
     
-    input  += b * CHANNELS * width * height + d * width * height + (r - KERN_PAD) * width + c - KERN_PAD;
+    input  += b * CHANNELS * width * height + d * width * height + (r - KERN_PAD_H) * width + c - KERN_PAD_W;
     output += b * CHANNELS * width * height + d * width * height + r * width + c;
 
     float K_vals[KERN][KERN];
@@ -60,7 +61,7 @@ void conv(int batch,int height,int width,
 
             
 
-    int y = r-KERN_PAD;
+    int y = r-KERN_PAD_H;
     #pragma unroll
     for(int dr=0;dr<PATCH_H;dr++,y++) {
         if(y < 0 || y >= height) {
@@ -69,7 +70,7 @@ void conv(int batch,int height,int width,
                 I_vals[dr][dc]=0;
         }
         else {
-            int x = c - KERN_PAD;
+            int x = c - KERN_PAD_W;
             #pragma unroll
             for(int dc=0;dc<PATCH_W;dc++,x++) {
                 I_vals[dr][dc]=(0 <= x && x < width) ? input[dr*width+dc] : 0;
@@ -91,7 +92,7 @@ void conv(int batch,int height,int width,
             for(int drk=0;drk < KERN;drk++)
                 #pragma unroll
                 for(int dck=0;dck<KERN;dck++)
-                    sum = mad(K_vals[drk][dck],I_vals[dr+drk][dc+dck],sum);
+                    sum = mad(K_vals[drk][dck],I_vals[dr+drk*DILATE_H][dc+dck*DILATE_W],sum);
 
             float value = ACTIVATION_F(sum);
             __global float *optr = output + dr*width+dc;
@@ -123,7 +124,7 @@ void backward_data_conv(int batch,int height,int width,
 
     kern += d * KERN * KERN;
     
-    input  += b * CHANNELS * width * height + d * width * height + (r - KERN_PAD) * width + c - KERN_PAD;
+    input  += b * CHANNELS * width * height + d * width * height + (r - KERN_PAD_H) * width + c - KERN_PAD_W;
     output += b * CHANNELS * width * height + d * width * height + r * width + c;
 
     float K_vals[KERN][KERN];
@@ -151,12 +152,12 @@ void backward_data_conv(int batch,int height,int width,
             for(int drk=0;drk < KERN;drk++)
                 #pragma unroll
                 for(int dck=0;dck<KERN;dck++)
-                    I_vals[dr+drk][dc+dck] = mad(K_vals[drk][dck],val,I_vals[dr+drk][dc+dck]);
+                    I_vals[dr+drk*DILATE_H][dc+dck*DILATE_W] = mad(K_vals[drk][dck],val,I_vals[dr+drk*DILATE_H][dc+dck*DILATE_W]);
 
         }
     }
 
-    int y = r-KERN_PAD;
+    int y = r-KERN_PAD_H;
     #pragma unroll
     for(int dr=0;dr<PATCH_H;dr++,y++) {
         if(y < 0 || y >= height) {
@@ -165,7 +166,7 @@ void backward_data_conv(int batch,int height,int width,
                 I_vals[dr][dc]=0;
         }
         if(!(y < 0 || y >= height)) {
-            int x = c - KERN_PAD;
+            int x = c - KERN_PAD_W;
             #pragma unroll
             for(int dc=0;dc<PATCH_W;dc++,x++) {
                 if(0 <= x && x < width) {

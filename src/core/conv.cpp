@@ -669,7 +669,9 @@ namespace core {
                                     "PATCH_ROWS",ds_patch_rows,
                                     "PATCH_COLS",ds_patch_cols,
                                     "KERN",config_.kernel[0],
-                                    "CHANNELS",config_.channels_in);
+                                    "CHANNELS",config_.channels_in,
+                                    "DILATE_H",config_.dilate[0],
+                                    "DILATE_W",config_.dilate[1]);
             conv_ = prog->getKernel("conv");
 #else
             cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"depthwise_separable_conv",
@@ -678,7 +680,9 @@ namespace core {
                                     "PATCH_ROWS",ds_patch_rows,
                                     "PATCH_COLS",ds_patch_cols,
                                     "KERN",config_.kernel[0],
-                                    "CHANNELS",config_.channels_in);
+                                    "CHANNELS",config_.channels_in,
+                                    "DILATE_H",config_.dilate[0],
+                                    "DILATE_W",config_.dilate[1]);
             conv_ = cl::Kernel(prog,"conv");
 #endif
         }
@@ -758,7 +762,9 @@ namespace core {
                                     "PATCH_ROWS",ds_patch_rows,
                                     "PATCH_COLS",ds_patch_cols,
                                     "KERN",config_.kernel[0],
-                                    "CHANNELS",config_.channels_in);
+                                    "CHANNELS",config_.channels_in,
+                                    "DILATE_H",config_.dilate[0],
+                                    "DILATE_W",config_.dilate[1]);
 #if VULKAN_API
             bw_conv_data_ = prog->getKernel("backward_data_conv");
 #else
@@ -821,7 +827,9 @@ namespace core {
                         "KERN",config_.kernel[0],
                         "WG_SIZE",dwsc_bw_filter_wg_,
                         "SECOND_REDUCE_SIZE",second_reduce_,
-                        "CHANNELS",config_.channels_in);
+                        "CHANNELS",config_.channels_in,
+                        "DILATE_H",config_.dilate[0],
+                        "DILATE_W",config_.dilate[1]);
 #if VULKAN_API
             bw_conv_filter_ = prog->getKernel("conv_bw_filter");
 #else
@@ -928,10 +936,9 @@ namespace core {
             && config.stride[0] == config.stride[1]
             && config.groups == config.channels_in
             && config.channels_in > 1
-            && config.dilate[0] == 1
             && config.stride[0] == 1
-            && config.kernel[0] % 2 == 1
-            && config.kernel[0] / 2 == config.pad[0];
+            && ((config.kernel[0] - 1) * config.dilate[0] + 1) % 2 == 1
+            && config.pad[0] == (config.kernel[0] - 1) * config.dilate[0] / 2;
     }
     static bool is_winograd_compatible(Context &ctx,Conv2DSettings const &config)
     {
