@@ -361,10 +361,14 @@ namespace core {
         std::ostringstream params,loads,saves;
         for(size_t i=0;i<xs.size();i++) {
             std::string type = data_type_to_opencl_type(xs[i].dtype());
+#if VULKAN_API
             params << "uint px" << i << "_offset; Shape strides" << i << "; ";
-			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
-				<< i << "_buf { " << type << " px" << i << "[]; }; ";
-			bindingIndex += 1;
+            bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
+                << i << "_buf { " << type << " px" << i << "[]; }; ";
+#else
+            params << ", __global " << type << " const *px" << i << ", ulong px" << i << "_offset, Shape strides" << i;
+#endif
+            bindingIndex += 1;
             
             //params<<", __global " << type << " const *px" << i<< ", ulong px"<<i<<"_offset, Shape strides" << i;
             loads<<type << " x"<<i<<"=px"<<i<<"[get_offset(index,strides" << i << ",px"<<i<<"_offset)]; ";
@@ -372,10 +376,14 @@ namespace core {
         }
         for(size_t i=0;i<ys.size();i++) {
             std::string type = data_type_to_opencl_type(ys[i].dtype());
+#if VULKAN_API
             params << "uint py" << i << "_offset; ";
-			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
-				<< i << "_buf { " << type << " py" << i << "[]; }; ";
-			bindingIndex += 1;
+            bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
+                << i << "_buf { " << type << " py" << i << "[]; }; ";
+#else
+            params << ", __global " << type << " *py" << i << ", ulong py" << i << "_offset";
+#endif
+            bindingIndex += 1;
             
             //params<<", __global "<<type << " *py" << i<< ", ulong py"<<i<<"_offset";
             loads<<type << " y"<<i<<";\\\n";
@@ -386,7 +394,11 @@ namespace core {
 
         for(size_t i=0;i<ws.size();i++) {
             std::string type = data_type_to_opencl_param_type(dts[i]);
+#if VULKAN_API
             params << type << " w" << i << "; ";
+#else
+            params << ", " << type << " w" << i;
+#endif
             typeDefs << "#define typeof_w" << i << " " << type << "\n";
         }
 
@@ -424,6 +436,7 @@ namespace core {
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
                                                                            "DIMS",ref.size(),
+                                                                           "$TYPEDEFS", typeDefs.str(),
                                                                            "#PARAMS",params.str(),
                                                                            "#LOADS",loads.str(),
                                                                            "#SAVES",saves.str(),
@@ -574,7 +587,7 @@ namespace core {
                 e.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,range_,wg_range_,e1.events(),e1.event("pointwise_exec_broadcast_1st_stage"));
                 DLPRIM_CHECK(second_stage_->workspace() == 0);
                 Tensor tmp;
-                second_stage_->run(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
+                second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
             }
 #endif
         }
