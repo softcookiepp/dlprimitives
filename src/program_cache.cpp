@@ -147,7 +147,11 @@ cl::Program
     for(size_t i=0;i<params.size();i++) {
         if(i > 0)
             ss<<" ";
-        if(params[i].name.c_str()[0]=='#') {
+        if(params[i].name.c_str()[0]=='$') {
+            prepend << "\n" << params[i].value << "\n";
+            combine = true;
+        }
+        else if(params[i].name.c_str()[0]=='#') {
             prepend << "#define " << params[i].name.c_str() + 1 << " " << params[i].value << "\n";
             combine=true;
         }
