@@ -132,10 +132,6 @@ cl::Program
     auto ks = kernel_sources.find(source);
     if(ks == kernel_sources.end())
         throw ValidationError("Unknow program source " + source);
-	for (auto& pair : ks)
-	{
-		std::cout << pair.first << "\n" << pair.second << std::endl;
-	}
     std::string const &source_text = ks->second;
     std::ostringstream prepend;
     std::ostringstream ss;

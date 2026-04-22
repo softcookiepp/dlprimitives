@@ -574,7 +574,7 @@ namespace core {
                 e.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,range_,wg_range_,e1.events(),e1.event("pointwise_exec_broadcast_1st_stage"));
                 DLPRIM_CHECK(second_stage_->workspace() == 0);
                 Tensor tmp;
-                second_stage_->run(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
+                second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
             }
 #endif
         }

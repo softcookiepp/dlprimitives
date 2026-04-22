@@ -9,7 +9,9 @@
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/ops/scal.hpp>
 #include <iostream>
+#if VULKAN_API
 #include <clblast_vk.h>
+#endif
 
 namespace dlprim {
 namespace gpu {
