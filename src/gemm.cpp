@@ -10,6 +10,7 @@
 #include <dlprim/ops/scal.hpp>
 #include <iostream>
 #include <clblast_vk.h>
+#include <dlprim/core/pointwise.hpp>
 
 namespace dlprim {
 namespace gpu {
@@ -968,12 +969,11 @@ namespace gpu {
 	class BlasSGEMM : public GEMM
 	{
     public:
-        BlasSGEMM(Context &ctx, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0)
+        BlasSGEMM(Context &ctx, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0) :
+			mUseBias(bias)
         {
 			if (act != StandardActivations::identity)
 				throw std::runtime_error("non-identity activations not implemented yet");
-			if (bias > 0)
-				throw std::runtime_error("bias not implemented!");
 			mDevice = ctx.device();
 			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
 			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
@@ -998,17 +998,27 @@ namespace gpu {
 			const float alpha = 1.0;
 			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
 				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
+			
+			if (mUseBias)
+			{
+				// C should be row-major, width of N, height of M
+				// bias seems to be assumed to be contiguous, aside from the offset.
+				// Which means in-place biasing should be easy to implement
+				
+			}
         }
 
     private:
 		// here we store program, since there are multiple kernels
 		tart::program_ptr mProgram = nullptr;
+		tart::program_ptr mBiasProgram = nullptr;
 		tart::device_ptr mDevice = nullptr;
 		
 		clblast::Transpose mATrans;
 		clblast::Transpose mBTrans;
 		
-		bool mSepAct = false;
+		const bool mSepAct = true;
+		const bool mUseBias;
     };
 	
 #endif

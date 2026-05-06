@@ -2,7 +2,7 @@
 #ifndef COMMON_GLSL
 #define COMMON_GLSL
 // =================================================================================================
-
+#extension GL_EXT_control_flow_attributes : enable
 #define USE_BDA 0
 #ifndef dtype
 	// Parameters set by the tuner or by the database. Here they are given a basic default value in case
