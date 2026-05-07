@@ -5,9 +5,6 @@
 // do we absolutely need this 100% of the time?
 #extension GL_EXT_shader_16bit_storage : require
 
-#if defined(DATA_A_IQ1_M)
-#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
-#endif
 
 #if defined(DATA_A_BF16) && defined(COOPMAT)
 #extension GL_EXT_bfloat16 : enable
@@ -21,10 +18,6 @@
 #if defined(COOPMAT) || defined(MUL_MAT_ID_USE_SUBGROUPS)
 #extension GL_KHR_shader_subgroup_basic : enable
 #extension GL_KHR_shader_subgroup_ballot : enable
-#endif
-
-#ifdef MUL_MAT_ID
-#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #endif
 
 #include "types.glsl"
@@ -49,7 +42,7 @@
 #endif
 
 #if !defined(TO_FLOAT_TYPE)
-#define TO_FLOAT_TYPE FLOAT_TYPE
+#define TO_FLOAT_TYPE dtype
 #endif
 
 layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
@@ -65,10 +58,6 @@ layout (binding = 0) readonly buffer A_PACKED32 {A_TYPE_PACKED32 data_a_packed32
 layout (binding = 1) readonly buffer B {B_TYPE data_b[];};
 layout (binding = 2) writeonly buffer D {D_TYPE data_d[];};
 
-#ifdef MUL_MAT_ID
-layout (binding = 3) readonly buffer IDS {int data_ids[];};
-layout (binding = 4) readonly buffer Counts {int data_expert_count[];};
-#endif
 
 layout (push_constant) uniform parameter
 {
@@ -82,13 +71,7 @@ layout (push_constant) uniform parameter
     uint batch_stride_a;
     uint batch_stride_b;
     uint batch_stride_d;
-
-#ifdef MUL_MAT_ID
-    uint nei0;
-    uint nei1;
-    uint nbi1;
-    uint ne11;
-#else
+    
     uint base_work_group_z;
     uint num_batches;
     uint k_split;
@@ -96,7 +79,6 @@ layout (push_constant) uniform parameter
     uint ne12;
     uint broadcast2;
     uint broadcast3;
-#endif
 } p;
 
 layout (constant_id = 0) const uint BLOCK_SIZE = 64;
@@ -133,23 +115,16 @@ shared FLOAT_TYPEV2 buf_b[BN * SHMEM_STRIDE];
 shared ACC_TYPE coopmat_stage[TM * TN * NUM_WARPS];
 #endif
 
-#include "mul_mm_id_funcs.glsl"
+//#include "mul_mm_id_funcs.glsl"
 #include "mul_mm_funcs.glsl"
 
 void main() {
     const uint ic = gl_WorkGroupID.y;
 
-#ifdef MUL_MAT_ID
-    const uint expert_idx = gl_WorkGroupID.z;
-    if (ic * BN >= data_expert_count[expert_idx]) {
-        return;
-    }
-#endif
 #ifdef NEEDS_INIT_IQ_SHMEM
     init_iq_shmem(gl_WorkGroupSize);
 #endif
 
-#ifndef MUL_MAT_ID
     const uint batch_idx = gl_WorkGroupID.z + p.base_work_group_z;
 
     const uint i13 = batch_idx / p.ne12;
@@ -159,7 +134,6 @@ void main() {
     const uint i02 = i12 / p.broadcast2;
 
     const uint batch_idx_a = i03 * p.ne02 + i02;
-#endif
 
     const uint blocks_m = (p.M + BM - 1) / BM;
     const uint ir = gl_WorkGroupID.x % blocks_m;
@@ -200,57 +174,17 @@ void main() {
     const uint loadstride_a = gl_WorkGroupSize.x * LOAD_VEC_A * LOAD_VEC_BATCH_A / BK;
     const uint loadstride_b = gl_WorkGroupSize.x * LOAD_VEC_B * LOAD_VEC_BATCH_B / BK;
 
-#ifdef MUL_MAT_ID
-#ifdef MUL_MAT_ID_USE_SUBGROUPS
-    if (bitCount(p.nei0) == 1) {
-        load_row_ids(expert_idx, true, ic);
-    } else {
-        load_row_ids(expert_idx, false, ic);
-    }
-#else
-    _ne1 = 0;
-    for (uint ii1 = 0; ii1 < p.nei1 && _ne1 < (ic + 1) * BN; ii1++) {
-        for (uint ii0 = 0; ii0 < p.nei0 && _ne1 < (ic + 1) * BN; ii0++) {
-            if (data_ids[ii1*p.nbi1 + ii0] == expert_idx) {
-                if (_ne1 >= ic * BN) {
-                    row_ids[_ne1 - ic * BN] = u16vec2(ii0, ii1);
-                }
-                _ne1++;
-            }
-        }
-    }
-
-    barrier();
-#endif
-
-    // Workgroup has no work
-    if (ic * BN >= _ne1) return;
-#endif
-
-#ifdef MUL_MAT_ID
-    const uint start_k = 0;
-    const uint end_k = p.K;
-#else
     const uint start_k = ik * p.k_split;
     const uint end_k = min(p.K, (ik + 1) * p.k_split);
-#endif
 
     uint pos_a =
-#ifdef MUL_MAT_ID
-        expert_idx * (p.batch_stride_a / LOAD_VEC_A) +
-#else
         batch_idx_a * (p.batch_stride_a / LOAD_VEC_A) +
-#endif
         (ir * BM * p.stride_a + start_k) / LOAD_VEC_A;
-#ifdef MUL_MAT_ID
-    uint pos_b = 0;
-#else
     uint pos_b = (batch_idx * p.batch_stride_b + ic * BN * p.stride_b + start_k) / LOAD_VEC_B;
-#endif
 
 #ifdef COOPMAT
-    coopmat<FLOAT_TYPE, gl_ScopeSubgroup, TM, TK, gl_MatrixUseA> cache_a;
-    coopmat<FLOAT_TYPE, gl_ScopeSubgroup, TK, TN, gl_MatrixUseB> cache_b;
+    coopmat<dtype, gl_ScopeSubgroup, TM, TK, gl_MatrixUseA> cache_a;
+    coopmat<dtype, gl_ScopeSubgroup, TK, TN, gl_MatrixUseB> cache_b;
     coopmat<ACC_TYPE, gl_ScopeSubgroup, TM, TN, gl_MatrixUseAccumulator> sums[cms_per_row * cms_per_col];
 
     [[unroll]] for (uint i = 0; i < cms_per_row * cms_per_col; i++) {
@@ -276,11 +210,7 @@ void main() {
             load_a_to_shmem(pos_a, loadr_a, loadc_a + l, ir * BM + loadc_a + l, block, end_k);
         }
         [[unroll]] for (uint l = 0; l < BN; l += loadstride_b) {
-#if !defined(MUL_MAT_ID)
             load_b_to_shmem(pos_b, loadr_b, loadc_b + l, ic * BN + loadc_b + l, block, end_k);
-#else
-            load_b_to_shmem(pos_b, loadr_b, loadc_b + l, ic, _ne1, block, end_k);
-#endif
         }
 
         barrier();
@@ -366,31 +296,9 @@ void main() {
     const uint dr = ir * BM + warp_r * WM;
     const uint dc = ic * BN + warp_c * WN;
 
-#ifndef MUL_MAT_ID
     const uint offsets = batch_idx * p.batch_stride_d + ik * p.batch_stride_d * p.num_batches;
-#endif
 
 #ifdef COOPMAT
-#ifdef MUL_MAT_ID
-    [[unroll]] for (uint cm_row = 0; cm_row < cms_per_row; cm_row++) {
-        [[unroll]] for (uint cm_col = 0; cm_col < cms_per_col; cm_col++) {
-            coopMatStore(sums[cm_col * cms_per_row + cm_row], coopmat_stage, warp_i * TM * TN, TM, gl_CooperativeMatrixLayoutColumnMajor);
-
-            barrier();
-            [[unroll]] for (uint col = 0; col < TN; col += storestride) {
-                const uint row_i = dc + cm_col * TN + col + store_c;
-                if (row_i >= _ne1) break;
-
-                const u16vec2 row_idx = row_ids[row_i - ic * BN];
-
-                if (dr + cm_row * TM + store_r < p.M) {
-                    data_d[row_idx.y * p.batch_stride_d + row_idx.x * p.stride_d + dr + cm_row * TM + store_r] = D_TYPE(coopmat_stage[warp_i * TM * TN + (col + store_c) * TM + store_r]);
-                }
-            }
-            barrier();
-        }
-    }
-#else
     const bool is_aligned = p.stride_d % 4 == 0;  // Assumption: D_TYPE == float
 
     [[unroll]] for (uint cm_row = 0; cm_row < cms_per_row; cm_row++) {
@@ -424,7 +332,6 @@ void main() {
             }
         }
     }
-#endif // MUL_MAT_ID
 #else
     [[unroll]] for (uint wsic = 0; wsic < WNITER; wsic++) {
         [[unroll]] for (uint wsir = 0; wsir < WMITER; wsir++) {
@@ -432,29 +339,14 @@ void main() {
             const uint dr_warp = dr + wsir * WSUBM + tiwr * TM;
             const uint dc_warp = dc + wsic * WSUBN + tiwc * TN;
             [[unroll]] for (uint cc = 0; cc < TN; cc++) {
-#ifdef MUL_MAT_ID
-                const uint row_i = dc_warp + cc;
-                if (row_i >= _ne1) break;
-
-                const u16vec2 row_idx = row_ids[row_i - ic * BN];
-#endif // MUL_MAT_ID
                 [[unroll]] for (uint cr = 0; cr < TM / 2; cr++) {
                     const uint sums_idx = (wsic * TN + cc) * WMITER * (TM / 2) + wsir * (TM / 2) + cr;
-#ifdef MUL_MAT_ID
-                    if (dr_warp + 2 * cr < p.M) {
-                        data_d[row_idx.y * p.batch_stride_d + row_idx.x * p.stride_d + dr_warp + 2 * cr] = D_TYPE(sums[sums_idx].x);
-                    }
-                    if (dr_warp + 2 * cr + 1 < p.M) {
-                        data_d[row_idx.y * p.batch_stride_d + row_idx.x * p.stride_d + dr_warp + 2 * cr + 1] = D_TYPE(sums[sums_idx].y);
-                    }
-#else
                     if (dr_warp + 2 * cr < p.M && dc_warp + cc < p.N) {
                         data_d[offsets + (dc_warp + cc) * p.stride_d + dr_warp + 2 * cr] = D_TYPE(sums[sums_idx].x);
                     }
                     if (dr_warp + 2 * cr + 1 < p.M && dc_warp + cc < p.N) {
                         data_d[offsets + (dc_warp + cc) * p.stride_d + dr_warp + 2 * cr + 1] = D_TYPE(sums[sums_idx].y);
                     }
-#endif // MUL_MAT_ID
                 }
             }
         }
