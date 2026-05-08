@@ -968,6 +968,56 @@ namespace gpu {
 	
 	class BlasSGEMM : public GEMM
 	{
+		
+		
+		
+		// taken from clblast
+		static bool a_want_rotated_(const size_t gemm_kernel_id) { return gemm_kernel_id == 1; }
+		static bool b_want_rotated_(const size_t) { return true; }
+		static bool c_want_rotated_(const size_t gemm_kernel_id) { return gemm_kernel_id == 1; }
+		
+		// Process the user-arguments, computes secondary parameters
+		static void ProcessArguments(const clblast::Layout layout, const clblast::Transpose a_transpose, const clblast::Transpose b_transpose,
+			const size_t m, const size_t n, const size_t k, size_t& a_one, size_t& a_two,
+			size_t& b_one, size_t& b_two, size_t& c_one, size_t& c_two, bool& a_do_transpose,
+			bool& b_do_transpose, bool& c_do_transpose, bool& a_conjugate, bool& b_conjugate,
+			const size_t gemm_kernel_id)
+		{
+			// Makes sure all dimensions are larger than zero
+			if ((m == 0) || (n == 0) || (k == 0))
+			{
+				throw std::runtime_error("invalid dimension");
+				//throw BLASError(StatusCode::kInvalidDimension);
+			}
+
+			// Computes whether or not the matrices are transposed in memory. This is based on their layout
+			// (row or column-major) and whether or not they are requested to be pre-transposed. Note
+			// that the Xgemm kernel expects either matrices A and C (in case of row-major) or B (in case of
+			// col-major) to be transformed, so transposing requirements are not the same as whether or not
+			// the matrix is actually transposed in memory.
+			const auto a_rotated = (layout == clblast::Layout::kColMajor && a_transpose != clblast::Transpose::kNo) ||
+			(layout == clblast::Layout::kRowMajor && a_transpose == clblast::Transpose::kNo);
+			const auto b_rotated = (layout == clblast::Layout::kColMajor && b_transpose != clblast::Transpose::kNo) ||
+			(layout == clblast::Layout::kRowMajor && b_transpose == clblast::Transpose::kNo);
+			const auto c_rotated = (layout == clblast::Layout::kRowMajor);
+			a_do_transpose = a_rotated != a_want_rotated_(gemm_kernel_id);
+			b_do_transpose = b_rotated != b_want_rotated_(gemm_kernel_id);
+			c_do_transpose = c_rotated != c_want_rotated_(gemm_kernel_id);
+
+			// In case of complex data-types, the transpose can also become a conjugate transpose
+			a_conjugate = (a_transpose == clblast::Transpose::kConjugate);
+			b_conjugate = (b_transpose == clblast::Transpose::kConjugate);
+
+			// Computes the first and second dimensions of the 3 matrices taking into account whether the
+			// matrices are rotated or not
+			a_one = (a_rotated) ? k : m;
+			a_two = (a_rotated) ? m : k;
+			b_one = (b_rotated) ? n : k;
+			b_two = (b_rotated) ? k : n;
+			c_one = (c_rotated) ? n : m;
+			c_two = (c_rotated) ? m : n;
+		}
+		
     public:
         BlasSGEMM(Context &ctx, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0) :
 			mUseBias(bias)
@@ -995,6 +1045,7 @@ namespace gpu {
                           int size_of_c,
                           ExecutionContext const &ein)
         {
+#if 1
 			const float alpha = 1.0;
 			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
 				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
@@ -1006,6 +1057,9 @@ namespace gpu {
 				// Which means in-place biasing should be easy to implement
 				
 			}
+#else
+			
+#endif
         }
 
     private:
