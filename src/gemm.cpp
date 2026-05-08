@@ -1074,10 +1074,14 @@ namespace gpu {
 			bool b_do_transpose;
 			bool c_do_transpose;
 			
+			bool a_conjugate;
+			bool b_conjugate;
+			
 			ProcessArguments(layout, mATrans, mBTrans,
 				M, N, K, a_one, a_two, b_one, b_two, c_one, c_two, a_do_transpose,
-				b_do_transpose, c_do_transpose, bool& a_conjugate, bool& b_conjugate,
-				const size_t gemm_kernel_id)
+				b_do_transpose, c_do_transpose, a_conjugate, b_conjugate, 0);
+			
+			
 			
 #endif
         }
