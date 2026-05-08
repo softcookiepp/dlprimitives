@@ -1,6 +1,6 @@
 #version 450
 
-#include "../common.glsl"
+#include "../common/common.glsl"
 
 // do we absolutely need this 100% of the time?
 #extension GL_EXT_shader_16bit_storage : require
