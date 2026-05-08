@@ -1058,6 +1058,26 @@ namespace gpu {
 				
 			}
 #else
+			auto layout = clblast::Layout::kRowMajor
+			auto aTrans = mATrans;
+			auto bTrans = mBTrans;
+			float alpha = 1.0;
+			
+			size_t a_one;
+			size_t a_two;
+			size_t b_one;
+			size_t b_two;
+			size_t c_one;
+			size_t c_two;
+			
+			bool a_do_transpose;
+			bool b_do_transpose;
+			bool c_do_transpose;
+			
+			ProcessArguments(layout, mATrans, mBTrans,
+				M, N, K, a_one, a_two, b_one, b_two, c_one, c_two, a_do_transpose,
+				b_do_transpose, c_do_transpose, bool& a_conjugate, bool& b_conjugate,
+				const size_t gemm_kernel_id)
 			
 #endif
         }
