@@ -102,11 +102,11 @@ namespace dlprim {
     }
     void Threshold::forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q)
     {
-        core::pointwise_operation({x},{y},{cfg_.threshold},"y0 = x0 > w0 ? 1 : 0;",q);
+        core::pointwise_operation({x},{y},{cfg_.threshold},"y0 = typeof_y0(cmp_gt(x0, w0) ? 1 : 0);",q);
     }
     void Threshold::backward_gpu(Tensor &,Tensor &dx,Tensor &,Tensor &,float beta,ExecutionContext const &q)
     {
-        core::pointwise_operation({dx},{dx},{beta},"y0 = w0 > 0 ? x0 * w0 : 0;",q);
+        core::pointwise_operation({dx},{dx},{beta},"y0 = cmp_gt(w0, 0) ? x0 * w0 : 0;",q);
     }
 
 

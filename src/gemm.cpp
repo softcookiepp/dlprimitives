@@ -12,6 +12,7 @@
 #if VULKAN_API
 #include <clblast_vk.h>
 #endif
+#include <dlprim/core/pointwise.hpp>
 
 namespace dlprim {
 namespace gpu {
@@ -686,6 +687,15 @@ namespace gpu {
 		clblast::Transpose mATrans;
 		clblast::Transpose mBTrans;
 		
+		GemmOpMode mGemmOpMode;
+		size_t mSrcChannels;
+		size_t mDstChannels;
+		const std::vector<size_t> mKernel;
+		const std::vector<size_t> mDilate;
+		const std::vector<size_t> mPadding;
+		const std::vector<size_t> mStride;
+		size_t mGroups;
+		
 	public:
 		BlasConvSGEMM(  Context &ctx,
                     GemmOpMode op_mode,
@@ -696,8 +706,19 @@ namespace gpu {
                     int tgt_rows,int tgt_cols,
                     int bias,
                     StandardActivations act,
-                    int im2col_chan = 0)
+                    int im2col_chan = 0):
+			//StandardSGEMMBase(ctx,M,N,K,false,false,act),
+			mGemmOpMode(op_mode),
+			mSrcChannels(src_channels),
+			mKernel({kernel[0], kernel[1]}),
+			mDilate({dilate[0], dilate[1]}),
+			mPadding({padding[0], padding[1]}),
+			mStride({stride[0], stride[1]}),
+			mGroups(groups)
 		{
+			
+			if (mGemmOpMode != GemmOpMode::forward)
+				throw std::runtime_error("only forward is implemented right now :c");
 			mDevice = ctx.device();
 			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
 			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
@@ -719,11 +740,18 @@ namespace gpu {
                           int size_of_c,
                           ExecutionContext const &ein)
         {
-			throw std::runtime_error("BlasConvSGEMM::gemm not yet implemented");
-			const float alpha = 1.0;
 #if 0
-			clblast::Convgemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
-				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
+			throw std::runtime_error("not implemented");
+#else
+			clblast::Convgemm<float>(clblast::KernelMode::kCrossCorrelation, mSrcChannels, (size_t)M, (size_t)N,
+				size_t(mKernel[0]), size_t(mKernel[1]), size_t(mPadding[0]), size_t(mPadding[1]),
+				size_t(mStride[0]), size_t(mStride[1]), size_t(mDilate[0]), size_t(mDilate[1]),
+				mDstChannels, //const size_t num_kernels,
+				mGroups, // const size_t batch_count,
+				a, (size_t)offset_a,
+				b, (size_t)offset_b,
+				c, (size_t)offset_c,
+				mDevice, nullptr);
 #endif
 		}
 		
@@ -942,13 +970,62 @@ namespace gpu {
 	
 	class BlasSGEMM : public GEMM
 	{
+		
+		
+		
+		// taken from clblast
+		static bool a_want_rotated_(const size_t gemm_kernel_id) { return gemm_kernel_id == 1; }
+		static bool b_want_rotated_(const size_t) { return true; }
+		static bool c_want_rotated_(const size_t gemm_kernel_id) { return gemm_kernel_id == 1; }
+		
+		// Process the user-arguments, computes secondary parameters
+		static void ProcessArguments(const clblast::Layout layout, const clblast::Transpose a_transpose, const clblast::Transpose b_transpose,
+			const size_t m, const size_t n, const size_t k, size_t& a_one, size_t& a_two,
+			size_t& b_one, size_t& b_two, size_t& c_one, size_t& c_two, bool& a_do_transpose,
+			bool& b_do_transpose, bool& c_do_transpose, bool& a_conjugate, bool& b_conjugate,
+			const size_t gemm_kernel_id)
+		{
+			// Makes sure all dimensions are larger than zero
+			if ((m == 0) || (n == 0) || (k == 0))
+			{
+				throw std::runtime_error("invalid dimension");
+				//throw BLASError(StatusCode::kInvalidDimension);
+			}
+
+			// Computes whether or not the matrices are transposed in memory. This is based on their layout
+			// (row or column-major) and whether or not they are requested to be pre-transposed. Note
+			// that the Xgemm kernel expects either matrices A and C (in case of row-major) or B (in case of
+			// col-major) to be transformed, so transposing requirements are not the same as whether or not
+			// the matrix is actually transposed in memory.
+			const auto a_rotated = (layout == clblast::Layout::kColMajor && a_transpose != clblast::Transpose::kNo) ||
+			(layout == clblast::Layout::kRowMajor && a_transpose == clblast::Transpose::kNo);
+			const auto b_rotated = (layout == clblast::Layout::kColMajor && b_transpose != clblast::Transpose::kNo) ||
+			(layout == clblast::Layout::kRowMajor && b_transpose == clblast::Transpose::kNo);
+			const auto c_rotated = (layout == clblast::Layout::kRowMajor);
+			a_do_transpose = a_rotated != a_want_rotated_(gemm_kernel_id);
+			b_do_transpose = b_rotated != b_want_rotated_(gemm_kernel_id);
+			c_do_transpose = c_rotated != c_want_rotated_(gemm_kernel_id);
+
+			// In case of complex data-types, the transpose can also become a conjugate transpose
+			a_conjugate = (a_transpose == clblast::Transpose::kConjugate);
+			b_conjugate = (b_transpose == clblast::Transpose::kConjugate);
+
+			// Computes the first and second dimensions of the 3 matrices taking into account whether the
+			// matrices are rotated or not
+			a_one = (a_rotated) ? k : m;
+			a_two = (a_rotated) ? m : k;
+			b_one = (b_rotated) ? n : k;
+			b_two = (b_rotated) ? k : n;
+			c_one = (c_rotated) ? n : m;
+			c_two = (c_rotated) ? m : n;
+		}
+		
     public:
-        BlasSGEMM(Context &ctx, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0)
+        BlasSGEMM(Context &ctx, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0) :
+			mUseBias(bias)
         {
 			if (act != StandardActivations::identity)
 				throw std::runtime_error("non-identity activations not implemented yet");
-			if (bias > 0)
-				throw std::runtime_error("bias not implemented!");
 			mDevice = ctx.device();
 			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
 			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
@@ -970,20 +1047,58 @@ namespace gpu {
                           int size_of_c,
                           ExecutionContext const &ein)
         {
+#if 1
 			const float alpha = 1.0;
 			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
 				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
+			
+			if (mUseBias)
+			{
+				// C should be row-major, width of N, height of M
+				// bias seems to be assumed to be contiguous, aside from the offset.
+				// Which means in-place biasing should be easy to implement
+				
+			}
+#else
+			auto layout = clblast::Layout::kRowMajor
+			auto aTrans = mATrans;
+			auto bTrans = mBTrans;
+			float alpha = 1.0;
+			
+			size_t a_one;
+			size_t a_two;
+			size_t b_one;
+			size_t b_two;
+			size_t c_one;
+			size_t c_two;
+			
+			bool a_do_transpose;
+			bool b_do_transpose;
+			bool c_do_transpose;
+			
+			bool a_conjugate;
+			bool b_conjugate;
+			
+			ProcessArguments(layout, mATrans, mBTrans,
+				M, N, K, a_one, a_two, b_one, b_two, c_one, c_two, a_do_transpose,
+				b_do_transpose, c_do_transpose, a_conjugate, b_conjugate, 0);
+			
+			
+			
+#endif
         }
 
     private:
 		// here we store program, since there are multiple kernels
 		tart::program_ptr mProgram = nullptr;
+		tart::program_ptr mBiasProgram = nullptr;
 		tart::device_ptr mDevice = nullptr;
 		
 		clblast::Transpose mATrans;
 		clblast::Transpose mBTrans;
 		
-		bool mSepAct = false;
+		const bool mSepAct = true;
+		const bool mUseBias;
     };
 	
 #endif
@@ -1018,7 +1133,7 @@ namespace gpu {
             StandardActivations act,
             int im2col_chan)
     {
-#if 0
+#if 1
 		DLPRIM_CHECK(dtype == float_data); // for now, this will be made different later!
 		std::unique_ptr<GEMM> g = std::make_unique<BlasConvSGEMM>(ctx, op_mode,
 			trans_a, trans_b, M, N, K, kernel,dilate, padding,stride, groups,

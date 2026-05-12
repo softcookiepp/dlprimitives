@@ -1,3 +1,7 @@
+#ifndef COMMON_GLSL
+#define COMMON_GLSL
+	// just to prevent the other header from interfering
+#endif
 
 // constant thingies
 #define FLT_MAX 3.402823466e+38
@@ -19,12 +23,15 @@
 #endif
 
 // OpenCL semantics, because why not
+#ifndef CL_ALIASES
+#define CL_ALIASES
 #define get_global_id(dim) gl_GlobalInvocationID[dim]
 #define get_local_id(dim) gl_LocalInvocationID[dim]
 #define get_group_id(dim) gl_WorkGroupID[dim]
 #define get_global_size(idx) gl_NumWorkGroups[idx] * gl_WorkGroupSize[idx]
 #define get_local_size(idx) gl_WorkGroupSize[idx]
 #define get_num_groups(dim) gl_NumWorkGroups[dim]
+#endif
 
 #define ACTIVATION_IDENTITY 0
 #define ACTIVATION_RELU     1
@@ -49,6 +56,8 @@
 		#define atomic_to_dtype(v) uintBitsToFloat(v)
 	#endif
 #endif
+
+#define cmp_gt(a, b) (dtype(a) > dtype(b) )
 
 #ifndef itype
 	// just default to 32 bit for now just so we can test to ensure it compiles
@@ -88,8 +97,10 @@
 	#define USE_UNROLL 0
 #endif
 
-#if USE_UNROLL
-	#define UNROLL(d)
-#else
-	#define UNROLL(d)
+#ifndef UNROLL
+	#if USE_UNROLL
+		#define UNROLL(d)
+	#else
+		#define UNROLL(d)
+	#endif
 #endif

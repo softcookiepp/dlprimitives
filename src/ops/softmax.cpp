@@ -314,8 +314,13 @@ void Softmax::forward(std::vector<Tensor> &input,std::vector<Tensor> &output, st
     if(ctx_.is_cpu_context()) {
         forward_cpu(input[0],output[0]);
     }
-    else {
+    else
+    {
+#if 0
+		// because the kernel is being extremely uncooperative
+#else
         core::softmax_forward(input[0],output[0],cfg_.log,ctx);
+#endif
     }
 }
 

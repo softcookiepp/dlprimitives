@@ -58,14 +58,14 @@ namespace core {
         tart::kernel_ptr k = prog->getKernel("activation_diff");
         
         int p=0;
-        uint64_t size = y.shape().total_size();
+        uint32_t size = y.shape().total_size();
         k->setArg(p++,size);
         y.set_arg(k,p);
         dy.set_arg(k,p);
         dx.set_arg(k,p);
         k->setArg(p++,beta);
 
-        std::vector<uint32_t> wg({256});
+        std::vector<uint32_t> wg({256, 1, 1});
         std::vector<uint32_t> gr=gpu::round_range(size,wg);
         gr[0] = gr[0]/wg[0];
         k->run(gr, wg);

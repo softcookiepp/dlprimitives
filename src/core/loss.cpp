@@ -17,7 +17,11 @@ namespace core {
         DLPRIM_CHECK(y.shape()==x.shape());
         DLPRIM_CHECK(y.dtype() == x.dtype());
         int sm_range=x.shape()[1];
-
+#if 1
+		// band-aid solution over a bigger problem.
+		// need to find out why the kernel isn't working.
+		int wg_size = 1;
+#else
         int wg_size;
         if(sm_range <= 64)
             wg_size = 64;
@@ -25,6 +29,7 @@ namespace core {
             wg_size = 128;
         else 
             wg_size = 256;
+#endif
         
         int items_per_wi = (sm_range + wg_size - 1) / wg_size;
 
@@ -41,15 +46,16 @@ namespace core {
         int b0 = in_shape[0];
         int b2 = in_shape.size() == 3 ? in_shape[2] : 1;
         int p = 0;
-        kernel->setArg(p++,b0);
-        kernel->setArg(p++,sm_range);
-        kernel->setArg(p++,b2);
-        x.set_arg(kernel,p);
-        y.set_arg(kernel,p);
+        kernel->setArg(p++, (uint32_t)b0);
+        kernel->setArg(p++, (uint32_t)sm_range);
+        kernel->setArg(p++, (uint32_t)b2);
+        x.set_arg(kernel, p);
+        y.set_arg(kernel, p);
 
         std::vector<uint32_t> gr({b0,nd_range/wg_size,b2});
-        std::vector<uint32_t> wg({1,wg_size,1});
-        kernel->run(gr, wg);
+        //std::vector<uint32_t> wg({1,wg_size,1});
+        //kernel->run(gr, wg);
+        kernel->run(gr, {});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"softmax",
                             "WG_SIZE",wg_size,
@@ -106,17 +112,18 @@ namespace core {
         int b0 = in_shape[0];
         int b2 = in_shape.size() == 3 ? in_shape[2] : 1;
         int p = 0;
-        kernel->setArg(p++,b0);
-        kernel->setArg(p++,sm_range);
-        kernel->setArg(p++,b2);
-        dx.set_arg(kernel,p);
-        y.set_arg(kernel,p);
-        dy.set_arg(kernel,p);
-        kernel->setArg(p++,factor);
+        kernel->setArg(p++, (uint32_t)b0);
+        kernel->setArg(p++, (uint32_t)sm_range);
+        kernel->setArg(p++, (uint32_t)b2);
+        dx.set_arg(kernel, p);
+        y.set_arg(kernel, p);
+        dy.set_arg(kernel, p);
+        kernel->setArg(p++, factor);
 
         std::vector<uint32_t> gr({b0,nd_range/wg_size,b2});
         std::vector<uint32_t> wg({1,wg_size,1});
-        kernel->run(gr, wg);
+        //kernel->run(gr, wg);
+        kernel->run(gr, {});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"softmax",
                             "WG_SIZE",wg_size,
@@ -165,7 +172,11 @@ namespace core {
         std::string itype;
         switch(lbl.dtype()) {
         case int32_data: itype = "int"; break;
+#if VULKAN_API
+        case int64_data: itype = "int64_t"; break;
+#else
         case int64_data: itype = "long"; break;
+#endif
         case float_data: itype = "float"; break;
         default: throw NotImplementedError("Unsupported type");
         }
@@ -188,7 +199,7 @@ namespace core {
         y.set_arg(kernel,p);
         kernel->setArg(p++,scale);
         std::vector<uint32_t> wg({wg_size, 1, 1});
-        kernel->run({1, 1, 1}, wg);
+        kernel->run({1, 1, 1}, {});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_fwd",
                             "WG_SIZE",wg_size,
@@ -221,7 +232,11 @@ namespace core {
         std::string itype;
         switch(lbl.dtype()) {
         case int32_data: itype = "int"; break;
+#if VULKAN_API
+        case int64_data: itype = "int64_t"; break;
+#else
         case int64_data: itype = "long"; break;
+#endif
         case float_data: itype = "float"; break;
         default: throw NotImplementedError("Unsupported type");
         }
@@ -242,7 +257,7 @@ namespace core {
         kernel->setArg(p++,scale);
         kernel->setArg(p++,factor);
         std::vector<uint32_t> nd(in_shape[1],in_shape[0]);
-        kernel->run(nd, {1, 1});
+        kernel->run(nd, {1, 1, 1});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_bwd",
                             "REDUCE",int(reduce),

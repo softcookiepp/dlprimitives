@@ -41,6 +41,123 @@ namespace core {
         DLPRIM_CHECK(ohw[1] > 0);
         return Shape(batch,config.channels_out,ohw[0],ohw[1]);
     }
+    
+#if VULKAN_API
+	// this class is for use in the Vulkan API.
+	// why?
+	// I want a proof-of-concept implementation of everything before it is perfectly optimized.
+	class Conv2DForwardBlasGEMM : public Conv2DForward
+	{
+		Conv2DSettings mConfig;
+	public:
+		virtual char const *algo() const
+        {
+            return "gemm";
+        }
+        
+        void fwd_bwd_gpu(GemmOpMode mode,Tensor &in,Tensor &out,Tensor &W,Tensor *bias_tensor, Tensor& ws,
+			Convolution2DConfigBase const &config,float fwd_beta, ExecutionContext const &e)
+		{
+			int batch = in.shape()[0];
+			tart::buffer_ptr imcols = ws.device_buffer();
+			tart::buffer_ptr kernel = W.device_buffer();
+			int im2col_rows = out.shape()[2]*out.shape()[3];
+			int kernel_cols = config.channels_in / config.groups * config.kernel[0] * config.kernel[1];
+			int in_size_no_batch = in.shape().size_no_batch();
+			int out_size_no_batch = out.shape().size_no_batch();
+			int step_groups_out = config.channels_out / config.groups;
+			int step_groups_in  = config.channels_in  / config.groups;
+			int step_kernel = step_groups_out * step_groups_in * config.kernel[0] * config.kernel[1];
+			Shape  in_shape(in.shape()[0],in.shape()[1]/config.groups,in.shape()[2],in.shape()[3]);
+			Shape out_shape(out.shape()[0],out.shape()[1]/config.groups,out.shape()[2],out.shape()[3]);
+			
+			for(int b=0;b<batch;b++)
+			{
+				for(int g=0;g<config.groups;g++)
+				{
+					size_t imgOffset = sizeof(float)*(in_size_no_batch *b + g * step_groups_in * in.shape()[2] * in.shape()[3]);
+					size_t omgOffset = sizeof(float)*(out_size_no_batch*b + g * step_groups_out * out.shape()[2] * out.shape()[3]);
+					tart::buffer_ptr img = in.device_buffer()->view(imgOffset);
+					tart::buffer_ptr omg = out.device_buffer()->view(omgOffset);
+					switch(mode) {
+					case GemmOpMode::forward:
+					{
+#if 1
+	#if 0
+							clblast::Im2col(clblast::KernelMode::kCrossCorrelation, in_shape[1], const size_t height, const size_t width,
+								config.kernel[0], config.kernel[1], config.pad[0], config.pad[1],
+								config.stride[0], config.stride[1], config.dilate[0], config.dilate[1],
+								img, 0, omg, 0, e.queue() );
+	#endif
+							throw std::runtime_error("not implemented!");
+#else
+							im2col<details::Im2ColOp>(in_shape,out_shape,img,imcols,config);
+							cblas_sgemm(CblasRowMajor,CblasNoTrans, CblasTrans,
+									config.channels_out / config.groups,im2col_rows,kernel_cols,
+									1.0f,
+									kernel + step_kernel * g,kernel_cols,
+									imcols,kernel_cols,
+									fwd_beta,
+									omg,
+									im2col_rows);
+							if(config.bias) {
+								float *bias = bias_tensor->data<float>() + g * step_groups_out;
+								int plane_size = out.shape()[2]*out.shape()[3];
+								for(int i=0;i<step_groups_out;i++) {
+									cblas_saxpy(plane_size,1.0f,bias + i,0,omg + plane_size*i,1);
+								}
+							}
+#endif
+						}
+						break;
+#if 0
+					case GemmOpMode::backward_filter: {
+							im2col<details::Im2ColOp>(in_shape,out_shape,img,imcols,config);
+							cblas_sgemm(CblasRowMajor,CblasNoTrans, CblasNoTrans,
+									config.channels_out / config.groups,kernel_cols,im2col_rows,
+									1.0f,
+									omg,im2col_rows,
+									imcols,kernel_cols,
+									1.0f,
+									kernel + step_kernel * g,kernel_cols
+									);
+						}
+						break;
+					case GemmOpMode::backward_data: {
+							cblas_sgemm(CblasRowMajor,CblasTrans, CblasNoTrans,
+									im2col_rows, kernel_cols, config.channels_out / config.groups,
+									1.0f,
+									omg,im2col_rows,
+									kernel + step_kernel * g,kernel_cols,
+									0.0f,
+									imcols,kernel_cols
+									);
+							im2col<details::Col2ImOp>(in_shape,out_shape,img,imcols,config);
+						}
+						break;
+#endif
+					} // switch
+				}
+			}
+		}
+        
+        virtual void enqueue(Tensor &x,Tensor &W,Tensor *bias,Tensor &y, Tensor& ws, float factor, ExecutionContext const &e)
+        {
+			throw std::runtime_error("not implemented!");
+			// ok, what is ws?
+			// and how do we convert the configs correctly?
+			// this is all so silly
+			fwd_bwd_gpu(GemmOpMode::forward, x, y, W, bias, ws, mConfig, 0.0, e);
+		}
+		
+		Conv2DForwardBlasGEMM(Context &ctx,Conv2DSettings const &config,bool bias,StandardActivations activation = StandardActivations::identity) :
+            mConfig(config)
+		{
+			
+		}
+		
+	};
+#endif
 
     class Conv2DForwardGEMM : public Conv2DForward {
     public:
