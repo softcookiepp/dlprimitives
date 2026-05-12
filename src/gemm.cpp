@@ -9,7 +9,9 @@
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/ops/scal.hpp>
 #include <iostream>
+#if VULKAN_API
 #include <clblast_vk.h>
+#endif
 #include <dlprim/core/pointwise.hpp>
 
 namespace dlprim {
