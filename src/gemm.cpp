@@ -1031,6 +1031,10 @@ namespace gpu {
 			// Retrieves the proper XgemmDirect kernel from the compiled binary
 			const auto name = (a_do_transpose) ? (b_do_transpose ? "xgemm_direct_tt" : "xgemm_direct_tn") : (b_do_transpose ? "xgemm_direct_nt" : "xgemm_direct_nn");
 			auto kernel = Kernel(program_, name);
+			
+			auto prog = Cache::instance().get_program(ctx, name
+			// TODO: pull all the defs from the CLBlast DB, then throw them in here
+			);
 
 			// Sets the kernel arguments
 			kernel->setArg(0, static_cast<int>(m));
