@@ -1018,7 +1018,57 @@ namespace gpu {
 			b_two = (b_rotated) ? k : n;
 			c_one = (c_rotated) ? n : m;
 			c_two = (c_rotated) ? m : n;
+			
 		}
+
+#if 0
+		void GemmDirect(const size_t m, const size_t n, const size_t k, const float alpha, tart::buffer_ptr& a_buffer,
+			const size_t a_offset, const size_t a_ld, const tart::buffer_ptr& b_buffer, const size_t b_offset,
+			const size_t b_ld, const T beta, tart::buffer_ptr& c_buffer, const size_t c_offset,
+			const size_t c_ld, const bool a_do_transpose, const bool b_do_transpose,
+			const bool c_do_transpose, const bool a_conjugate, const bool b_conjugate)
+		{
+			// Retrieves the proper XgemmDirect kernel from the compiled binary
+			const auto name = (a_do_transpose) ? (b_do_transpose ? "xgemm_direct_tt" : "xgemm_direct_tn")
+																				 : (b_do_transpose ? "xgemm_direct_nt" : "xgemm_direct_nn");
+			auto kernel = Kernel(program_, name);
+
+			// Sets the kernel arguments
+			kernel->setArg(0, static_cast<int>(m));
+			kernel->setArg(1, static_cast<int>(n));
+			kernel->setArg(2, static_cast<int>(k));
+			kernel->setArg(3, GetRealArg(alpha));
+			kernel->setArg(4, GetRealArg(beta));
+			kernel->setArg(5, a_buffer());
+			kernel->setArg(6, static_cast<int>(a_offset));
+			kernel->setArg(7, static_cast<int>(a_ld));
+			kernel->setArg(8, b_buffer());
+			kernel->setArg(9, static_cast<int>(b_offset));
+			kernel->setArg(10, static_cast<int>(b_ld));
+			kernel->setArg(11, c_buffer());
+			kernel->setArg(12, static_cast<int>(c_offset));
+			kernel->setArg(13, static_cast<int>(c_ld));
+			kernel->setArg(14, static_cast<int>(c_do_transpose));
+			kernel->setArg(15, static_cast<int>(a_conjugate));
+			kernel->setArg(16, static_cast<int>(b_conjugate));
+			
+			// provide the same buffers twice to get around GLSL's lack of pointer casting
+			kernel->setArg(17, a_buffer());
+			kernel->setArg(18, b_buffer());
+
+			// Computes the global and local thread sizes
+			const auto m_ceiled = Ceil(m, db_["WGD"]);
+			const auto n_ceiled = Ceil(n, db_["WGD"]);
+			const auto global =
+					std::vector<size_t>{//	CeilDiv(m * db_["MDIMCD"], db_["WGD"]),
+															//	CeilDiv(n * db_["NDIMCD"], db_["WGD"])
+															(m_ceiled * db_["MDIMCD"]) / db_["WGD"], (n_ceiled * db_["NDIMCD"]) / db_["WGD"]};
+			const auto local = std::vector<size_t>{db_["MDIMCD"], db_["NDIMCD"]};
+
+			// Launches the kernel
+			RunKernel(kernel, queue_, device_, global, local, event_);
+		}
+#endif
 		
     public:
         BlasSGEMM(Context &ctx, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0) :
@@ -1083,7 +1133,9 @@ namespace gpu {
 				M, N, K, a_one, a_two, b_one, b_two, c_one, c_two, a_do_transpose,
 				b_do_transpose, c_do_transpose, a_conjugate, b_conjugate, 0);
 			
-			
+			// just skip testing for now
+			GemmDirect(M, N, K, alpha, a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc,
+				 a_do_transpose, b_do_transpose, c_do_transpose, a_conjugate, b_conjugate);
 			
 #endif
         }
