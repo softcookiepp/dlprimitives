@@ -1032,9 +1032,11 @@ namespace gpu {
 			const auto name = (a_do_transpose) ? (b_do_transpose ? "xgemm_direct_tt" : "xgemm_direct_tn") : (b_do_transpose ? "xgemm_direct_nt" : "xgemm_direct_nn");
 			auto kernel = Kernel(program_, name);
 			
-			auto prog = Cache::instance().get_program(ctx, name
+			auto prog = Cache::instance().get_program(ctx, "sgemm-from-clblast"
 			// TODO: pull all the defs from the CLBlast DB, then throw them in here
 			);
+			
+			auto kernel = prog->getKernel(name);
 
 			// Sets the kernel arguments
 			kernel->setArg(0, static_cast<int>(m));
@@ -1058,18 +1060,27 @@ namespace gpu {
 			// provide the same buffers twice to get around GLSL's lack of pointer casting
 			kernel->setArg(17, a_buffer());
 			kernel->setArg(18, b_buffer());
+			
+			// default WGD is 8
+			const auto WGD = 8;
+			
+			// default MDIMCD is also 8
+			const auto MDIMCD = 8;
+			
+			// default NDIMCD is, yet again, 8
+			const auto NDIMCD = 8;
 
 			// Computes the global and local thread sizes
-			const auto m_ceiled = Ceil(m, db_["WGD"]); // where do we even get this from?
-			const auto n_ceiled = Ceil(n, db_["WGD"]); // or this? or any of the db_ values?
+			const auto m_ceiled = Ceil(m, WGD); // where do we even get this from?
+			const auto n_ceiled = Ceil(n, WGD); // or this? or any of the db_ values?
 			const auto global =
 					std::vector<size_t>{//	CeilDiv(m * db_["MDIMCD"], db_["WGD"]),
 															//	CeilDiv(n * db_["NDIMCD"], db_["WGD"])
-															(m_ceiled * db_["MDIMCD"]) / db_["WGD"], (n_ceiled * db_["NDIMCD"]) / db_["WGD"]};
-			const auto local = std::vector<size_t>{db_["MDIMCD"], db_["NDIMCD"]};
+															(m_ceiled * MDIMCD) / WGD, (n_ceiled * NDIMCD) / WGD};
+			const auto local = std::vector<size_t>{MDIMCD, NDIMCD};
 
 			// Launches the kernel
-			RunKernel(kernel, queue_, device_, global, local, event_);
+			kernel->run(global, local);
 		}
 #endif
 		
