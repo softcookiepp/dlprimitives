@@ -1029,23 +1029,22 @@ namespace gpu {
 			const bool c_do_transpose, const bool a_conjugate, const bool b_conjugate)
 		{
 			// Retrieves the proper XgemmDirect kernel from the compiled binary
-			const auto name = (a_do_transpose) ? (b_do_transpose ? "xgemm_direct_tt" : "xgemm_direct_tn")
-																				 : (b_do_transpose ? "xgemm_direct_nt" : "xgemm_direct_nn");
+			const auto name = (a_do_transpose) ? (b_do_transpose ? "xgemm_direct_tt" : "xgemm_direct_tn") : (b_do_transpose ? "xgemm_direct_nt" : "xgemm_direct_nn");
 			auto kernel = Kernel(program_, name);
 
 			// Sets the kernel arguments
 			kernel->setArg(0, static_cast<int>(m));
 			kernel->setArg(1, static_cast<int>(n));
 			kernel->setArg(2, static_cast<int>(k));
-			kernel->setArg(3, GetRealArg(alpha));
-			kernel->setArg(4, GetRealArg(beta));
-			kernel->setArg(5, a_buffer());
+			kernel->setArg(3, alpha);
+			kernel->setArg(4, beta);
+			kernel->setArg(5, a_buffer);
 			kernel->setArg(6, static_cast<int>(a_offset));
 			kernel->setArg(7, static_cast<int>(a_ld));
-			kernel->setArg(8, b_buffer());
+			kernel->setArg(8, b_buffer);
 			kernel->setArg(9, static_cast<int>(b_offset));
 			kernel->setArg(10, static_cast<int>(b_ld));
-			kernel->setArg(11, c_buffer());
+			kernel->setArg(11, c_buffer);
 			kernel->setArg(12, static_cast<int>(c_offset));
 			kernel->setArg(13, static_cast<int>(c_ld));
 			kernel->setArg(14, static_cast<int>(c_do_transpose));
@@ -1057,8 +1056,8 @@ namespace gpu {
 			kernel->setArg(18, b_buffer());
 
 			// Computes the global and local thread sizes
-			const auto m_ceiled = Ceil(m, db_["WGD"]);
-			const auto n_ceiled = Ceil(n, db_["WGD"]);
+			const auto m_ceiled = Ceil(m, db_["WGD"]); // where do we even get this from?
+			const auto n_ceiled = Ceil(n, db_["WGD"]); // or this? or any of the db_ values?
 			const auto global =
 					std::vector<size_t>{//	CeilDiv(m * db_["MDIMCD"], db_["WGD"]),
 															//	CeilDiv(n * db_["NDIMCD"], db_["WGD"])
