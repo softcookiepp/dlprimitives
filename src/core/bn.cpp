@@ -582,7 +582,7 @@ namespace core {
             int hw = get_plane_size(dx.shape());
             int total = batches*hw;
             int p=0;
-#if VULKAN_API	
+#if VULKAN_API
 			compute_backward_factors_->setArg(p++,features_);
             compute_backward_factors_->setArg(p++,total);
             compute_backward_factors_->setArg(p++,eps);
@@ -596,6 +596,10 @@ namespace core {
             dy_sum.set_arg(compute_backward_factors_,p);
             dyx_sum.set_arg(compute_backward_factors_,p);
             gamma.set_arg(compute_backward_factors_,p);
+#if VULKAN_API
+			uint32_t use_gamma = 1;
+			compute_backward_factors_->setArg(p++, use_gamma);
+#endif
             x_factor.set_arg(compute_backward_factors_,p);
             dy_factor.set_arg(compute_backward_factors_,p);
             b_offset.set_arg(compute_backward_factors_,p);

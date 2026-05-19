@@ -17,7 +17,9 @@
 
 layout(push_constant, std430) uniform compute_backward_factors
 {
-	int N;int M;float eps;
+	int N;
+	int M;
+	float eps;
 #if USE_BDA
 	__global float const *mean;
 #endif
