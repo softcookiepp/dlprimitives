@@ -150,6 +150,7 @@ namespace core {
                                                                            "#LOADS",loads.str(),
                                                                            "#SAVES",saves.str(),
                                                                            "#CALC",code_fixed.str());
+        std::cout << "PARAMS: " << params.str() << std::endl;
         tart::kernel_ptr k = prog->getKernel("exec");
         uint32_t total = ref.total_size();
         int p=0;
@@ -823,7 +824,7 @@ namespace core {
                                                                                "#REDUCE",format_code(reduce),
                                                                                "#CALC",format_code(compute_code));
             kernel_ = prog->getKernel("exec");
-
+			std::cout << "PARAMS: " << params.str() << std::endl;
             std::vector<uint32_t> range;
             std::vector<uint32_t> wg_range;
             int zero = reduce_dims.size();
