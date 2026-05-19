@@ -188,9 +188,9 @@ namespace core {
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
 #if VULKAN_API
-				sums_->run({second_reduce_,features_}, {wg_, 1});
+				sums_->run({second_reduce_,features_}, {});
 				e.queue()->sync();
-				sums_reduce_->run({1, features_}, {second_reduce_, 1});
+				sums_reduce_->run({1, features_}, {});
 #else
                 e.queue().enqueueNDRangeKernel( sums_,
                                                 cl::NullRange,
@@ -236,7 +236,7 @@ namespace core {
             update_sums_.setArg(p++,running_var_factor);
 #endif
 #if VULKAN_API
-			update_sums_->run({features_}, {1});
+			update_sums_->run({features_}, {});
 #else
             e.queue().enqueueNDRangeKernel(update_sums_,
                                            cl::NullRange,cl::NDRange(features_),cl::NullRange,
@@ -250,7 +250,7 @@ namespace core {
 #endif
         {
 #if VULKAN_API
-			k->run({rc, features_, batches}, {1, 1, 1});
+			k->run({rc, features_, batches}, {});
 #else
             e.queue().enqueueNDRangeKernel(k,cl::NullRange,cl::NDRange(rc,features_,batches),cl::NullRange,e.events(),e.event(name));
 #endif
@@ -321,7 +321,7 @@ namespace core {
             auto e1=e.generate_series_context(0,2);
             auto e2=e.generate_series_context(1,2);
 #if VULKAN_API
-			mean_var_to_a_b_->run({features_}, {1});
+			mean_var_to_a_b_->run({features_}, {});
 #else
             e.queue().enqueueNDRangeKernel(mean_var_to_a_b_,cl::NullRange,cl::NDRange(features_),cl::NullRange,e1.events(),e1.event("mean_to_ab"));
 #endif
@@ -352,7 +352,7 @@ namespace core {
             auto e1=e.generate_series_context(0,2);
             auto e2=e.generate_series_context(1,2);
 #if VULKAN_API
-			mean_var_to_a_b_->run({features_}, {1});
+			mean_var_to_a_b_->run({features_}, {});
 #else
             e.queue().enqueueNDRangeKernel(mean_var_to_a_b_,cl::NullRange,cl::NDRange(features_),cl::NullRange,e1.events(),e1.event("mean_to_ab"));
 #endif
