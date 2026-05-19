@@ -471,7 +471,7 @@ namespace core {
                 dyx_sum.set_arg(dyx_sums_,p);
                 dy_sum.set_arg(dyx_sums_,p);
 #if VULKAN_API
-				dyx_sums_->run({1, features_}, {wg_, 1});
+				dyx_sums_->run({1, features_}, {});
 #else
                 e.queue().enqueueNDRangeKernel( dyx_sums_,
                                                 cl::NullRange,
