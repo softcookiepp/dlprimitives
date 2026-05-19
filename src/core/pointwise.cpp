@@ -824,7 +824,7 @@ namespace core {
                                                                                "#REDUCE",format_code(reduce),
                                                                                "#CALC",format_code(compute_code));
             kernel_ = prog->getKernel("exec");
-			std::cout << "PARAMS: " << params.str() << std::endl;
+			std::cout << "PARAMS: " << PARAMS.str() << std::endl;
             std::vector<uint32_t> range;
             std::vector<uint32_t> wg_range;
             int zero = reduce_dims.size();
