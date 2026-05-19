@@ -153,7 +153,7 @@ namespace core {
                 mean.set_arg(sums_,p);
                 var.set_arg(sums_,p);
 #if VULKAN_API
-				sums_->run({1, features_}, {wg_, 1});
+				sums_->run({1, features_}, {});
 #else
                 e.queue().enqueueNDRangeKernel( sums_,
                                                 cl::NullRange,
