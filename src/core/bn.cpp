@@ -321,7 +321,7 @@ namespace core {
             auto e1=e.generate_series_context(0,2);
             auto e2=e.generate_series_context(1,2);
 #if VULKAN_API
-			mean_var_to_a_b_->run({features_}, {1});
+			mean_var_to_a_b_->run({features_}, {1, 1, 1});
 #else
             e.queue().enqueueNDRangeKernel(mean_var_to_a_b_,cl::NullRange,cl::NDRange(features_),cl::NullRange,e1.events(),e1.event("mean_to_ab"));
 #endif
@@ -352,7 +352,7 @@ namespace core {
             auto e1=e.generate_series_context(0,2);
             auto e2=e.generate_series_context(1,2);
 #if VULKAN_API
-			mean_var_to_a_b_->run({features_}, {1});
+			mean_var_to_a_b_->run({features_}, {1, 1, 1});
 #else
             e.queue().enqueueNDRangeKernel(mean_var_to_a_b_,cl::NullRange,cl::NDRange(features_),cl::NullRange,e1.events(),e1.event("mean_to_ab"));
 #endif
@@ -394,7 +394,7 @@ namespace core {
             auto e1=e.generate_series_context(0,2);
             auto e2=e.generate_series_context(1,2);
 #if VULKAN_API
-			combine_mean_var_with_gamma_beta_->run({features_}, {1});
+			combine_mean_var_with_gamma_beta_->run({features_}, {1, 1, 1});
 #else
             e.queue().enqueueNDRangeKernel(combine_mean_var_with_gamma_beta_,cl::NullRange,cl::NDRange(features_),cl::NullRange,e1.events(),e1.event("mean_gamma_to_ab"));
 #endif
@@ -534,7 +534,7 @@ namespace core {
             var.set_arg(var_gamma_to_a_,p);
             gamma.set_arg(var_gamma_to_a_,p);
             dy_factor.set_arg(var_gamma_to_a_,p);
-			var_gamma_to_a_->run({features_}, {1});
+			var_gamma_to_a_->run({features_}, {1, 1, 1});
 #else
 			var_gamma_to_a_.setArg(p++,features_);
             var_gamma_to_a_.setArg(p++,eps);
@@ -601,7 +601,7 @@ namespace core {
             b_offset.set_arg(compute_backward_factors_,p);
 
 #if VULKAN_API
-			compute_backward_factors_->run({features_}, {1});
+			compute_backward_factors_->run({features_}, {1, 1, 1});
 #else
             e.queue().enqueueNDRangeKernel(compute_backward_factors_,
                                    cl::NullRange,cl::NDRange(features_),cl::NullRange,
@@ -663,7 +663,7 @@ namespace core {
             backward_filter_.setArg(p++,db_fact);
 #endif
 #if VULKAN_API
-			backward_filter_->run({features_}, {1});
+			backward_filter_->run({features_}, {1, 1, 1});
 #else
             e.queue().enqueueNDRangeKernel(backward_filter_,cl::NullRange,cl::NDRange(features_),cl::NullRange,
                         e.events(),e.event("backward_filter"));
@@ -746,7 +746,7 @@ namespace core {
             dy_factor.set_arg(compute_backward_factors_,p);
             b_offset.set_arg(compute_backward_factors_,p);
 #if VULKAN_API
-			compute_backward_factors_->run({features_}, {1});
+			compute_backward_factors_->run({features_}, {1, 1, 1});
 #else
             e.queue().enqueueNDRangeKernel(compute_backward_factors_,
                                    cl::NullRange,cl::NDRange(features_),cl::NullRange,
