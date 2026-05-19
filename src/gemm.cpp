@@ -970,9 +970,6 @@ namespace gpu {
 	
 	class BlasSGEMM : public GEMM
 	{
-		
-		
-		
 		// taken from clblast
 		static bool a_want_rotated_(const size_t gemm_kernel_id) { return gemm_kernel_id == 1; }
 		static bool b_want_rotated_(const size_t) { return true; }
@@ -989,7 +986,6 @@ namespace gpu {
 			if ((m == 0) || (n == 0) || (k == 0))
 			{
 				throw std::runtime_error("invalid dimension");
-				//throw BLASError(StatusCode::kInvalidDimension);
 			}
 
 			// Computes whether or not the matrices are transposed in memory. This is based on their layout
@@ -1030,7 +1026,6 @@ namespace gpu {
 		{
 			// Retrieves the proper XgemmDirect kernel from the compiled binary
 			const auto name = (a_do_transpose) ? (b_do_transpose ? "xgemm_direct_tt" : "xgemm_direct_tn") : (b_do_transpose ? "xgemm_direct_nt" : "xgemm_direct_nn");
-			auto kernel = Kernel(program_, name);
 			
 			auto prog = Cache::instance().get_program(ctx, "sgemm-from-clblast"
 			// TODO: pull all the defs from the CLBlast DB, then throw them in here
@@ -1112,17 +1107,25 @@ namespace gpu {
                           ExecutionContext const &ein)
         {
 #if 1
-			const float alpha = 1.0;
-			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
-				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
-			
 			if (mUseBias)
 			{
 				// C should be row-major, width of N, height of M
 				// bias seems to be assumed to be contiguous, aside from the offset.
 				// Which means in-place biasing should be easy to implement
 				
+				for (size_t i = 0; i < M; i += 1)
+				{
+					uint32_t c_row_offset = (ldc*i) + offset_c;
+					// pretty sure x_inc is just 1, unless C somehow has strides.
+					clblast::Copy<float>(N, bias, bias_offset, 1, c, c_row_offset, 1, mDevice);
+				}
 			}
+			
+			const float alpha = 1.0;
+			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
+				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
+			
+			
 #else
 			auto layout = clblast::Layout::kRowMajor
 			auto aTrans = mATrans;
