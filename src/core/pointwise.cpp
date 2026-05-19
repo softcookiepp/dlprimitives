@@ -410,6 +410,7 @@ namespace core {
                                                                            "#SAVES",saves.str(),
                                                                            "#CALC",format_code(code));
         tart::kernel_ptr k = prog->getKernel("exec");
+        std::cout << "PARAMS: " << params.str() << std::endl;
         tart::device_ptr device = prog->getDevice();
         int p=0;
         bind_shape(k,p,ref);
