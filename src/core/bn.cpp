@@ -650,6 +650,8 @@ namespace core {
             dy_sum.set_arg(backward_filter_,p);
             dyx_sum.set_arg(backward_filter_,p);
             dgamma.set_arg(backward_filter_,p);
+			uint32_t use_gamma = 1;
+			backward_filter_->setArg(p++, use_gamma);
             dbeta.set_arg(backward_filter_,p);
             backward_filter_->setArg(p++,eps);
             backward_filter_->setArg(p++,dg_fact);
