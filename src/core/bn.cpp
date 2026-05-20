@@ -533,6 +533,8 @@ namespace core {
             var_gamma_to_a_->setArg(p++,eps);
             var.set_arg(var_gamma_to_a_,p);
             gamma.set_arg(var_gamma_to_a_,p);
+            uint32_t use_gamma = 1;
+			var_gamma_to_a_->setArg(p++, use_gamma);
             dy_factor.set_arg(var_gamma_to_a_,p);
 			var_gamma_to_a_->run({features_}, {1, 1, 1});
 #else
@@ -748,6 +750,10 @@ namespace core {
             dy_sum.set_arg(compute_backward_factors_,p);
             dyx_sum.set_arg(compute_backward_factors_,p);
             null_.set_arg(compute_backward_factors_,p);
+#if VULKAN_API
+			const uint32_t useGamma = 1;
+			compute_backward_factors_->setArg(p++, useGamma);
+#endif
             x_factor.set_arg(compute_backward_factors_,p);
             dy_factor.set_arg(compute_backward_factors_,p);
             b_offset.set_arg(compute_backward_factors_,p);
