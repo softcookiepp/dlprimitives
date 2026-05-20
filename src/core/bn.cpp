@@ -749,10 +749,14 @@ namespace core {
             rstd.set_arg(compute_backward_factors_,p);
             dy_sum.set_arg(compute_backward_factors_,p);
             dyx_sum.set_arg(compute_backward_factors_,p);
-            null_.set_arg(compute_backward_factors_,p);
+            
 #if VULKAN_API
-			const uint32_t useGamma = 1;
+			// use another tensor, who cares
+			dyx_sum.set_arg(compute_backward_factors_,p);
+			const uint32_t useGamma = 0;
 			compute_backward_factors_->setArg(p++, useGamma);
+#else
+			null_.set_arg(compute_backward_factors_,p);
 #endif
             x_factor.set_arg(compute_backward_factors_,p);
             dy_factor.set_arg(compute_backward_factors_,p);
