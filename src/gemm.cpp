@@ -695,6 +695,7 @@ namespace gpu {
 		const std::vector<size_t> mPadding;
 		const std::vector<size_t> mStride;
 		size_t mGroups;
+		const bool mUseBias = false;
 		
 	public:
 		BlasConvSGEMM(  Context &ctx,
@@ -714,7 +715,8 @@ namespace gpu {
 			mDilate({dilate[0], dilate[1]}),
 			mPadding({padding[0], padding[1]}),
 			mStride({stride[0], stride[1]}),
-			mGroups(groups)
+			mGroups(groups),
+			mUseBias(bias)
 		{
 			
 			if (mGemmOpMode != GemmOpMode::forward)
@@ -752,6 +754,8 @@ namespace gpu {
 				b, (size_t)offset_b,
 				c, (size_t)offset_c,
 				mDevice, nullptr);
+			if (mUseBias)
+				throw std::runtime_error("using bias in convgemm is not yet implemented");
 #endif
 		}
 		
