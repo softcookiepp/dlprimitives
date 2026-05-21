@@ -284,7 +284,7 @@ namespace core {
                 dw.set_arg(kernel_,p);
                 kernel_->setArg(p++,1);
                 kernel_->setArg(p++,beta);
-                kernel_->run(g, l);
+                kernel_->run(g, {});
 #else
                 cl::NDRange l(wg_,1);
                 cl::NDRange g=gpu::round_range(norm_size,features_,l);
