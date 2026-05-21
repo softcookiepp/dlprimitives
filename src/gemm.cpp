@@ -1112,7 +1112,7 @@ namespace gpu {
 				// C should be row-major, width of N, height of M
 				// bias seems to be assumed to be contiguous, aside from the offset.
 				// Which means in-place biasing should be easy to implement
-				
+				throw std::runtime_error("not implemented!");
 				for (size_t i = 0; i < M; i += 1)
 				{
 					uint32_t c_row_offset = (ldc*i) + offset_c;
