@@ -240,7 +240,7 @@ namespace core {
                 kernel_->setArg(p++,0.0f);
                 auto ec1 = e.generate_series_context(0,2);
                 auto ec2 = e.generate_series_context(1,2);
-                kernel_->run(g, l);
+                kernel_->run(g, {});
                 p=0;
                 kernel2_->setArg(p++,features_);
                 kernel2_->setArg(p++,size2_);
@@ -248,7 +248,7 @@ namespace core {
                 dw.set_arg(kernel2_, p); 
                 kernel2_->setArg(p++, 1);
                 kernel2_->setArg(p++, beta);
-                kernel2_->run({1, features_}, {wg2_, 1});
+                kernel2_->run({1, features_}, {});
 #else
                 kernel_.setArg(p++,features_);
                 kernel_.setArg(p++,total_size);
