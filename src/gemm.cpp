@@ -1107,24 +1107,23 @@ namespace gpu {
                           ExecutionContext const &ein)
         {
 #if 1
+			const float alpha = 1.0;
+			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
+				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
+		
 			if (mUseBias)
 			{
 				// C should be row-major, width of N, height of M
 				// bias seems to be assumed to be contiguous, aside from the offset.
 				// Which means in-place biasing should be easy to implement
-				throw std::runtime_error("not implemented!");
 				for (size_t i = 0; i < M; i += 1)
 				{
 					uint32_t c_row_offset = (ldc*i) + offset_c;
 					// pretty sure x_inc is just 1, unless C somehow has strides.
-					clblast::Copy<float>(N, bias, bias_offset, 1, c, c_row_offset, 1, mDevice);
+					clblast::Axpy<float>(N, alpha, bias, bias_offset, 1,
+						c, c_row_offset, 1, mDevice);
 				}
 			}
-			
-			const float alpha = 1.0;
-			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
-				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
-			
 			
 #else
 			auto layout = clblast::Layout::kRowMajor
