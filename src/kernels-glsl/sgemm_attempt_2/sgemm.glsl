@@ -73,9 +73,9 @@
 
 #if CONVGEMM == 0 || CONVGEMM == 3
 #  if BTRANS == 0
-#    define get_B(r,c) (B[(r)*ldb + (c)])
+#    define get_B(r,c) (B_arr[(r)*ldb + (c) + B])
 #  else
-#    define get_B(r,c) (B[(c)*ldb + (r)])
+#    define get_B(r,c) (B_arr[(c)*ldb + (r) + B])
 #  endif
 #else
 #  if BTRANS == 0
@@ -87,18 +87,18 @@
 
 #if CONVGEMM  == 0 || CONVGEMM == 1
     #if  ATRANS == 0
-        #define get_A(r,c) (A[(r)*lda + (c)])
+        #define get_A(r,c) (A_arr[(r)*lda + (c) + A])
     #else
-        #define get_A(r,c) (A[(c)*lda + (r)])
+        #define get_A(r,c) (A_arr[(c)*lda + (r) + A])
     #endif
 #else
-    float get_y_value(int row,int matrix_col,__global float const *A,int ldc,int M)
+    float get_y_value(uint row,uint matrix_col, uint A_addr,uint ldc,uint M)
     {
-        int batch = matrix_col / IM2COL_OCHAN;
-        int incol = matrix_col % IM2COL_OCHAN;
-        int offset = batch * (IM2COL_OCHAN * GROUPS) * M + incol;
-        int index =row*IM2COL_OCHAN + offset;
-        return A[index];
+        uint batch = matrix_col / IM2COL_OCHAN;
+        uint incol = matrix_col % IM2COL_OCHAN;
+        uint offset = batch * (IM2COL_OCHAN * GROUPS) * M + incol;
+        uint index =row*IM2COL_OCHAN + offset;
+        return A_arr[index + A_addr];
     }
 
     #if CONVGEMM == 3
@@ -116,6 +116,15 @@
 
 #define lA(x,y) a_tile[(x)][(y) / BLOCK_SIZE_M][(y) % BLOCK_SIZE_M]
 #define lB(x,y) b_tile[(x)][(y) / BLOCK_SIZE_N][(y) % BLOCK_SIZE_N]
+
+#define lA_coords(x, y) uvec3((x), (y) / BLOCK_SIZE_M, (y) % BLOCK_SIZE_M)
+#define lB_coords(x, y) uvec3((x), (y) / BLOCK_SIZE_N, (y) % BLOCK_SIZE_N)
+
+#define lA_load_store_from_vec(pos) a_tile[(pos).x][(pos).y ][(pos).z]
+#define lB_load_store_from_vec(pos) b_tile[(pos).x][(pos).y ][(pos).z]
+
+#define lA_load_store(x, y) a_tile[(x)][(y) / BLOCK_SIZE_M][(y) % BLOCK_SIZE_M]
+#define lB_load_store(x, y) b_tile[(x)][(y) / BLOCK_SIZE_N][(y) % BLOCK_SIZE_N]
 
 
 #if TILE_SIZE_M != TILE_SIZE_N
@@ -206,7 +215,7 @@
 #define EXTRA_DIM 1
 #endif
 
-int zorder_a(int x)
+uint zorder_a(uint x)
 {
     return
           ((x & (1<<0)) >> 0 )
@@ -223,58 +232,90 @@ int zorder_a(int x)
         | ((x & (1<<22)) >> 11 )
         | ((x & (1<<24)) >> 12 );
 }
-int zorder_b(int x)
+uint zorder_b(uint x)
 {
     return zorder_a(x>>1);
 }
 
+#define local_wg_size (BLOCKS_IN_TILE_M * BLOCKS_IN_TILE_N)
+#define load_step (TILE_SIZE_M * TILE_SIZE_K / local_wg_size)
 
 #if INTEL_PLATFORM == 0
 	shared float a_tile[TILE_SIZE_K][BLOCKS_IN_TILE_M][BLOCK_SIZE_M+TILE_OFFSET];
     shared float b_tile[TILE_SIZE_K][BLOCKS_IN_TILE_N][BLOCK_SIZE_N+TILE_OFFSET];
+	
+	shared uvec3 aP[load_step];
+    shared uvec3 bP[load_step];
 #endif
 
 
-__kernel 
 #if INTEL_PLATFORM == 1
+// no idea how to do this with Vulkan
 __attribute__((intel_reqd_sub_group_size(8)))
 #endif
 #if EXTRA_DIM == 0
-__attribute__((reqd_work_group_size(BLOCKS_IN_TILE_M, BLOCKS_IN_TILE_N, 1)))
+layout(local_size_x = BLOCKS_IN_TILE_M, local_size_y = BLOCKS_IN_TILE_N, local_size_z = 1) in;
 #else
-__attribute__((reqd_work_group_size(1,BLOCKS_IN_TILE_M, BLOCKS_IN_TILE_N)))
+layout(local_size_x = 1, local_size_y = BLOCKS_IN_TILE_M, local_size_z = BLOCKS_IN_TILE_N) in;
 #endif
-void    sgemm(    
-#if BATCH_GEMM == 1
-        int batches,
-#endif        
-        int M,int N,int K,
-        __global const float * restrict A,ulong offset_A,
-#if BATCH_GEMM == 1
-        int batch_stride_a,
-#endif                
-        int lda,
-        __global const float * restrict B,ulong offset_B,
-#if BATCH_GEMM == 1
-        int batch_stride_b,
-#endif                
-        int ldb,
-        __global float * restrict C,ulong offset_C,
-#if BATCH_GEMM == 1
-        int batch_stride_c,
-#endif                
-        int ldc,
-        float beta_factor
-#if BIAS != 0
-        , __global const float * restrict bias,ulong offset_bias
+
+#if USE_BDA == 0
+	layout(binding = 0, std430) readonly buffer A_buf { float A_arr[]; };
+	layout(binding = 1, std430) readonly buffer B_buf { float B_arr[]; };
+	layout(binding = 2, std430) buffer C_buf { float C_arr[]; };
+	#if BIAS != 0
+		layout(binding = 3, std430) readonly buffer bias_buf { float bias_arr[]; };
+	#endif
 #endif
-        )
+
+layout(push_constant, std430) uniform sgemm
 {
-    A += offset_A;
-    B += offset_B;
-    C += offset_C;
+#if BATCH_GEMM == 1
+	uint batches;
+#endif        
+	uint M;
+	uint N;
+	uint K;
+	#if USE_BDA
+		__global const float * restrict A;
+	#endif
+	uint offset_A;
+#if BATCH_GEMM == 1
+	uint batch_stride_a;
+#endif          
+	uint lda;
+	#if USE_BDA
+		__global const float * restrict B;
+	#endif
+	uint offset_B;
+#if BATCH_GEMM == 1
+        uint batch_stride_b;
+#endif                
+	uint ldb;
+	#if USE_BDA
+		__global float * restrict C;
+	#endif
+	uint offset_C;
+#if BATCH_GEMM == 1
+	uint batch_stride_c;
+#endif                
+	uint ldc;
+	float beta_factor;
+#if BIAS != 0
+	#if USE_BDA
+		__global const float * restrict bias;
+	#endif
+	uint offset_bias;
+#endif
+};
+        
+void main()
+{
+    uint A = offset_A;
+    uint B = offset_B;
+    uint C = offset_C;
 #if BATCH_GEMM == 1 
-    int batch_id = get_global_id(DIM_G);
+    uint batch_id = get_global_id(DIM_G);
     if(batch_id >= batches)
         return;
     A += batch_stride_a * batch_id;
@@ -285,7 +326,7 @@ void    sgemm(
 #if CONVGEMM > 0 && GROUPS > 1
     if(get_global_id(DIM_G) >= REDUCE_K * GROUPS)
         return;
-    int group = get_global_id(DIM_G) / REDUCE_K;
+    uint group = get_global_id(DIM_G) / REDUCE_K;
     #if CONVGEMM == 1
         A += M*K*group;
         B += SRC_COLS*SRC_ROWS*CHANNELS_IN*group;
@@ -295,18 +336,18 @@ void    sgemm(
         #endif
     #elif CONVGEMM == 2
         // M = channels_out / groups
-        int step_g_y = (M*IM2COL_OCHAN);
-        int step_g_x = (SRC_COLS*SRC_ROWS) * CHANNELS_IN;
-        int step_g_w = M*(CHANNELS_IN*KERN_W*KERN_H);
+        uint step_g_y = (M*IM2COL_OCHAN);
+        uint step_g_x = (SRC_COLS*SRC_ROWS) * CHANNELS_IN;
+        uint step_g_w = M*(CHANNELS_IN*KERN_W*KERN_H);
         
         A += step_g_y * group;
         B += step_g_x * group;
         C += step_g_w * group;
     #elif CONVGEMM == 3
         // K = channels_out / group
-        int step_g_y = (K*IM2COL_OCHAN);
-        int step_g_x = (SRC_COLS*SRC_ROWS) * CHANNELS_IN;
-        int step_g_w = K*(CHANNELS_IN*KERN_W*KERN_H);
+        uint step_g_y = (K*IM2COL_OCHAN);
+        uint step_g_x = (SRC_COLS*SRC_ROWS) * CHANNELS_IN;
+        uint step_g_w = K*(CHANNELS_IN*KERN_W*KERN_H);
         
         A += step_g_y * group;
         B += step_g_w * group;
@@ -317,49 +358,54 @@ void    sgemm(
 #endif   
 
 #if ZORDER == 1
-    int gr_m = get_group_id(DIM_M);
-    int gr_n = get_group_id(DIM_N);
-    int gr_size_m = get_num_groups(DIM_M);
-    int gr_size_n = get_num_groups(DIM_N);
+    uint gr_m = get_group_id(DIM_M);
+    uint gr_n = get_group_id(DIM_N);
+    uint gr_size_m = get_num_groups(DIM_M);
+    uint gr_size_n = get_num_groups(DIM_N);
     if(gr_size_m == gr_size_n && popcount(gr_size_m) == 1) {
-        int grs  = gr_n * gr_size_m + gr_m;
+        uint grs  = gr_n * gr_size_m + gr_m;
         gr_n = zorder_a(grs);
         gr_m = zorder_b(grs);
     }
 #else
-    int gr_m = get_group_id(DIM_M);
-    int gr_n = get_group_id(DIM_N);
+    uint gr_m = get_group_id(DIM_M);
+    uint gr_n = get_group_id(DIM_N);
 #endif
-    int tile_row0 = gr_m*TILE_SIZE_M;
-    int tile_col0 = gr_n*TILE_SIZE_N;
+    uint tile_row0 = gr_m*TILE_SIZE_M;
+    uint tile_col0 = gr_n*TILE_SIZE_N;
 
 #if ZORDER == 1
     if(tile_row0 >= M || tile_col0 >= N)
         return;
 #endif        
 
-    int row = tile_row0 + get_local_id(DIM_M) * BLOCK_SIZE_M;
-    int col = tile_col0 + get_local_id(DIM_N) * BLOCK_SIZE_N;
+    uint row = tile_row0 + get_local_id(DIM_M) * BLOCK_SIZE_M;
+    uint col = tile_col0 + get_local_id(DIM_N) * BLOCK_SIZE_N;
 
 
-    int lid0 = get_local_id(DIM_M);
-    int lid1 = get_local_id(DIM_N);
+    uint lid0 = get_local_id(DIM_M);
+    uint lid1 = get_local_id(DIM_N);
     
-    int local_tile_id = lid0 * get_local_size(DIM_N) + lid1;
+    uint local_tile_id = lid0 * get_local_size(DIM_N) + lid1;
 
-    #define local_wg_size (BLOCKS_IN_TILE_M * BLOCKS_IN_TILE_N)
-    #define load_step (TILE_SIZE_M * TILE_SIZE_K / local_wg_size)
+    //#define local_wg_size (BLOCKS_IN_TILE_M * BLOCKS_IN_TILE_N)
+    //#define load_step (TILE_SIZE_M * TILE_SIZE_K / local_wg_size)
 
-    float c[BLOCK_SIZE_M][BLOCK_SIZE_N] = {{0.0f}};
+    float c[BLOCK_SIZE_M][BLOCK_SIZE_N];
+    for (uint i = 0; i < BLOCK_SIZE_M; i += 1)
+    {
+		for (uint j = 0; j < BLOCK_SIZE_N; j += 1)
+		{
+			c[i][j] = 0.0;
+		}
+	}
     
-    int K_src = K;
+    uint K_src = K;
 
 #if INTEL_PLATFORM == 0
     float ap[BLOCK_SIZE_M];
     float bp[BLOCK_SIZE_N];
 
-    //ALIGN_FLOAT4 __local float a_tile[TILE_SIZE_K][BLOCKS_IN_TILE_M][BLOCK_SIZE_M+TILE_OFFSET];
-    //ALIGN_FLOAT4 __local float b_tile[TILE_SIZE_K][BLOCKS_IN_TILE_N][BLOCK_SIZE_N+TILE_OFFSET];
 #else
     #if ATRANS == 1
     float a[TILE_SIZE_K][BLOCK_SIZE_M];
@@ -371,13 +417,13 @@ void    sgemm(
 #endif    
 
 #if REDUCE_K > 1
-    int KS = (K + REDUCE_K - 1) / REDUCE_K;
-    int sec = get_global_id(DIM_G) % REDUCE_K;
-    int k_start=KS * sec;
+    uint KS = (K + REDUCE_K - 1) / REDUCE_K;
+    uint sec = get_global_id(DIM_G) % REDUCE_K;
+    uint k_start=KS * sec;
     K = min(K_src,KS * (sec + 1));
-    int k = k_start;
+    uint k = k_start;
 #else
-    int k=0;
+    uint k=0;
 #endif
 
 #if TILE_SIZE_N == TILE_SIZE_M && TILE_SIZE_K % load_step  == 0 && load_step <= TILE_SIZE_K
@@ -389,23 +435,22 @@ void    sgemm(
 #if INTEL_PLATFORM == 0
 
     #if LOAD_VARIANT == 1
-    int dM[load_step];
-    int dN[load_step];
-    int dK [load_step];
-    __local float *aP[load_step];
-    __local float *bP[load_step];
+    uint dM[load_step];
+    uint dN[load_step];
+    uint dK [load_step];
 	
 	UNROLL(load_step)
-    for(int i=0,read_pos = local_tile_id;i<load_step;i++,read_pos+=WG_SIZE)
+    for(uint i=0,read_pos = local_tile_id;i<load_step;i++,read_pos+=WG_SIZE)
     {
-        int tile_kdir = read_pos / TILE_SIZE_M;
-        int tile_tdir = read_pos % TILE_SIZE_M;
+        uint tile_kdir = read_pos / TILE_SIZE_M;
+        uint tile_tdir = read_pos % TILE_SIZE_M;
         dM[i] = tile_tdir + tile_row0;
         dN[i] = tile_tdir + tile_col0;
         dK[i]  = tile_kdir;
-        aP[i] = &lA(tile_kdir,tile_tdir);
-        bP[i] = &lB(tile_kdir,tile_tdir);
+        aP[i] = lA_coords(tile_kdir,tile_tdir);
+        bP[i] = lB_coords(tile_kdir,tile_tdir);
     }
+    barrier();
     #endif
 
 
@@ -414,119 +459,122 @@ void    sgemm(
     {
         #if LOAD_VARIANT == 0
         {
-            int tile_kdir0 = local_tile_id / TILE_SIZE_M;
-            int tile_tdir  = local_tile_id % TILE_SIZE_M;
-            int a_row = tile_tdir + tile_row0;
-            int b_col = tile_tdir + tile_col0;
+            uint tile_kdir0 = local_tile_id / TILE_SIZE_M;
+            uint tile_tdir  = local_tile_id % TILE_SIZE_M;
+            uint a_row = tile_tdir + tile_row0;
+            uint b_col = tile_tdir + tile_col0;
 
             if(a_row >= M)
             {
                 UNROLL(load_step)
-                for(int i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_M) {
-                    lA(tile_kdir,tile_tdir) = 0.0f;
+                for(uint i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_M) {
+                    lA_load_store(tile_kdir,tile_tdir) = 0.0f;
                 }
             }
             else {
                 if(tile_kdir0 + k <= K - load_step * (WG_SIZE / TILE_SIZE_M)) {
                     UNROLL(load_step)
-                    for(int i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_M) {
-                        int k_rc  = tile_kdir + k;
-                        lA(tile_kdir,tile_tdir) = get_A(a_row,k_rc);
+                    for(uint i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_M) {
+                        uint k_rc  = tile_kdir + k;
+                        lA_load_store(tile_kdir,tile_tdir) = get_A(a_row,k_rc);
                     }
                 }
                 else {
                     UNROLL(load_step)
-                    for(int i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_M) {
-                        int k_rc  = tile_kdir + k;
-                        lA(tile_kdir,tile_tdir) = k_rc < K ? get_A(a_row,k_rc) : 0.0f;
+                    for(uint i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_M) {
+                        uint k_rc  = tile_kdir + k;
+                        lA_load_store(tile_kdir,tile_tdir) = k_rc < K ? get_A(a_row,k_rc) : 0.0f;
                     }
                 }
             }
             if(b_col >= N) {
                 UNROLL(load_step)
-                for(int i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_M) {
-                    lB(tile_kdir,tile_tdir) = 0.0f;
+                for(uint i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_M) {
+                    lB_load_store(tile_kdir,tile_tdir) = 0.0f;
                 }
             }
             else {
                 if(tile_kdir0 + k <= K - load_step * (WG_SIZE / TILE_SIZE_N)) {
                     UNROLL(load_step)
-                    for(int i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_N) {
-                        int k_rc  = tile_kdir + k;
-                        lB(tile_kdir,tile_tdir) = get_B(k_rc,b_col);
+                    for(uint i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_N) {
+                        uint k_rc  = tile_kdir + k;
+                        lB_load_store(tile_kdir,tile_tdir) = get_B(k_rc,b_col);
                     }
                 }
                 else {
                     UNROLL(load_step)
-                    for(int i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_N) {
-                        int k_rc  = tile_kdir + k;
-                        lB(tile_kdir,tile_tdir) = k_rc < K ? get_B(k_rc,b_col) : 0.0f;
+                    for(uint i=0,tile_kdir=tile_kdir0;i<load_step;i++,tile_kdir+=WG_SIZE / TILE_SIZE_N) {
+                        uint k_rc  = tile_kdir + k;
+                        lB_load_store(tile_kdir,tile_tdir) = k_rc < K ? get_B(k_rc,b_col) : 0.0f;
                     }
                 }
             }
 
-            barrier(CLK_LOCAL_MEM_FENCE);
+            barrier();
         }
         #else
         {
             if(tile_row0 + TILE_SIZE_M <= M && k + TILE_SIZE_K <= K) {
                 UNROLL(load_step)
-                for(int i=0;i<load_step;i++) {
-                    int a_row = dM[i];
-                    int k_rc  = dK[i] + k;
-                    *aP[i] =  get_A(a_row,k_rc);
+                for(uint i=0;i<load_step;i++) {
+                    uint a_row = dM[i];
+                    uint k_rc  = dK[i] + k;
+                    //*aP[i] =  get_A(a_row,k_rc);
+                    lA_load_store_from_vec(aP[i]) = get_A(a_row,k_rc);
                 }
             }
             else {
                 UNROLL(load_step)
-                for(int i=0;i<load_step;i++) {
-                    int a_row = dM[i];
-                    int k_rc  = dK[i] + k;
-                    *aP[i] = (a_row < M && k_rc < K) ?  get_A(a_row,k_rc) : 0.0f;
+                for(uint i=0;i<load_step;i++) {
+                    uint a_row = dM[i];
+                    uint k_rc  = dK[i] + k;
+                    //*aP[i] = (a_row < M && k_rc < K) ?  get_A(a_row,k_rc) : 0.0f;
+                    lA_load_store_from_vec(aP[i]) = (a_row < M && k_rc < K) ?  get_A(a_row,k_rc) : 0.0f;
                 }
             }
             if(tile_col0 + TILE_SIZE_N <= N && k + TILE_SIZE_K <= K) {
                 UNROLL(load_step)
-                for(int i=0;i<load_step;i++) {
-                    int k_rc  = dK[i]  + k;
-                    int b_col = dN[i];
-                    *bP[i] = get_B(k_rc,b_col);
+                for(uint i=0;i<load_step;i++) {
+                    uint k_rc  = dK[i]  + k;
+                    uint b_col = dN[i];
+                    //*bP[i] = get_B(k_rc,b_col);
+                    lB_load_store_from_vec(bP[i]) = get_B(k_rc,b_col);
                 }
             }
             else {
                 UNROLL(load_step)
-                for(int i=0;i<load_step;i++) {
-                    int k_rc  = dK[i]  + k;
-                    int b_col = dN[i];
-                    *bP[i] = (b_col < N && k_rc < K) ? get_B(k_rc,b_col) : 0.0f;
-
+                for(uint i=0;i<load_step;i++) {
+                    uint k_rc  = dK[i]  + k;
+                    uint b_col = dN[i];
+                    //*bP[i] = (b_col < N && k_rc < K) ? get_B(k_rc,b_col) : 0.0f;
+					lB_load_store_from_vec(bP[i]) = (b_col < N && k_rc < K) ? get_B(k_rc,b_col) : 0.0f;
                 }
             }
-            barrier(CLK_LOCAL_MEM_FENCE);
+            barrier();
         }
         #endif
 
         // Mutliplication loop
-        UNROLL()(4)
-        for(int dk=0;dk<TILE_SIZE_K;dk++) {
+        UNROLL(4)
+        for(uint dk=0;dk<TILE_SIZE_K;dk++) {
             UNROLL(BLOCK_SIZE_M)
-            for(int dr=0;dr<BLOCK_SIZE_M;dr++) {
+            for(uint dr=0;dr<BLOCK_SIZE_M;dr++) {
                 ap[dr] = a_tile[dk][lid0][dr];
             }
-            UNROLL()
-            for(int dc=0;dc<BLOCK_SIZE_N;dc++) {
+            UNROLL(BLOCK_SIZE_N)
+            for(uint dc=0;dc<BLOCK_SIZE_N;dc++) {
                 bp[dc] = b_tile[dk][lid1][dc];
             }
             UNROLL(BLOCK_SIZE_M)
-            for(int dr=0;dr<BLOCK_SIZE_M;dr++) {
-                UNROLL()
-                for(int dc=0;dc<BLOCK_SIZE_N;dc++) {
-                    c[dr][dc] = mad(ap[dr],bp[dc],c[dr][dc]);
+            for(uint dr=0;dr<BLOCK_SIZE_M;dr++) {
+                UNROLL(BLOCK_SIZE_N)
+                for(uint dc=0;dc<BLOCK_SIZE_N;dc++) {
+                    c[dr][dc] = fma(ap[dr],bp[dc],c[dr][dc]);
                 }
             }
         }
 
-        barrier(CLK_LOCAL_MEM_FENCE);
+        barrier();
     }
 #else // INTEL_PLATFORM == 1
     // for intel we don't use local memory
@@ -536,21 +584,21 @@ void    sgemm(
         if(row + BLOCK_SIZE_M - 1 < M && k + TILE_SIZE_K-1 < K) {
             #if CONVGEMM == 2 || CONVGEMM == 3
                 UNROLL(BLOCK_SIZE_M)
-                for(int dr=0;dr<BLOCK_SIZE_M;dr++){
-                    for(int dk=0;dk < TILE_SIZE_K;dk++) {
+                for(uint dr=0;dr<BLOCK_SIZE_M;dr++){
+                    for(uint dk=0;dk < TILE_SIZE_K;dk++) {
                         pA(dr,dk)=get_A(row+dr,k+dk);
                     }
                 }
             #else
                 #if ATRANS == 0
                     UNROLL(BLOCK_SIZE_M)
-                    for(int dr=0;dr<BLOCK_SIZE_M;dr++){
+                    for(uint dr=0;dr<BLOCK_SIZE_M;dr++){
                         floatK v=vloadK(0,&get_A(row+dr,k));
                         vstoreK(v,0,a[dr]);
                     }
                 #else // ATRANS
                     UNROLL(TILE_SIZE_K)
-                    for(int dk=0;dk<TILE_SIZE_K;dk++){
+                    for(uint dk=0;dk<TILE_SIZE_K;dk++){
                         floatM v=vloadM(0,&get_A(row,k+dk));
                         vstoreM(v,0,a[dk]);
                     }
@@ -559,34 +607,34 @@ void    sgemm(
         }
         else {
             UNROLL(BLOCK_SIZE_M)
-            for(int dr=0;dr<BLOCK_SIZE_M;dr++){
+            for(uint dr=0;dr<BLOCK_SIZE_M;dr++){
                 UNROLL(TILE_SIZE_K)
-                for(int dk=0;dk < TILE_SIZE_K;dk++) {
+                for(uint dk=0;dk < TILE_SIZE_K;dk++) {
                     pA(dr,dk) = (row + dr < M && k+dk < K) ? get_A(row+dr,k+dk): 0;
                 }
             }
         }
 
         UNROLL(TILE_SIZE_K)
-        for(int dk=0;dk<TILE_SIZE_K;dk++) {
+        for(uint dk=0;dk<TILE_SIZE_K;dk++) {
             if(k + dk >= K)
                 continue;
             #if BLOCK_SIZE_N == 8
-                int mycol = col + get_sub_group_local_id();
+                uint mycol = col + get_sub_group_local_id();
                 float myv = (mycol < N) ? get_B(k+dk,col + get_sub_group_local_id()) : 0;
                 UNROLL(BLOCK_SIZE_N)
-                for(int dc=0;dc<BLOCK_SIZE_N;dc++){
-                    float b_dc = intel_sub_group_shuffle(myv,dc);
-                    for(int dr=0;dr<BLOCK_SIZE_M;dr++) {
-                        c[dr][dc] = mad(pA(dr,dk),b_dc,c[dr][dc]);
+                for(uint dc=0;dc<BLOCK_SIZE_N;dc++){
+                    float b_dc = uintel_sub_group_shuffle(myv,dc);
+                    for(uint dr=0;dr<BLOCK_SIZE_M;dr++) {
+                        c[dr][dc] = fma(pA(dr,dk),b_dc,c[dr][dc]);
                     }
                 }
             #else
                 UNROLL(BLOCK_SIZE_N)
-                for(int dc=0;dc<BLOCK_SIZE_N;dc++){
+                for(uint dc=0;dc<BLOCK_SIZE_N;dc++){
                     float b_dc = (col + dc < N) ? get_B(k+dk,col+dc) : 0;
-                    for(int dr=0;dr<BLOCK_SIZE_M;dr++) {
-                        c[dr][dc] = mad(pA(dr,dk),b_dc,c[dr][dc]);
+                    for(uint dr=0;dr<BLOCK_SIZE_M;dr++) {
+                        c[dr][dc] = fma(pA(dr,dk),b_dc,c[dr][dc]);
                     }
                 }
             #endif
@@ -606,10 +654,10 @@ void    sgemm(
     {
         float offset;
         UNROLL(BLOCK_SIZE_M)
-        for(int dr=0;dr<BLOCK_SIZE_M;dr++) {
+        for(uint dr=0;dr<BLOCK_SIZE_M;dr++) {
             offset = row + dr < M ? bias[(row+dr)] : 0.0f;
             UNROLL()
-            for(int dc=0;dc<BLOCK_SIZE_N;dc++) {
+            for(uint dc=0;dc<BLOCK_SIZE_N;dc++) {
                 c[dr][dc] += offset;
             }
         }
@@ -621,10 +669,10 @@ void    sgemm(
     {
         float offset;
         UNROLL(BLOCK_SIZE_N)
-        for(int dc=0;dc<BLOCK_SIZE_N;dc++) {
+        for(uint dc=0;dc<BLOCK_SIZE_N;dc++) {
             offset = (col + dc) < N ? bias[(col+dc)] : 0.0f;
             UNROLL()
-            for(int dr=0;dr<BLOCK_SIZE_M;dr++) {
+            for(uint dr=0;dr<BLOCK_SIZE_M;dr++) {
                 c[dr][dc] += offset;
             }
         }
@@ -634,24 +682,24 @@ void    sgemm(
 #if CONVGEMM == 1
     {
         UNROLL(BLOCK_SIZE_N)
-        for(int dc=0; dc < BLOCK_SIZE_N; dc++) {
+        for(uint dc=0; dc < BLOCK_SIZE_N; dc++) {
             if(col + dc >= N)
                 continue;
-            int matrix_col = col + dc;
-            int batch = matrix_col / IM2COL_OCHAN;
-            int incol = matrix_col % IM2COL_OCHAN;
-            int offset = batch * (IM2COL_OCHAN * GROUPS) * M + incol;
+            uint matrix_col = col + dc;
+            uint batch = matrix_col / IM2COL_OCHAN;
+            uint incol = matrix_col % IM2COL_OCHAN;
+            uint offset = batch * (IM2COL_OCHAN * GROUPS) * M + incol;
             UNROLL(BLOCK_SIZE_M)
-            for(int dr=0;dr<BLOCK_SIZE_M;dr++) {
+            for(uint dr=0;dr<BLOCK_SIZE_M;dr++) {
                 if(row+dr < M) {
-                    int index =(row + dr)*ldc + offset;
+                    uint index =(row + dr)*ldc + offset;
                     #if REDUCE_K > 1
                     atomic_addf(C+index,c[dr][dc]);
                     #else
                     if(beta_factor != 0)
-                        C[index] = mad(C[index], beta_factor,ACTIVATION_F(c[dr][dc]));
+                        C_arr[index + C] = fma(C_arr[index + C], beta_factor,ACTIVATION_F(c[dr][dc]));
                     else
-                        C[index] = ACTIVATION_F(c[dr][dc]);
+                        C_arr[index + C] = ACTIVATION_F(c[dr][dc]);
                     #endif
                 }
             }
@@ -660,23 +708,23 @@ void    sgemm(
 #else
     {
         UNROLL(LOCK_SIZE_M)
-        for (int dr=0; dr < BLOCK_SIZE_M; dr++)
+        for (uint dr=0; dr < BLOCK_SIZE_M; dr++)
         {
-            UNROLL()
-            for (int dc=0; dc < BLOCK_SIZE_N; dc++)
+            UNROLL(BLOCK_SIZE_N)
+            for (uint dc=0; dc < BLOCK_SIZE_N; dc++)
             {
                 if(row + dr < M && col+dc < N) {
                     #if CONVGEMM == 3
                         add_img_value(C,row+dr,col+dc,c[dr][dc]);
                     #else
-                        int index = (row+dr)*ldc+col+dc;
+                        uint index = (row+dr)*ldc+col+dc;
                         #if REDUCE_K > 1
                         atomic_addf(C+index,ACTIVATION_F(c[dr][dc]));
                         #else
                         if(beta_factor != 0)
-                            C[index] = mad(C[index], beta_factor,ACTIVATION_F(c[dr][dc]));
+                            C_arr[index + C] = fma(C_arr[index + C], beta_factor,ACTIVATION_F(c[dr][dc]));
                         else
-                            C[index] = ACTIVATION_F(c[dr][dc]);
+                            C_arr[index + C] = ACTIVATION_F(c[dr][dc]);
                         #endif
                     #endif
                 }
