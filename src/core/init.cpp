@@ -106,7 +106,21 @@ namespace core {
         k->setArg(p++,philox_seq);
         k->setArg(p++,p1);
         k->setArg(p++,p2);
-        k->run({(total+3)/4}, {1, 1, 1});
+        
+        const size_t globalSizeX = (total+3)/4;
+        auto metadata = ctx.device()->getMetadata();
+        const size_t maxWgX = metadata.physicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
+        size_t targetLocalSizeX = maxWgX;
+        while (targetLocalSizeX > 1)
+        {
+			if (globalSizeX % targetLocalSizeX == 0) break;
+			targetLocalSizeX -= 1;
+		}
+        std::cout << "num invocations: " << targetLocalSizeX << std::endl;
+        std::cout << "global size:" << globalSizeX << std::endl;
+        const uint32_t adjustedGlobalSizeX = globalSizeX / targetLocalSizeX;
+        std::cout << "adjusted global size:" << adjustedGlobalSizeX << std::endl;
+        k->run({adjustedGlobalSizeX, 1, 1}, {targetLocalSizeX, 1, 1});
 #else
         k.setArg(p++,total);
         t.set_arg(k,p);

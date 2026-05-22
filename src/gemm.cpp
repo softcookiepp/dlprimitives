@@ -314,7 +314,7 @@ namespace gpu {
         {
             check_zorder(ctx,M,N);
 #if VULKAN_API
-            tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm",
+            tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm_attempt_2",
                                         "TILE_SIZE_M",tile_size_m_,
                                         "TILE_SIZE_N",tile_size_n_,
                                         "BLOCK_SIZE_M",block_size_m_,
@@ -523,28 +523,14 @@ namespace gpu {
 				b = b->view(byte_offset_b);
 			if (offset_c > 0)
 				c = c->view(byte_offset_c);
-			if (offset_a | offset_b | offset_c)
-				std::cout << "\nWE GOTS AN OFFSET" << std::endl;
 			const float alpha = 1.0;
-			//if (M == N == K == 1)
-			if (false)
-			{
-				// This is just a batch of 1x1 matrices.
-				// As such, it can simply be treated as scalar multiplication.
-				
-				
-				throw std::runtime_error("WHY ARE YOU USING 1???");
-			}
-			else
-			{
-				clblast::GemmStridedBatched(clblast::Layout::kRowMajor, mATrans, mBTrans,
-					M, N, K, alpha,
-					a, 0, lda, batch_stride_a,
-					b, 0, ldb, batch_stride_b,
-					beta,
-					c, 0, ldc, batch_stride_c,
-					batches, mDevice);
-			}
+			clblast::GemmStridedBatched(clblast::Layout::kRowMajor, mATrans, mBTrans,
+				M, N, K, alpha,
+				a, 0, lda, batch_stride_a,
+				b, 0, ldb, batch_stride_b,
+				beta,
+				c, 0, ldc, batch_stride_c,
+				batches, mDevice);
 		}
 	};
 #endif

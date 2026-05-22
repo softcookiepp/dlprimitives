@@ -150,7 +150,6 @@ namespace core {
                                                                            "#LOADS",loads.str(),
                                                                            "#SAVES",saves.str(),
                                                                            "#CALC",code_fixed.str());
-        std::cout << "PARAMS: " << params.str() << std::endl;
         tart::kernel_ptr k = prog->getKernel("exec");
         uint32_t total = ref.total_size();
         int p=0;
@@ -163,9 +162,8 @@ namespace core {
             bind_as_dtype(k,p,w,ref_type);
 		std::vector<uint32_t> local(3, 1);
 		local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
-		std::cout << "	running pointwise_operation" << std::endl;
+		std::cout << "	pointwise total: " << total << std::endl;
         k->run({total}, local);
-        std::cout << "	finished pointwise_operation" << std::endl;
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"pointwise",
                                                                            "dtype",data_type_to_opencl_type(ref_type),
@@ -413,7 +411,6 @@ namespace core {
                                                                            "#SAVES",saves.str(),
                                                                            "#CALC",format_code(code));
         tart::kernel_ptr k = prog->getKernel("exec");
-        std::cout << "PARAMS: " << params.str() << std::endl;
         tart::device_ptr device = prog->getDevice();
         int p=0;
         bind_shape(k,p,ref);
@@ -432,9 +429,7 @@ namespace core {
         local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
         // well this is going to be a pain in the bum
         //device->validateWorkSize(range);
-        std::cout << "	running pointwise_operation_broadcast" << std::endl;
 		k->run(range, local);
-		std::cout << "	finished pointwise_operation_broadcast" << std::endl;
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
                                                                            "DIMS",ref.size(),
@@ -569,16 +564,12 @@ namespace core {
 			else
 				wg_range_.resize(3, 1);
 			if(second_stage_stride_ == 1) {
-				std::cout << "	running PointwiseOperationBroadcastReduceImpl::enqueue (sss == 1)" << std::endl;
 				kernel_->run(glob, wg_range_);
-				std::cout << "	finished PointwiseOperationBroadcastReduceImpl::enqueue (sss == 1)" << std::endl;
             }
             else {
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
-                std::cout << "	running PointwiseOperationBroadcastReduceImpl::enqueue (sss == 0)" << std::endl;
                 kernel_->run(glob, wg_range_);
-                std::cout << "	finished PointwiseOperationBroadcastReduceImpl::enqueue (sss == 0)" << std::endl;
                 DLPRIM_CHECK(second_stage_->workspace() == 0);
                 Tensor tmp;
                 second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
@@ -832,7 +823,6 @@ namespace core {
                                                                                "#REDUCE",format_code(reduce),
                                                                                "#CALC",format_code(compute_code));
             kernel_ = prog->getKernel("exec");
-			std::cout << "PARAMS: " << PARAMS.str() << std::endl;
             std::vector<uint32_t> range;
             std::vector<uint32_t> wg_range;
             int zero = reduce_dims.size();
