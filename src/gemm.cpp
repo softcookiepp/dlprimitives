@@ -741,7 +741,23 @@ namespace gpu {
 				c, (size_t)offset_c,
 				mDevice, nullptr);
 			if (mUseBias)
+			#if 1
+			{
+				// so we basically have to go over the entire thing and add the bias ourselves. hmm.....
+				// how to do that?
+				// wait isn't it literally just the same thing????
+				const float alpha = 0.0;
+				for (size_t i = 0; i < M; i += 1)
+				{
+					uint32_t c_row_offset = (ldc*i) + offset_c;
+					// pretty sure x_inc is just 1, unless C somehow has strides.
+					clblast::Axpy<float>(N, alpha, bias, bias_offset, 1,
+						c, c_row_offset, 1, mDevice);
+				}
+			}
+			#else
 				throw std::runtime_error("using bias in convgemm is not yet implemented");
+			#endif
 #endif
 		}
 		
