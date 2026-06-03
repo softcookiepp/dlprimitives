@@ -265,6 +265,7 @@ set(DLPRIM_CORE_SRC
         src/core/activation.cpp
         src/core/util.cpp
         src/core/interpolate.cpp
+        src/naive.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp)
 
 set(DLPRIM_SRC 
