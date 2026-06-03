@@ -511,8 +511,6 @@ namespace gpu {
 			tart::buffer_ptr c, uint32_t offset_c, int batch_stride_c, int ldc,
 			float beta, ExecutionContext const &e)
         {
-			//throw std::runtime_error("BlasBatchSGEMM::gemm not implemented");
-			
 			// adjust matrices based on offset; maybe it will work here?
 			size_t byte_offset_a = offset_a*sizeof(float);
 			size_t byte_offset_b = offset_b*sizeof(float);
@@ -705,8 +703,8 @@ namespace gpu {
 			mUseBias(bias)
 		{
 			
-			if (mGemmOpMode != GemmOpMode::forward)
-				throw std::runtime_error("only forward is implemented right now :c");
+			//if (mGemmOpMode != GemmOpMode::forward)
+			//	throw std::runtime_error("only forward is implemented right now :c");
 			mDevice = ctx.device();
 			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
 			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
