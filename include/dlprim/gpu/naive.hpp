@@ -1,6 +1,7 @@
 #pragma once
 #if VULKAN_API
 #include <dlprim/core/util.hpp>
+#include <optional>
 
 namespace dlprim
 {
@@ -8,7 +9,16 @@ namespace dlprim
 namespace gpu
 {
 
-Tensor convolution_naive();
+// all must be made contiguous prior to this
+Tensor convolution_from_ggml_raw(const Tensor& input,
+	const Tensor& weight,
+	const std::optional<Tensor>& bias,
+	const std::vector<int>& stride,
+	const std::vector<int>& padding,
+	const std::vector<int>& dilation,
+	bool transposed,
+	const std::vector<int>& output_padding,
+	int64_t groups);
 
 }
 
