@@ -41,6 +41,7 @@
 
 #ifndef dtype
 	#define sizeof_dtype 4
+	#define PRECISION 32
 	#define dtype float
 	#define dtype2 vec2
 	#define dtype4 vec4

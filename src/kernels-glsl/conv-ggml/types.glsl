@@ -8,47 +8,44 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_16bit_storage : require
 
-#if defined(DATA_A_F32)
-#define QUANT_K 1
-#define QUANT_R 1
+#if PRECISION == 32
+	#define QUANT_K 1
+	#define QUANT_R 1
 
-#if LOAD_VEC_A == 4
-#define A_TYPE vec4
-#elif LOAD_VEC_A == 8
-#define A_TYPE mat2x4
-#else
-#define A_TYPE float
-#endif
-#endif
+	#if LOAD_VEC_A == 4
+		#define A_TYPE vec4
+	#elif LOAD_VEC_A == 8
+		#define A_TYPE mat2x4
+	#else
+		#define A_TYPE float
+	#endif
+#elif PRECISION == 16
+	#define QUANT_K 1
+	#define QUANT_R 1
 
-#if defined(DATA_A_F16)
-#define QUANT_K 1
-#define QUANT_R 1
+	#if LOAD_VEC_A == 4
+		#define A_TYPE f16vec4
+	#elif LOAD_VEC_A == 8
+		#define A_TYPE f16mat2x4
+	#else
+		#define A_TYPE float16_t
+	#endif
+#elif dtype == bfloat16_t
+	#define QUANT_K 1
+	#define QUANT_R 1
 
-#if LOAD_VEC_A == 4
-#define A_TYPE f16vec4
-#elif LOAD_VEC_A == 8
-#define A_TYPE f16mat2x4
-#else
-#define A_TYPE float16_t
-#endif
-#endif
-
-#if defined(DATA_A_BF16)
-#define QUANT_K 1
-#define QUANT_R 1
-
-#if LOAD_VEC_A == 4
-#define A_TYPE u16vec4
-#elif LOAD_VEC_A == 8
-#error unsupported
-#else
-#define A_TYPE uint16_t
-#endif
+	#if LOAD_VEC_A == 4
+	#define A_TYPE u16vec4
+	#elif LOAD_VEC_A == 8
+	#error unsupported
+	#else
+	#define A_TYPE uint16_t
+	#endif
 #endif
 
 
-
+#define B_TYPE A_TYPE
+#define D_TYPE A_TYPE
 
 // returns the bfloat value in the low 16b.
 // See ggml_compute_fp32_to_bf16

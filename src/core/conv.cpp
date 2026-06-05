@@ -43,120 +43,117 @@ namespace core {
     }
     
 #if VULKAN_API
-	// this class is for use in the Vulkan API.
-	// why?
-	// I want a proof-of-concept implementation of everything before it is perfectly optimized.
-	class Conv2DForwardBlasGEMM : public Conv2DForward
-	{
-		Conv2DSettings mConfig;
-	public:
-		virtual char const *algo() const
+class Conv2DForwardGGML : public Conv2DForward {
+    public:
+        virtual char const *algo() const
         {
-            return "gemm";
+            return "ggml";
         }
-        
-        void fwd_bwd_gpu(GemmOpMode mode,Tensor &in,Tensor &out,Tensor &W,Tensor *bias_tensor, Tensor& ws,
-			Convolution2DConfigBase const &config,float fwd_beta, ExecutionContext const &e)
-		{
-			int batch = in.shape()[0];
-			tart::buffer_ptr imcols = ws.device_buffer();
-			tart::buffer_ptr kernel = W.device_buffer();
-			int im2col_rows = out.shape()[2]*out.shape()[3];
-			int kernel_cols = config.channels_in / config.groups * config.kernel[0] * config.kernel[1];
-			int in_size_no_batch = in.shape().size_no_batch();
-			int out_size_no_batch = out.shape().size_no_batch();
-			int step_groups_out = config.channels_out / config.groups;
-			int step_groups_in  = config.channels_in  / config.groups;
-			int step_kernel = step_groups_out * step_groups_in * config.kernel[0] * config.kernel[1];
-			Shape  in_shape(in.shape()[0],in.shape()[1]/config.groups,in.shape()[2],in.shape()[3]);
-			Shape out_shape(out.shape()[0],out.shape()[1]/config.groups,out.shape()[2],out.shape()[3]);
-			
-			for(int b=0;b<batch;b++)
-			{
-				for(int g=0;g<config.groups;g++)
-				{
-					size_t imgOffset = sizeof(float)*(in_size_no_batch *b + g * step_groups_in * in.shape()[2] * in.shape()[3]);
-					size_t omgOffset = sizeof(float)*(out_size_no_batch*b + g * step_groups_out * out.shape()[2] * out.shape()[3]);
-					tart::buffer_ptr img = in.device_buffer()->view(imgOffset);
-					tart::buffer_ptr omg = out.device_buffer()->view(omgOffset);
-					switch(mode) {
-					case GemmOpMode::forward:
-					{
-#if 1
-	#if 0
-							clblast::Im2col(clblast::KernelMode::kCrossCorrelation, in_shape[1], const size_t height, const size_t width,
-								config.kernel[0], config.kernel[1], config.pad[0], config.pad[1],
-								config.stride[0], config.stride[1], config.dilate[0], config.dilate[1],
-								img, 0, omg, 0, e.queue() );
-	#endif
-							throw std::runtime_error("not implemented!");
-#else
-							im2col<details::Im2ColOp>(in_shape,out_shape,img,imcols,config);
-							cblas_sgemm(CblasRowMajor,CblasNoTrans, CblasTrans,
-									config.channels_out / config.groups,im2col_rows,kernel_cols,
-									1.0f,
-									kernel + step_kernel * g,kernel_cols,
-									imcols,kernel_cols,
-									fwd_beta,
-									omg,
-									im2col_rows);
-							if(config.bias) {
-								float *bias = bias_tensor->data<float>() + g * step_groups_out;
-								int plane_size = out.shape()[2]*out.shape()[3];
-								for(int i=0;i<step_groups_out;i++) {
-									cblas_saxpy(plane_size,1.0f,bias + i,0,omg + plane_size*i,1);
-								}
-							}
-#endif
-						}
-						break;
-#if 0
-					case GemmOpMode::backward_filter: {
-							im2col<details::Im2ColOp>(in_shape,out_shape,img,imcols,config);
-							cblas_sgemm(CblasRowMajor,CblasNoTrans, CblasNoTrans,
-									config.channels_out / config.groups,kernel_cols,im2col_rows,
-									1.0f,
-									omg,im2col_rows,
-									imcols,kernel_cols,
-									1.0f,
-									kernel + step_kernel * g,kernel_cols
-									);
-						}
-						break;
-					case GemmOpMode::backward_data: {
-							cblas_sgemm(CblasRowMajor,CblasTrans, CblasNoTrans,
-									im2col_rows, kernel_cols, config.channels_out / config.groups,
-									1.0f,
-									omg,im2col_rows,
-									kernel + step_kernel * g,kernel_cols,
-									0.0f,
-									imcols,kernel_cols
-									);
-							im2col<details::Col2ImOp>(in_shape,out_shape,img,imcols,config);
-						}
-						break;
-#endif
-					} // switch
-				}
-			}
-		}
-        
-        virtual void enqueue(Tensor &x,Tensor &W,Tensor *bias,Tensor &y, Tensor& ws, float factor, ExecutionContext const &e)
+        virtual size_t workspace()
         {
-			throw std::runtime_error("not implemented!");
-			// ok, what is ws?
-			// and how do we convert the configs correctly?
-			// this is all so silly
-			fwd_bwd_gpu(GemmOpMode::forward, x, y, W, bias, ws, mConfig, 0.0, e);
-		}
-		
-		Conv2DForwardBlasGEMM(Context &ctx,Conv2DSettings const &config,bool bias,StandardActivations activation = StandardActivations::identity) :
-            mConfig(config)
-		{
-			
-		}
-		
-	};
+            return sizeof(float)*16 * config_.channels_in * config_.channels_out;
+        }
+        virtual void enqueue(Tensor &in,Tensor &W,Tensor *bias,Tensor &out, Tensor &ws,float factor,ExecutionContext const &ec)
+        {
+            int B = in.shape()[0];
+            int N = config_.channels_out;
+            int C = in.shape()[1];
+            int h = in.shape()[2];
+            int w = in.shape()[3];
+
+            int p=0;
+
+            Tensor float_ws = ws.workspace_as_type(float_data);
+#if VULKAN_API
+            conv_kernel_->setArg(p++,config_.channels_out);
+            conv_kernel_->setArg(p++,config_.channels_in);
+#else
+            conv_kernel_.setArg(p++,config_.channels_out);
+            conv_kernel_.setArg(p++,config_.channels_in);
+#endif
+            W.set_arg(conv_kernel_,p);
+            float_ws.set_arg(conv_kernel_,p);
+
+            p=0;
+#if VULKAN_API
+            conv_->setArg(p++,B);
+            conv_->setArg(p++,N);
+            conv_->setArg(p++,C);
+            conv_->setArg(p++,h);
+            conv_->setArg(p++,w);
+#else
+            conv_.setArg(p++,B);
+            conv_.setArg(p++,N);
+            conv_.setArg(p++,C);
+            conv_.setArg(p++,h);
+            conv_.setArg(p++,w);
+#endif
+
+            in.set_arg(conv_,p);
+            float_ws.set_arg(conv_,p);
+            if(bias) {
+                bias->set_arg(conv_,p);
+            }
+            out.set_arg(conv_,p);
+#if VULKAN_API
+			conv_->setArg(p++,factor);
+#else
+            conv_.setArg(p++,factor);
+#endif
+
+            auto ec1 = ec.generate_series_context(0,2);
+            auto ec2 = ec.generate_series_context(1,2);
+#if VULKAN_API
+			std::vector<uint32_t> l1({8,8});
+            std::vector<uint32_t> g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
+            g1[0] = g1[0]/l1[0];
+            g1[1] = g1[1]/l1[1];
+            conv_kernel_->run(g1, l1);
+            ec.queue()->sync();
+            std::vector<uint32_t> l2({256,1});
+            int tiles = ((w + 1) / 2 * (h + 1) / 2 * B + 31)/32;
+            std::vector<uint32_t> g2({tiles,(N + 31) / 32});
+            conv_->run(g2, l2);
+#else
+            cl::NDRange l1(8,8);
+            cl::NDRange g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
+            ec.queue().enqueueNDRangeKernel(conv_kernel_,cl::NullRange,g1,l1,ec.events(),ec1.event("winograd_3to4_kernel"));
+            cl::NDRange l2(256,1);
+            int tiles = ((w + 1) / 2 * (h + 1) / 2 * B + 31)/32;
+            cl::NDRange g2(tiles * 256,(N + 31) / 32);
+            ec.queue().enqueueNDRangeKernel(conv_,cl::NullRange,g2,l2,ec.events(),ec2.event("winograd_3x3_main"));
+#endif
+        }
+
+        Conv2DForwardGGML(Context &ctx,Conv2DSettings const &config,bool bias,StandardActivations activation = StandardActivations::identity) :
+            config_(config)
+        {
+            int off = ctx.is_amd() ? 0 : 1;
+            int toff = 1;
+
+			// this is how you do it for now lol
+			int local_mem_size = ctx.device()->getMetadata().physicalDeviceProperties.limits.maxComputeSharedMemorySize;
+
+            if(local_mem_size < 40960) {
+                off = 0;
+                toff = 0;
+            }
+			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"conv-ggml",
+                                            "ACTIVATION",int(activation),
+                                            "STRIDE_OFFSET",off,
+                                            "TR_STRIDE_OFFSET",toff,
+                                            "BIAS",int(bias));
+#if VULKAN_API
+			mConvKernel;
+#else
+            conv_kernel_ = cl::Kernel(prog,"winconv_calc_gkgt_3x3");
+            conv_ = cl::Kernel(prog,"winconv_3x3");
+#endif
+        }
+    private:
+        tart::kernel_ptr mConvKernel = nullptr;
+        Conv2DSettings config_;
+    };
 #endif
 
     class Conv2DForwardGEMM : public Conv2DForward {

@@ -10,7 +10,7 @@
 #ifdef USE_COLLECTIVES
 #    extension GL_KHR_shader_subgroup_shuffle : enable
 #endif
-
+#include "../common/defs.glsl"
 #include "types.glsl"
 
 // shape notation: [dim(N), ..., dim(0)] -- stride(dim(j)) >= stride(dim(i)) if i > j
@@ -217,13 +217,14 @@ void main() {
 #else
         CRS_idx_a     = B_idx_CRS * BS_CRS + Ac;  // Global CRS_idx_a (column index of A)
         Cin_idx_a     = CRS_idx_a / (KW * KH);
-        CRS_remainder = CRS_idx_a % (KW * KH);
+        uint32_t CRS_remainder = CRS_idx_a % (KW * KH);
         KH_idx_a      = CRS_remainder / KW;
         KW_idx_a      = CRS_remainder % KW;
 #endif
 
         /* Load kernel to A_block: (BS_K x BS_CRS)*/
-        UNROLL for (uint32_t r_offset = 0; r_offset < BS_K; r_offset += ArpWg) {
+        //UNROLL(BS_K)
+        for (uint32_t r_offset = 0; r_offset < BS_K; r_offset += ArpWg) {
             uint32_t B_ly    = r_offset + Ar;
             uint32_t B_lx    = Ac;
             uint32_t K_idx   = B_idx_K * BS_K + B_ly; /* Global K_idx (row index of A)*/
@@ -239,7 +240,8 @@ void main() {
             Ash[B_ly * Ash_stride + B_lx] = SHMEM_TYPE(val);
         }
         /* Load input to B_block: (BS_CRS x BS_NPQ) */
-        UNROLL for (uint32_t r_offset = 0; r_offset < BS_CRS; r_offset += BrpWg) {
+        //UNROLL
+        for (uint32_t r_offset = 0; r_offset < BS_CRS; r_offset += BrpWg) {
             uint32_t B_ly          = r_offset + Br;             /* Row index of B block */
             uint32_t B_lx          = Bc;
             uint32_t NPQ_idx       = B_idx_NPQ * BS_NPQ + B_lx; /* Global NPQ index (column index of B) */
@@ -305,7 +307,8 @@ void main() {
         matC = coopMatMulAdd(matA, matB, matC);
 #else
         if (T_y * TS_K < K) {
-            UNROLL for (uint32_t CRS_lidx = 0; CRS_lidx < BS_CRS; CRS_lidx++) {
+            //UNROLL
+            for (uint32_t CRS_lidx = 0; CRS_lidx < BS_CRS; CRS_lidx++) {
                 float regA[TS_K];
                 float regB[TS_NPQ];
                 for (uint32_t T_ly = 0; T_ly < TS_K; T_ly++) {
