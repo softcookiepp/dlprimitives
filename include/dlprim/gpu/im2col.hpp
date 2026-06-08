@@ -9,7 +9,6 @@ namespace dlprim
 namespace gpu
 {
 
-template <typename T>
 void hvol2col();
 
 template <typename T>
