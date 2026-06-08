@@ -40,22 +40,6 @@ void im2col(const ExecutionContext& e,
 	
 	size_t p = 0;
 	
-	num_kernels,
-      data_im,
-      height,
-      width,
-      kernel_height,
-      kernel_width,
-      pad_height,
-      pad_width,
-      stride_height,
-      stride_width,
-      dilation_height,
-      dilation_width,
-      height_col,
-      width_col,
-      data_col
-	
 	im2colKernel->setArg(p++, num_kernels);
 	im2colKernel->setArg(p++, data_im);
 	im2colKernel->setArg(p++, data_im_offset);
