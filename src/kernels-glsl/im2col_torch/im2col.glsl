@@ -15,7 +15,6 @@ layout(push_constant, std430) uniform im2col_kernel
 		const dtype* data_im;
 	#endif
 	uint data_im_offset; // new arg
-	uint channels;
 	uint height;
 	uint width;
 	uint kernel_height;

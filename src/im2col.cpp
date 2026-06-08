@@ -38,24 +38,24 @@ void im2col(const ExecutionContext& e,
 	
 	uint32_t block_num = (num_kernels - 1) / threads_per_block + 1;
 	
-	im2colKernel->setArg(0, num_kernels);
-	im2colKernel->setArg(1, data_im);
-	im2colKernel->setArg(2, data_im_offset);
-	im2colKernel->setArg(3, channels);
-	im2colKernel->setArg(4, height);
-	im2colKernel->setArg(5, width);
-	im2colKernel->setArg(6, height_col);
-	im2colKernel->setArg(7, width_col);
-	im2colKernel->setArg(8, kernel_height);
-	im2colKernel->setArg(9, kernel_width);
-	im2colKernel->setArg(10, pad_height);
-	im2colKernel->setArg(11, pad_width);
-	im2colKernel->setArg(12, stride_height);
-	im2colKernel->setArg(13, stride_width);
-	im2colKernel->setArg(14, dilation_height);
-	im2colKernel->setArg(15, dilation_width);
-	im2colKernel->setArg(16, data_col);
-	im2colKernel->setArg(17, data_col_offset);
+	size_t p = 0;
+	im2colKernel->setArg(p++, num_kernels);
+	im2colKernel->setArg(p++, data_im);
+	im2colKernel->setArg(p++, data_im_offset);
+	im2colKernel->setArg(p++, height);
+	im2colKernel->setArg(p++, width);
+	im2colKernel->setArg(p++, height_col);
+	im2colKernel->setArg(p++, width_col);
+	im2colKernel->setArg(p++, kernel_height);
+	im2colKernel->setArg(p++, kernel_width);
+	im2colKernel->setArg(p++, pad_height);
+	im2colKernel->setArg(p++, pad_width);
+	im2colKernel->setArg(p++, stride_height);
+	im2colKernel->setArg(p++, stride_width);
+	im2colKernel->setArg(p++, dilation_height);
+	im2colKernel->setArg(p++, dilation_width);
+	im2colKernel->setArg(p++, data_col);
+	im2colKernel->setArg(p++, data_col_offset);
 	
 	im2colKernel->run({block_num, 1, 1}, {});
 }
