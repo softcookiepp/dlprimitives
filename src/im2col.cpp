@@ -33,28 +33,30 @@ void im2col(const ExecutionContext& e,
 	tart::program_ptr prg = Cache::instance().get_program(ctx, "im2col_torch", "dtype", data_type_to_opencl_type(dtype));
 	tart::kernel_ptr im2colKernel = prg->getKernel("im2col");
 	
-	im2colKernel->setArg(0, data_im);
-	im2colKernel->setArg(1, data_im_offset);
-	im2colKernel->setArg(2, channels);
-	im2colKernel->setArg(3, height);
-	im2colKernel->setArg(4, width);
-	im2colKernel->setArg(5, height_col);
-	im2colKernel->setArg(6, width_col);
-	im2colKernel->setArg(7, kernel_height);
-	im2colKernel->setArg(8, kernel_width);
-	im2colKernel->setArg(9, pad_height);
-	im2colKernel->setArg(10, pad_width);
-	im2colKernel->setArg(11, stride_height);
-	im2colKernel->setArg(12, stride_width);
-	im2colKernel->setArg(13, dilation_height);
-	im2colKernel->setArg(14, dilation_width);
-	im2colKernel->setArg(15, data_col);
-	im2colKernel->setArg(16, data_col_offset);
-	
 	const uint32_t num_kernels = channels * height_col * width_col;
 	const uint32_t threads_per_block = 1024;
 	
 	uint32_t block_num = (num_kernels - 1) / threads_per_block + 1;
+	
+	im2colKernel->setArg(0, num_kernels);
+	im2colKernel->setArg(1, data_im);
+	im2colKernel->setArg(2, data_im_offset);
+	im2colKernel->setArg(3, channels);
+	im2colKernel->setArg(4, height);
+	im2colKernel->setArg(5, width);
+	im2colKernel->setArg(6, height_col);
+	im2colKernel->setArg(7, width_col);
+	im2colKernel->setArg(8, kernel_height);
+	im2colKernel->setArg(9, kernel_width);
+	im2colKernel->setArg(10, pad_height);
+	im2colKernel->setArg(11, pad_width);
+	im2colKernel->setArg(12, stride_height);
+	im2colKernel->setArg(13, stride_width);
+	im2colKernel->setArg(14, dilation_height);
+	im2colKernel->setArg(15, dilation_width);
+	im2colKernel->setArg(16, data_col);
+	im2colKernel->setArg(17, data_col_offset);
+	
 	im2colKernel->run({block_num, 1, 1}, {});
 }
 

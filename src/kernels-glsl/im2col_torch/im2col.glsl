@@ -15,6 +15,7 @@ layout(push_constant, std430) uniform im2col_kernel
 		const dtype* data_im;
 	#endif
 	uint data_im_offset; // new arg
+	uint channels;
 	uint height;
 	uint width;
 	uint kernel_height;
@@ -36,7 +37,7 @@ layout(push_constant, std430) uniform im2col_kernel
 
 // borrowed from pytorch
 #define CUDA_KERNEL_LOOP_TYPE(i, n, index_type) \
-	uint _i_n_d_e_x = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x; \
+	uint _i_n_d_e_x = (gl_WorkGroupID.x * gl_WorkGroupSize.x) + gl_LocalInvocationID.x; \
 	for (index_type i=_i_n_d_e_x; _i_n_d_e_x < (n); _i_n_d_e_x+= gl_WorkGroupSize.x * gl_NumWorkGroups.x, i=_i_n_d_e_x)
 
 void main()
