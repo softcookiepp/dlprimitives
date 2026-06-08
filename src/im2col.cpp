@@ -55,7 +55,8 @@ void im2col(const ExecutionContext& e,
 	const uint32_t threads_per_block = 1024;
 	
 	uint32_t block_num = (num_kernels - 1) / threads_per_block + 1;
-	im2colKernel->run({block_num, 1, 1}, {});
+	//im2colKernel->run({block_num, 1, 1}, {});
+	im2colKernel->run({1024, 1, 1}, {});
 }
 
 template <typename T>
