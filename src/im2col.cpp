@@ -9,7 +9,6 @@ namespace dlprim
 namespace gpu
 {
 
-template <typename T>
 void im2col(const ExecutionContext& e,
 	const tart::buffer_ptr& data_im,
 	const uint32_t data_im_offset, // new arg
@@ -27,11 +26,11 @@ void im2col(const ExecutionContext& e,
 	const uint32_t dilation_height,
 	const uint32_t dilation_width,
 	const tart::buffer_ptr& data_col,
-	const uint32_t data_col_offset) // new arg
+	const uint32_t data_col_offset, // new arg
+	const DataType dtype)
 {
 	Context ctx(e);
-	TypeTraits<T> traits;
-	tart::program_ptr prg = Cache::instance().get_program(ctx, "im2col_torch", "dtype", data_type_to_opencl_type(traits.data_type));
+	tart::program_ptr prg = Cache::instance().get_program(ctx, "im2col_torch", "dtype", data_type_to_opencl_type(dtype));
 	tart::kernel_ptr im2colKernel = prg->getKernel("im2col");
 	
 	im2colKernel->setArg(0, data_im);
@@ -57,6 +56,49 @@ void im2col(const ExecutionContext& e,
 	
 	uint32_t block_num = (num_kernels - 1) / threads_per_block + 1;
 	im2colKernel->run({block_num, 1, 1}, {});
+}
+
+template <typename T>
+void im2col(const ExecutionContext& e,
+	const tart::buffer_ptr& data_im,
+	const uint32_t data_im_offset, // new arg
+	const uint32_t channels,
+	const uint32_t height,
+	const uint32_t width,
+	const uint32_t height_col,
+	const uint32_t width_col,
+	const uint32_t kernel_height,
+	const uint32_t kernel_width,
+	const uint32_t pad_height,
+	const uint32_t pad_width,
+	const uint32_t stride_height,
+	const uint32_t stride_width,
+	const uint32_t dilation_height,
+	const uint32_t dilation_width,
+	const tart::buffer_ptr& data_col,
+	const uint32_t data_col_offset) // new arg
+{
+	TypeTraits<T> traits;
+	
+	im2col(e,
+		data_im,
+		data_im_offset,
+		channels,
+		height,
+		width,
+		height_col,
+		width_col,
+		kernel_height,
+		kernel_width,
+		pad_height,
+		pad_width,
+		stride_height,
+		stride_width,
+		dilation_height,
+		dilation_width,
+		data_col,
+		data_col_offset,
+		traits.data_type);
 }
 
 //template void im2col<half>();
