@@ -39,13 +39,28 @@ void im2col(const ExecutionContext& e,
 	uint32_t block_num = (num_kernels - 1) / threads_per_block + 1;
 	
 	size_t p = 0;
+	
+	num_kernels,
+      data_im,
+      height,
+      width,
+      kernel_height,
+      kernel_width,
+      pad_height,
+      pad_width,
+      stride_height,
+      stride_width,
+      dilation_height,
+      dilation_width,
+      height_col,
+      width_col,
+      data_col
+	
 	im2colKernel->setArg(p++, num_kernels);
 	im2colKernel->setArg(p++, data_im);
 	im2colKernel->setArg(p++, data_im_offset);
 	im2colKernel->setArg(p++, height);
 	im2colKernel->setArg(p++, width);
-	im2colKernel->setArg(p++, height_col);
-	im2colKernel->setArg(p++, width_col);
 	im2colKernel->setArg(p++, kernel_height);
 	im2colKernel->setArg(p++, kernel_width);
 	im2colKernel->setArg(p++, pad_height);
@@ -54,6 +69,9 @@ void im2col(const ExecutionContext& e,
 	im2colKernel->setArg(p++, stride_width);
 	im2colKernel->setArg(p++, dilation_height);
 	im2colKernel->setArg(p++, dilation_width);
+	im2colKernel->setArg(p++, height_col);
+	im2colKernel->setArg(p++, width_col);
+
 	im2colKernel->setArg(p++, data_col);
 	im2colKernel->setArg(p++, data_col_offset);
 	
