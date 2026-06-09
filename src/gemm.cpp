@@ -1134,22 +1134,6 @@ namespace gpu {
 			
 			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
 				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
-#if 0
-			if (mUseBias)
-			{
-				// C should be row-major, width of N, height of M
-				// bias seems to be assumed to be contiguous, aside from the offset.
-				// Which means in-place biasing should be easy to implement
-				for (size_t i = 0; i < M; i += 1)
-				{
-					uint32_t c_row_offset = (ldc*i) + offset_c;
-					// pretty sure x_inc is just 1, unless C somehow has strides.
-					clblast::Axpy<float>(N, alpha, bias, bias_offset, 1,
-						c, c_row_offset, 1, mDevice);
-				}
-			}
-#endif
-			
 #else
 			auto layout = clblast::Layout::kRowMajor
 			auto aTrans = mATrans;
