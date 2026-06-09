@@ -154,6 +154,13 @@ void col2im(
 	// bottom dimension, and then in the kernel add up the top dimensions.
 	// CUDA_NUM_THREADS = 1024
 	uint32_t block_num = (num_kernels - 1) / 512 + 1;
+	
+	// get the kernel
+	Context ctx(e);
+	tart::program_ptr prg = Cache::instance().get_program(ctx, "col2im_torch", "dtype", data_type_to_opencl_type(dtype),
+		"accT", data_type_to_opencl_type(accT) );
+	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im");
+#if 0
 	col2im_kernel<dtype, accT>
 			<<<block_num, 512, 0, stream>>>(
 					num_kernels,
@@ -171,7 +178,27 @@ void col2im(
 					height_col,
 					width_col,
 					data_im);
-	C10_CUDA_KERNEL_LAUNCH_CHECK();
+#endif
+	size_t p = 0;
+	col2im_kernel->setArg(p++, num_kernels);
+	col2im_kernel->setArg(p++, data_col);
+	col2im_kernel->setArg(p++, data_col_offset);
+	col2im_kernel->setArg(p++, height);
+	col2im_kernel->setArg(p++, width);
+	col2im_kernel->setArg(p++, patch_height);
+	col2im_kernel->setArg(p++, patch_width);
+	col2im_kernel->setArg(p++, pad_height);
+	col2im_kernel->setArg(p++, pad_width);
+	col2im_kernel->setArg(p++, stride_height);
+	col2im_kernel->setArg(p++, stride_width);
+	col2im_kernel->setArg(p++, dilation_height);
+	col2im_kernel->setArg(p++, dilation_width);
+	col2im_kernel->setArg(p++, height_col);
+	col2im_kernel->setArg(p++, width_col);
+	col2im_kernel->setArg(p++, data_im);
+	col2im_kernel->setArg(p++, data_im_offset);
+	
+	col2im_kernel->run({block_num, 1, 1}, {});
 }
 
 
