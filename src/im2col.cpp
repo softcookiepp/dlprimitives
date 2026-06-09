@@ -160,25 +160,7 @@ void col2im(
 	tart::program_ptr prg = Cache::instance().get_program(ctx, "col2im_torch", "dtype", data_type_to_opencl_type(dtype),
 		"accT", data_type_to_opencl_type(accT) );
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im");
-#if 0
-	col2im_kernel<dtype, accT>
-			<<<block_num, 512, 0, stream>>>(
-					num_kernels,
-					data_col,
-					height,
-					width,
-					patch_height,
-					patch_width,
-					pad_height,
-					pad_width,
-					stride_height,
-					stride_width,
-					dilation_height,
-					dilation_width,
-					height_col,
-					width_col,
-					data_im);
-#endif
+
 	size_t p = 0;
 	col2im_kernel->setArg(p++, num_kernels);
 	col2im_kernel->setArg(p++, data_col);
@@ -231,7 +213,6 @@ void col2im_batched(
 		return;	// No work to do
 	}
 	
-#if 1
 	// get the kernel
 	Context ctx(e);
 	tart::program_ptr prg = Cache::instance().get_program(ctx, "col2im_torch", "dtype", data_type_to_opencl_type(dtype));
@@ -261,30 +242,6 @@ void col2im_batched(
 	
 	uint32_t block_num = (num_kernels - 1) / 512 + 1;
 	col2im_kernel->run({block_num, 1, 1}, {});
-#else
-	// To avoid involving atomic operations, we will launch one kernel per
-	// bottom dimension, and then in the kernel add up the top dimensions.
-	// CUDA_NUM_THREADS = 1024
-	col2im_batched_kernel<<<GET_BLOCKS(output_numel, 512), 512, 0, stream>>>(
-		num_kernels,
-		data_col,
-		col_batch_stride,
-		nbatch,
-		height,
-		width,
-		patch_height,
-		patch_width,
-		pad_height,
-		pad_width,
-		stride_height,
-		stride_width,
-		dilation_height,
-		dilation_width,
-		height_col,
-		width_col,
-		data_im,
-		im_batch_stride);
-#endif
 }
 
 
