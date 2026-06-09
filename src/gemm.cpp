@@ -726,7 +726,7 @@ namespace gpu {
                           int size_of_c,
                           ExecutionContext const &ein)
         {
-#if 0
+#if 1
 			throw std::runtime_error("not implemented");
 #else
 			clblast::Convgemm<float>(clblast::KernelMode::kCrossCorrelation, mSrcChannels, (size_t)M, (size_t)N,
@@ -1114,6 +1114,7 @@ namespace gpu {
         {
 #if 1
 			const float alpha = 1.0;
+			std::cout << "	BETA: " << beta << std::endl;
 			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
 				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
 		
