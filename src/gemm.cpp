@@ -1114,10 +1114,27 @@ namespace gpu {
         {
 #if 1
 			const float alpha = 1.0;
-			std::cout << "	BETA: " << beta << std::endl;
+			if (beta == 0.0 && mUseBias)
+			{
+				// adjust beta, as the bias will not work unless beta is 1.0
+				beta = 1.0;
+			}
+			
+			if (mUseBias)
+			{
+				// Copy bias to C in preparation for biasing
+				for (size_t i = 0; i < M; i += 1)
+				{
+					uint32_t c_row_offset = (ldc*i) + offset_c;
+					// pretty sure x_inc is just 1, unless C somehow has strides.
+					clblast::Copy<float>(N, bias, bias_offset, 1,
+						c, c_row_offset, 1, mDevice);
+				}
+			}
+			
 			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
 				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
-		
+#if 0
 			if (mUseBias)
 			{
 				// C should be row-major, width of N, height of M
@@ -1131,6 +1148,7 @@ namespace gpu {
 						c, c_row_offset, 1, mDevice);
 				}
 			}
+#endif
 			
 #else
 			auto layout = clblast::Layout::kRowMajor
