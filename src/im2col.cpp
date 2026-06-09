@@ -247,6 +247,8 @@ void col2im_batched(
 	col2im_kernel->setArg(p++, width);
 	col2im_kernel->setArg(p++, patch_height);
 	col2im_kernel->setArg(p++, patch_width);
+	col2im_kernel->setArg(p++, pad_height);
+	col2im_kernel->setArg(p++, pad_width);
 	col2im_kernel->setArg(p++, stride_height);
 	col2im_kernel->setArg(p++, stride_width);
 	col2im_kernel->setArg(p++, dilation_height);
