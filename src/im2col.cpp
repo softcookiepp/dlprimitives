@@ -127,6 +127,54 @@ template void im2col<float>(const ExecutionContext& e,
 //template void im2col<double>();
 
 
+void col2im(
+		const ExecutionContext& e,
+		const tart::buffer_ptr& data_col,
+		const uint32_t data_col_offset,
+		const uint32_t channels,
+		const uint32_t height,
+		const uint32_t width,
+		const uint32_t height_col,
+		const uint32_t width_col,
+		const uint32_t patch_height,
+		const uint32_t patch_width,
+		const uint32_t pad_height,
+		const uint32_t pad_width,
+		const uint32_t stride_height,
+		const uint32_t stride_width,
+		const uint32_t dilation_height,
+		const uint32_t dilation_width,
+		const tart::buffer_ptr& data_im,
+		const uint32_t data_im_offset,
+		const DataType dtype,
+		const DataType accT)
+{
+	uint32_t num_kernels = channels * height * width;
+	// To avoid involving atomic operations, we will launch one kernel per
+	// bottom dimension, and then in the kernel add up the top dimensions.
+	// CUDA_NUM_THREADS = 1024
+	uint32_t block_num = (num_kernels - 1) / 512 + 1;
+	col2im_kernel<dtype, accT>
+			<<<block_num, 512, 0, stream>>>(
+					num_kernels,
+					data_col,
+					height,
+					width,
+					patch_height,
+					patch_width,
+					pad_height,
+					pad_width,
+					stride_height,
+					stride_width,
+					dilation_height,
+					dilation_width,
+					height_col,
+					width_col,
+					data_im);
+	C10_CUDA_KERNEL_LAUNCH_CHECK();
+}
+
+
 } // namespace gpu
 	
 } // namespace dlprim

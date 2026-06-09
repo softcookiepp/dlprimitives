@@ -105,3 +105,10 @@
 		#define UNROLL(d)
 	#endif
 #endif
+
+// borrowed from pytorch
+#define CUDA_KERNEL_LOOP_TYPE(i, n, index_type) \
+	uint _i_n_d_e_x = (gl_WorkGroupID.x * gl_WorkGroupSize.x) + gl_LocalInvocationID.x; \
+	for (index_type i=_i_n_d_e_x; _i_n_d_e_x < (n); _i_n_d_e_x+= gl_WorkGroupSize.x * gl_NumWorkGroups.x, i=_i_n_d_e_x)
+
+#define CUDA_KERNEL_LOOP(i, n) CUDA_KERNEL_LOOP_TYPE(i, n, uint)
