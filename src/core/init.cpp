@@ -42,7 +42,7 @@ namespace core {
 #endif
         t.set_arg(k_,p);
 #if VULKAN_API
-		std::vector<uint32_t> l({wg});
+		std::vector<uint32_t> l({wg, 1, 1});
         std::vector<uint32_t> g = gpu::round_range(size,l);
         g[0] = g[0]/l[0];
         k_->run(g, l);
