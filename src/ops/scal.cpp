@@ -46,7 +46,7 @@ namespace dlprim {
 			k_->setArg(p++, uint64_t(size));
             k_->setArg(p++,s);
             t.set_arg(k_,p);
-            std::vector<uint32_t> l({wg});
+            std::vector<uint32_t> l({wg, 1, 1});
             std::vector<uint32_t> g = gpu::round_range(size,l);
             g[0] = g[0] / l[0];
             k_->enqueue(g, l);
