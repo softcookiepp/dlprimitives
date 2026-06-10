@@ -99,8 +99,8 @@ namespace core {
 			params << "uint py" << i << "_offset; ";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
 				<< i << "_buf { dtype py" << i << "[]; }; ";
-			loads << "dtype y" << i << ";\n";
-			saves << "py" << i << "[index] = y" << i << ";\n"; // no offset?
+			loads << "dtype y" << i << "; ";
+			saves << "py" << i << "[index] = y" << i << "; "; // no offset?
 			bindingIndex += 1;
 		}
 		
