@@ -162,7 +162,6 @@ namespace core {
             bind_as_dtype(k,p,w,ref_type);
 		std::vector<uint32_t> local(3, 1);
 		local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
-		std::cout << "	pointwise total: " << total << std::endl;
         k->run({total}, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"pointwise",
