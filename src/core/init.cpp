@@ -34,7 +34,7 @@ namespace core {
         else
             wg = 64;
 #if VULKAN_API
-		k_->setArg(p++, size);
+		k_->setArg(p++, uint32_t(size));
         k_->setArg(p++, s);
 #else
         k_.setArg(p++,cl_ulong(size));

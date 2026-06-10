@@ -43,7 +43,7 @@ namespace dlprim {
             else
                 wg = 64;
 #if VULKAN_API
-			k_->setArg(p++, uint64_t(size));
+			k_->setArg(p++, uint32_t(size));
             k_->setArg(p++,s);
             t.set_arg(k_,p);
             std::vector<uint32_t> l({wg, 1, 1});
