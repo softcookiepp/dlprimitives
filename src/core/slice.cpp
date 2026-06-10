@@ -53,7 +53,6 @@ namespace core {
         target.set_arg(kernel_,p);
         source.set_arg(kernel_,p);
         bind_as_dtype(kernel_,p,scale,dtype_);
-		std::cout << "running copy with scale of: " << scale << std::endl;
 		kernel_->run({s[2], slice, s[0]}, {});
 #else
         kernel_.setArg(p++,cl_ulong(slice));

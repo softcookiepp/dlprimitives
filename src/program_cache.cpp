@@ -70,7 +70,7 @@ cl::Program
 	Cache::build_program(Context  &ctx,std::string const &source,std::vector<Parameter> const &params)
 {
 #if VULKAN_API
-	std::cout << "	Getting program: " << source << std::endl;
+	// std::cout << "	Getting program: " << source << std::endl;
 	auto ks = kernel_sources.find(source);
     if(ks == kernel_sources.end())
         throw ValidationError("Unknow program source " + source);
