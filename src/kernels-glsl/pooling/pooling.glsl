@@ -164,6 +164,6 @@ void main()
     }
     tgt[out_r * out_W + out_c + tgt_] = val;
     #if INDEX_MAX_SRC == 1
-    indx[out_r * out_W + out_c + indx_] = index;
+		indx[out_r * out_W + out_c + indx_] = index;
     #endif
 }

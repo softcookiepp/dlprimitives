@@ -4,7 +4,7 @@
 #include "../common/atomic.glsl"
 
 #ifndef itype
-#define itype int
+#define itype uint
 #endif
 
 #ifndef POOL_MODE
@@ -39,176 +39,257 @@
 #endif
 
 #if POOL_MODE == 0
-# define START_VAL -DTYPE_MAX
-# define REDUCE(a,b) max((a),(b))
-# define NORMALIZE_FULL(x) (x)
-# define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) (x)
+	#define START_VAL -(DTYPE_MAX)
+	#define REDUCE(a,b) max((a),(b))
+	#define NORMALIZE_FULL(x) (x)
+	#define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) (x)
 #elif POOL_MODE == 1
-# define START_VAL 0.0f
-# define REDUCE(a,b) ((a) + (b))
-# define NORMALIZE_FULL(x) ((x) * (1.0f / (POOL_H * POOL_W)))
-# if COUNT_INCLUDE_PAD == 0
-#  define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) ((x) * (1.0f /((dr)*(dc))))
-# else
-#  define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) ((x) * (1.0f /((vdr)*(vdc))))
-# endif
+	#define START_VAL 0.0f
+	#define REDUCE(a,b) ((a) + (b))
+	#define NORMALIZE_FULL(x) ((x) * (1.0f / (POOL_H * POOL_W)))
+	#if COUNT_INCLUDE_PAD == 0
+		#define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) ((x) * (1.0f /((dr)*(dc))))
+	#else
+		#define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) ((x) * (1.0f /((vdr)*(vdc))))
+	#endif
 #else
-#error "Invalid mode"
+	#error "Invalid mode"
 #endif
 
 #ifndef WG_SIZE
-#define WG_SIZE 8
+	#define WG_SIZE 8
 #endif
+layout(local_size_x = WG_SIZE, local_size_y = WG_SIZE, local_size_z = 1) in;
 
 #if POOL_MODE == 0 && EXPORT_INDEX == 1
-#define INDEX_MAX_SRC 1
+	#define INDEX_MAX_SRC 1
 #else
-#define INDEX_MAX_SRC 0
+	#define INDEX_MAX_SRC 0
 #endif
 
 #if POOL_W <= STRIDE_W && POOL_H <= STRIDE_H
-	#define save_dx(index, ptr, value) { ptr[index] = value + ptr[index]; }
+	#define save_dx(idx, ptr, value) ptr[idx] = value
 #else
-	#define save_dx(index, ptr, value) { atomic_addf(index, ptr, value); }
+	#define save_dx(idx, ptr, value) atomic_addf((idx), ptr, value)
 #endif
 
-layout(local_size_x = WG_SIZE, local_size_y = WG_SIZE, local_size_z = 1) in;
 
-#if INDEX_MAX_SRC == 1
+// its stupid that there wouldn't just be separate kernels for this. but whatever
+#if INDEX_MAX_SRC
 
-void pooling_bw(int BC,int inp_H,int inp_W,int out_H,int out_W,
-             __global dtype *src,ulong src_offset,
-             __global const dtype *tgt,ulong tgt_offset,
-             __global const itype *indx,ulong indx_offset)
+#if USE_BDA == 0
+	#if POOL_W <= STRIDE_W && POOL_H <= STRIDE_H
+		layout(binding = 0, std430) buffer src_buf { dtype src[]; };
+	#else
+		layout(binding = 0, std430) buffer src_buf { atomic_dtype src[]; };
+	#endif
+	layout(binding = 1, std430) readonly buffer tgt_buf { dtype tgt[]; };
+	layout(binding = 2, std430) readonly buffer indx_buf { itype indx[]; };
+#endif
+
+layout(push_constant, std430) uniform pooling_bw
 {
-    int out_r = get_global_id(0);
-    int out_c = get_global_id(1);
-    int bc = get_global_id(2);
+	uint BC;
+	uint inp_H;
+	uint inp_W;
+	uint out_H;
+	uint out_W;
+	#if USE_BDA
+		__global dtype *src;
+	#endif
+	uint src_offset;
+	#if USE_BDA
+		__global const dtype *tgt;
+	#endif
+	uint tgt_offset;
+	#if USE_BDA
+		__global const itype *indx;
+	#endif
+	uint indx_offset;
+};
+ 
+void main()
+{
+	uint out_r = get_global_id(0);
+	uint out_c = get_global_id(1);
+	uint bc = get_global_id(2);
 
-    if(bc >= BC || out_r >= out_H || out_c >= out_W)
-        return;
+	if(bc >= BC || out_r >= out_H || out_c >= out_W)
+		return;
 
-    int row0 = out_r * STRIDE_H - PAD_H;
-    int col0 = out_c * STRIDE_W - PAD_W;
-    int row1 = row0 + POOL_H;
-    int col1 = col0 + POOL_W;
+	uint row0 = out_r * STRIDE_H - PAD_H;
+	uint col0 = out_c * STRIDE_W - PAD_W;
+	uint row1 = row0 + POOL_H;
+	uint col1 = col0 + POOL_W;
 
-    tgt  += tgt_offset + bc * out_H * out_W;
-    src  += src_offset + bc * inp_H * inp_W;
-    indx += indx_offset + bc * out_H * out_W;
+	uint tgt_  = tgt_offset + bc * out_H * out_W;
+	uint src_  = src_offset + bc * inp_H * inp_W;
+	uint indx_ = indx_offset + bc * out_H * out_W;
 
-    dtype dy  =  tgt[out_r * out_W + out_c];
-    itype pos = indx[out_r * out_W + out_c];
+	dtype dy  =  tgt[out_r * out_W + out_c + tgt_];
+	itype pos = indx[out_r * out_W + out_c + indx_];
 
-    save_dx(src+pos,dy);
+	save_dx(src_ + uint(pos), src, dy);
 }
 
 #elif POOL_MODE == 0 // max pooling
 
-void pooling_bw(int BC,int inp_H,int inp_W,int out_H,int out_W,
-             __global const dtype *src,ulong src_offset,
-             __global const dtype *tgt,ulong tgt_offset,
-             __global dtype *dx,ulong dx_offset)
+#if USE_BDA == 0
+	layout(binding = 0, std430) readonly buffer src_buf { dtype src[]; };
+	layout(binding = 1, std430) readonly buffer tgt_buf { dtype tgt[]; };
+	#if POOL_W <= STRIDE_W && POOL_H <= STRIDE_H
+		layout(binding = 2, std430) buffer dx_buf { dtype dx[]; };
+	#else
+		layout(binding = 2, std430) buffer dx_buf { atomic_dtype dx[]; };
+	#endif
+#endif
+
+layout(push_constant, std430) uniform pooling_bw
 {
-    int out_r = get_global_id(0);
-    int out_c = get_global_id(1);
-    int bc = get_global_id(2);
+	uint BC;
+	uint inp_H;
+	uint inp_W;
+	uint out_H;
+	uint out_W;
+	#if USE_BDA
+		__global const dtype *src;
+	#endif
+	uint src_offset;
+	#if USE_BDA
+		__global const dtype *tgt;
+	#endif
+	uint tgt_offset;
+	#if USE_BDA
+		__global dtype *dx;
+	#endif
+	uint dx_offset;
+};
 
-    if(bc >= BC || out_r >= out_H || out_c >= out_W)
-        return;
+void main()
+{
+	uint out_r = get_global_id(0);
+	uint out_c = get_global_id(1);
+	uint bc = get_global_id(2);
 
-    int row0 = out_r * STRIDE_H - PAD_H;
-    int col0 = out_c * STRIDE_W - PAD_W;
-    int row1 = row0 + POOL_H;
-    int col1 = col0 + POOL_W;
+	if(bc >= BC || out_r >= out_H || out_c >= out_W)
+		return;
 
-    tgt += tgt_offset + bc * out_H * out_W;
-    src += src_offset + bc * inp_H * inp_W;
-    dx  += dx_offset  + bc * inp_H * inp_W;
+	uint row0 = out_r * STRIDE_H - PAD_H;
+	uint col0 = out_c * STRIDE_W - PAD_W;
+	uint row1 = row0 + POOL_H;
+	uint col1 = col0 + POOL_W;
 
-    dtype val = START_VAL;
-    itype index = -1;
-    
-    if(row0 >= 0 && col0 >= 0 && row1 <= inp_H && col1 <= inp_W) {
-        src += row0 * inp_W + col0;
-        // #pragma unroll  
-        for(int dr=0;dr<POOL_H;dr++) {
-            // #pragma unroll
-            for(int dc = 0;dc < POOL_W; dc++) {
-                dtype tmp = src[dr * inp_W + dc];
-                if(tmp > val) {
-                    index = (row0 + dr) * inp_W + col0 + dc;
-                    val = tmp;
-                }
-            }
-        }
-    }
-    else {
-        // #pragma unroll
-        for(int r=row0;r<row1;r++) {
-            // #pragma unroll
-            for(int c=col0;c<col1;c++) {
-                dtype loaded_val = (r >= 0 && r<inp_H && c>=0 && c<inp_W) ? src[r*inp_W + c] : START_VAL;
-                if(loaded_val > val) {
-                    index = r*inp_W + c;
-                    val = loaded_val;
-                }
-            }
-        }
-    }
-    
-    dtype dy = tgt[out_r * out_W + out_c];
+	uint tgt_ = tgt_offset + bc * out_H * out_W;
+	uint src_ = src_offset + bc * inp_H * inp_W;
+	uint dx_  = dx_offset  + bc * inp_H * inp_W;
 
-    save_dx(dx+index,dy);
+	dtype val = START_VAL;
+	itype index = -1;
+	
+	if(row0 >= 0 && col0 >= 0 && row1 <= inp_H && col1 <= inp_W) {
+		src_ += row0 * inp_W + col0;
+		UNROLL(POOL_H)
+		for(uint dr=0;dr<POOL_H;dr++) {
+			UNROLL(POOL_W)
+			for(uint dc = 0;dc < POOL_W; dc++) {
+				dtype tmp = src[dr * inp_W + dc + src_];
+				if(tmp > val) {
+					index = itype((row0 + dr) * inp_W + col0 + dc);
+					val = tmp;
+				}
+			}
+		}
+	}
+	else {
+		// #pragma unroll
+		for(uint r=row0;r<row1;r++) {
+			// #pragma unroll
+			for(uint c=col0;c<col1;c++) {
+				dtype loaded_val = (r >= 0 && r<inp_H && c>=0 && c<inp_W) ? src[r*inp_W + c + src_] : START_VAL;
+				if(loaded_val > val) {
+					index = itype(r*inp_W + c);
+					val = loaded_val;
+				}
+			}
+		}
+	}
+	
+	dtype dy = tgt[out_r * out_W + out_c + tgt_];
+
+	save_dx(uint(index) + dx_, dx, dy);
 }
 
 #elif POOL_MODE == 1
 
-void pooling_bw(int BC,int inp_H,int inp_W,int out_H,int out_W,
-             __global const dtype *tgt,ulong tgt_offset,
-             __global dtype *dx,ulong dx_offset)
+#if USE_BDA == 0
+	layout(binding = 0, std430) readonly buffer tgt_buf { dtype tgt[]; };
+	#if POOL_W <= STRIDE_W && POOL_H <= STRIDE_H
+		layout(binding = 1, std430) buffer dx_buf { dtype dx[]; };
+	#else
+		layout(binding = 1, std430) buffer dx_buf { atomic_dtype dx[]; };
+	#endif
+#endif
+
+layout(push_constant, std430) uniform pooling_bw
 {
-    int out_r = get_global_id(0);
-    int out_c = get_global_id(1);
-    int bc = get_global_id(2);
-    if(bc >= BC || out_r >= out_H || out_c >= out_W)
-        return;
+	uint BC;
+	uint inp_H;
+	uint inp_W;
+	uint out_H;
+	uint out_W;
+	#if USE_BDA
+		__global const dtype *tgt;
+	#endif
+	uint tgt_offset;
+	#if USE_BDA
+		__global dtype *dx;
+	#endif
+	uint dx_offset;
+};
 
-    int row0 = out_r * STRIDE_H - PAD_H;
-    int col0 = out_c * STRIDE_W - PAD_W;
-    int row1 = row0 + POOL_H;
-    int col1 = col0 + POOL_W;
+void main()
+{
+	uint out_r = get_global_id(0);
+	uint out_c = get_global_id(1);
+	uint bc = get_global_id(2);
+	if(bc >= BC || out_r >= out_H || out_c >= out_W)
+		return;
 
-    tgt += tgt_offset + bc * out_H * out_W;
-    dx  += dx_offset  + bc * inp_H * inp_W;
+	uint row0 = out_r * STRIDE_H - PAD_H;
+	uint col0 = out_c * STRIDE_W - PAD_W;
+	uint row1 = row0 + POOL_H;
+	uint col1 = col0 + POOL_W;
 
-    dtype dy = tgt[out_r * out_W + out_c];
-    if(row0 >= 0 && col0 >= 0 && row1 <= inp_H && col1 <= inp_W) {
-        dtype dy_norm = NORMALIZE_FULL(dy);
-        dx += row0 * inp_W + col0;
-        // #pragma unroll  
-        for(int dr=0;dr<POOL_H;dr++) {
-            // #pragma unroll
-            for(int dc = 0;dc < POOL_W; dc++) {
-                save_dx(dx + dr * inp_W + dc,dy_norm);
-            }
-        }
-    }
-    else {
-        dtype dy_norm = NORMALIZE_PARTIAL(dy, min(row1,inp_H)-max(row0,0),
-                                              min(col1,inp_W) - max(col0,0),
-                                              min(row1,inp_H + PAD_H) - max(-PAD_H,row0),
-                                              min(col1,inp_W + PAD_W) - max(-PAD_W,col0)
-                                            );
-        // #pragma unroll
-        for(int r=row0;r<row1;r++) {
-            // #pragma unroll
-            for(int c=col0;c<col1;c++) {
-                if(r >= 0 && r<inp_H && c>=0 && c<inp_W)
-                    save_dx(dx + r*inp_W + c,dy_norm);
-            }
-        }
-    }
+	uint tgt_ = tgt_offset + bc * out_H * out_W;
+	uint dx_  = dx_offset  + bc * inp_H * inp_W;
+
+	dtype dy = tgt[out_r * out_W + out_c + tgt_];
+	if(row0 >= 0 && col0 >= 0 && row1 <= inp_H && col1 <= inp_W) {
+		dtype dy_norm = NORMALIZE_FULL(dy);
+		dx_ += (row0 * inp_W + col0);
+		UNROLL(POOL_H)
+		for(uint dr=0;dr<POOL_H;dr++) {
+			UNROLL(POOL_W)
+			for(uint dc = 0;dc < POOL_W; dc++) {
+				save_dx((dr * inp_W + dc) + dx_, dx, dy_norm);
+			}
+		}
+	}
+	else {
+		dtype dy_norm = NORMALIZE_PARTIAL(dy, min(row1,inp_H)-max(row0,0),
+											  min(col1,inp_W) - max(col0,0),
+											  min(row1,inp_H + PAD_H) - max(-PAD_H,row0),
+											  min(col1,inp_W + PAD_W) - max(-PAD_W,col0)
+											);
+		// #pragma unroll
+		for(uint r=row0;r<row1;r++) {
+			// #pragma unroll
+			for(uint c=col0;c<col1;c++) {
+				if(r >= 0 && r<inp_H && c>=0 && c<inp_W)
+					save_dx(( + r*inp_W + c) + dx_, dx, dy_norm);
+			}
+		}
+	}
 }
 #else
 #error "Invalid mode"
