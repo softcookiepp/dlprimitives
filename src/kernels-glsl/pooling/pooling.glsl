@@ -89,12 +89,12 @@ layout(push_constant, std430) uniform pooling
 #if USE_BDA
 	dtype_addr_rw tgt;
 #endif
-	uint tgt_offset
+	uint tgt_offset;
 #if INDEX_MAX_SRC == 1
 	#if USE_BDA
 		itype_addr_rw indx;
 	#endif
-	uint indx_offset
+	uint indx_offset;
 #endif                                       
              
 };
