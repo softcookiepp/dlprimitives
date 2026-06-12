@@ -75,7 +75,7 @@ namespace core {
             gr[0] = gr[0]/wg[0];
             gr[1] = gr[1]/wg[1];
 			
-			kernel_->run(gr, wg);
+			kernel_->run(gr, {});
 #else
             kernel_.setArg(p++,bc);
             kernel_.setArg(p++,in_h);
