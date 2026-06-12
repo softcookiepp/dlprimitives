@@ -240,6 +240,7 @@ namespace core {
                 kernel_->setArg(p++,0.0f);
                 auto ec1 = e.generate_series_context(0,2);
                 auto ec2 = e.generate_series_context(1,2);
+                g.resize(3, 1);
                 kernel_->run(g, {});
                 p=0;
                 kernel2_->setArg(p++,features_);
@@ -284,6 +285,7 @@ namespace core {
                 dw.set_arg(kernel_,p);
                 kernel_->setArg(p++,1);
                 kernel_->setArg(p++,beta);
+                g.resize(3, 1);
                 kernel_->run(g, {});
 #else
                 cl::NDRange l(wg_,1);

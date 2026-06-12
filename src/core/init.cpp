@@ -45,6 +45,7 @@ namespace core {
 		std::vector<uint32_t> l({wg, 1, 1});
         std::vector<uint32_t> g = gpu::round_range(size,l);
         g[0] = g[0]/l[0];
+        g.resize(3, 1);
         k_->run(g, l);
 #else
         cl::NDRange l(wg);

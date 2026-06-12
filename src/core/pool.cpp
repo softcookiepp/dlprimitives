@@ -74,7 +74,7 @@ namespace core {
             std::vector<uint32_t> gr = gpu::round_range(out_h,out_w,bc,wg);
             gr[0] = gr[0]/wg[0];
             gr[1] = gr[1]/wg[1];
-			
+			gr.resize(3, 1);
 			kernel_->run(gr, {});
 #else
             kernel_.setArg(p++,bc);
@@ -125,6 +125,7 @@ namespace core {
             std::vector<uint32_t> gr = gpu::round_range(out_h,out_w,bc,wg);
             for (size_t i = 0; i < wg.size(); i += 1)
 				gr[i] = gr[i]/wg[i];
+			gr.resize(3, 1);
 			bwd_kernel_->run(gr, wg);
 #else
             bwd_kernel_.setArg(p++,bc);
@@ -212,6 +213,7 @@ namespace core {
 
             std::vector<uint32_t> gr({in_shape[0]*in_shape[1], nd_range_/wg_size_});
             std::vector<uint32_t> wg({1, wg_size_});
+            gr.resize(3, 1);
             kernel_->run(gr, wg);
 #else
             kernel_.setArg(p++,int(in_shape[0]*in_shape[1]));
@@ -243,9 +245,8 @@ namespace core {
             dy.set_arg(kernel_bwd_,p);
             kernel_bwd_->setArg(p++,factor);
 
-            std::vector<uint32_t> gr(in_shape[0]*in_shape[1], nd_range_/wg_size_);
 			std::vector<uint32_t> wg(1, wg_size_);
-			kernel_bwd_->run(gr, wg);
+			kernel_bwd_->run({in_shape[0]*in_shape[1], nd_range_/wg_size_}, wg);
 #else
             kernel_bwd_.setArg(p++,int(in_shape[0]*in_shape[1]));
             kernel_bwd_.setArg(p++,sm_range_);

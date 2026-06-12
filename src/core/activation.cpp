@@ -42,6 +42,7 @@ namespace core {
 		std::vector<uint32_t> gr = gpu::round_range(size, wg);
 		for (size_t i = 0; i < gr.size(); i += 1)
 			gr[i] = gr[i] / wg[i];
+		gr.resize(3, 1);
 		k->run(gr, wg);
 #else
         cl::NDRange wg(256);
@@ -68,6 +69,7 @@ namespace core {
         std::vector<uint32_t> wg({256, 1, 1});
         std::vector<uint32_t> gr=gpu::round_range(size,wg);
         gr[0] = gr[0]/wg[0];
+        gr->resize(3, 1);
         k->run(gr, wg);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"activation",

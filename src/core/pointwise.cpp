@@ -428,6 +428,7 @@ namespace core {
         local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
         // well this is going to be a pain in the bum
         //device->validateWorkSize(range);
+        range.resize(3, 1);
 		k->run(range, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
@@ -562,6 +563,7 @@ namespace core {
 				wg_range_.resize(0);
 			else
 				wg_range_.resize(3, 1);
+			glob.resize(3, 1);
 			if(second_stage_stride_ == 1) {
 				kernel_->run(glob, wg_range_);
             }

@@ -278,6 +278,7 @@ namespace gpu {
 			std::vector<uint32_t> l({wg});
 			std::vector<uint32_t> g = gpu::round_range(size, l);
 			g[0] = g[0]/wg;
+			g.resize(3, 1);
 			scal_->run(g, {});
 #else
             cl::NDRange l(wg);
@@ -470,6 +471,7 @@ namespace gpu {
 				global[i] = global[i]/local[i];
 			}
 			// weeeeeeeeeeeeeee
+			global.resize(3, 1);
 			kernel_->run(global, {});
 #else
             e.queue().enqueueNDRangeKernel(kernel_, cl::NullRange, global,local,e.events(),e.event("gemm"));
@@ -943,6 +945,7 @@ namespace gpu {
 #endif
             }
 #if VULKAN_API
+			global.resize(3, 1);
 			kernel_->run(global, {});
 #else
             e.queue().enqueueNDRangeKernel(kernel_, cl::NullRange, global,local,e.events(),e.event(gemm_name_));
@@ -1081,6 +1084,7 @@ namespace gpu {
 			const auto local = std::vector<size_t>{MDIMCD, NDIMCD};
 
 			// Launches the kernel
+			global.resize(3, 1);
 			kernel->run(global, local);
 		}
 #endif
