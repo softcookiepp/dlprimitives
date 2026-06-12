@@ -655,6 +655,8 @@ namespace core {
 			uint32_t use_gamma = 1;
 			backward_filter_->setArg(p++, use_gamma);
             dbeta.set_arg(backward_filter_,p);
+            uint32_t use_beta = 1; // no idea how to configure whether or not gamma and beta are used. In the kernel it is determined via a nullpointer being there or not..
+            backward_filter_->setArg(p++, use_beta);
             backward_filter_->setArg(p++,eps);
             backward_filter_->setArg(p++,dg_fact);
             backward_filter_->setArg(p++,db_fact);
