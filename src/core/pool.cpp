@@ -126,7 +126,7 @@ namespace core {
             for (size_t i = 0; i < wg.size(); i += 1)
 				gr[i] = gr[i]/wg[i];
 			gr.resize(3, 1);
-			bwd_kernel_->run(gr, wg);
+			bwd_kernel_->run(gr, {});
 #else
             bwd_kernel_.setArg(p++,bc);
             bwd_kernel_.setArg(p++,in_h);
@@ -212,9 +212,9 @@ namespace core {
             output.set_arg(kernel_,p);
 
             std::vector<uint32_t> gr({in_shape[0]*in_shape[1], nd_range_/wg_size_});
-            std::vector<uint32_t> wg({1, wg_size_});
+            //std::vector<uint32_t> wg({1, wg_size_});
             gr.resize(3, 1);
-            kernel_->run(gr, wg);
+            kernel_->run(gr, {});
 #else
             kernel_.setArg(p++,int(in_shape[0]*in_shape[1]));
             kernel_.setArg(p++,sm_range_);
@@ -245,8 +245,8 @@ namespace core {
             dy.set_arg(kernel_bwd_,p);
             kernel_bwd_->setArg(p++,factor);
 
-			std::vector<uint32_t> wg(1, wg_size_);
-			kernel_bwd_->run({in_shape[0]*in_shape[1], nd_range_/wg_size_}, wg);
+			//std::vector<uint32_t> wg(1, wg_size_);
+			kernel_bwd_->run({in_shape[0]*in_shape[1], nd_range_/wg_size_}, {});
 #else
             kernel_bwd_.setArg(p++,int(in_shape[0]*in_shape[1]));
             kernel_bwd_.setArg(p++,sm_range_);
