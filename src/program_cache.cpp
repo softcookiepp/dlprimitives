@@ -117,7 +117,7 @@ cl::Program
 	for (auto& pair : entryPointMap)
 	{
 		const std::string src = "#version 450\n" + (combine ? prepend.str() + pair.second : pair.second);
-		entryPointModules[pair.first] = ctx.device()->compileGLSL(src, options);
+		entryPointModules[pair.first] = ctx.device()->compileGLSL(src, options, pair.first);
 	}
 	
     #ifdef DEBUG_CACHE_TIMES
