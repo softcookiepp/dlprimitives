@@ -500,8 +500,8 @@ namespace core {
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
 #if VULKAN_API
-				dyx_sums_->run({second_reduce_, features_}, {wg_, 1});
-				dyx_sums_reduce_->run({1, features_}, {second_reduce_, 1});
+				dyx_sums_->run({second_reduce_, features_}, {});
+				dyx_sums_reduce_->run({1, features_}, {});
 #else
                 e.queue().enqueueNDRangeKernel( dyx_sums_,
                                                 cl::NullRange,
