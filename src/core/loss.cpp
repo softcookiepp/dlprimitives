@@ -32,8 +32,9 @@ namespace core {
 #endif
         
         uint32_t items_per_wi = (sm_range + wg_size - 1) / wg_size;
-
+		std::cout << "items per wi: " << items_per_wi << std::endl;
         uint32_t mpl = wg_size * items_per_wi;
+        if (mpl == 0) mpl += 1;
         uint32_t nd_range = (sm_range + mpl - 1) / mpl * wg_size;
         Context ctx(e);
 #if VULKAN_API
