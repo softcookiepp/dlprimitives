@@ -33,6 +33,7 @@ namespace core {
 #endif
         
         uint32_t items_per_wi = (sm_range + wg_size - 1) / wg_size;
+        if (items_per_wi == 0) items_per_wi += 1;
 		std::cout << "items per wi: " << items_per_wi << std::endl;
         uint32_t mpl = wg_size * items_per_wi;
         if (mpl == 0) mpl += 1;
