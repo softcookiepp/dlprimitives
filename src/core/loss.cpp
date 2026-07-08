@@ -45,7 +45,7 @@ namespace core {
         Shape in_shape = x.shape();
         uint32_t b0 = in_shape[0];
         uint32_t b2 = in_shape.size() == 3 ? in_shape[2] : 1;
-        uint32_t p = 0;
+        int p = 0;
         kernel->setArg(p++, b0);
         kernel->setArg(p++, sm_range);
         kernel->setArg(p++, b2);
