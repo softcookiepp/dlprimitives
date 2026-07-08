@@ -165,10 +165,6 @@ namespace core {
 		std::vector<uint32_t> local({ctx.device()->getMetadata().maxComputeWorkGroupSize[0], 1, 1});
 		uint global = (local[0] / total) + 1;
 		local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
-		for (size_t i = 0; i < local.size(); i += 1)
-		{
-			std::cout << "	" << local[i] << std::endl;
-		}
         k->run({total}, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"pointwise",

@@ -117,10 +117,7 @@ namespace core {
 			if (globalSizeX % targetLocalSizeX == 0) break;
 			targetLocalSizeX -= 1;
 		}
-        std::cout << "num invocations: " << targetLocalSizeX << std::endl;
-        std::cout << "global size:" << globalSizeX << std::endl;
         const uint32_t adjustedGlobalSizeX = globalSizeX / targetLocalSizeX;
-        std::cout << "adjusted global size:" << adjustedGlobalSizeX << std::endl;
         k->run({adjustedGlobalSizeX, 1, 1}, {targetLocalSizeX, 1, 1});
 #else
         k.setArg(p++,total);
