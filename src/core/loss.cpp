@@ -17,7 +17,7 @@ namespace core {
         DLPRIM_CHECK(y.shape()==x.shape());
         DLPRIM_CHECK(y.dtype() == x.dtype());
         int sm_range=x.shape()[1];
-#if 0
+#if 1
 		// band-aid solution over a bigger problem.
 		// need to find out why the kernel isn't working.
 		int wg_size = 1;
