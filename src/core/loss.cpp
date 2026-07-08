@@ -34,7 +34,8 @@ namespace core {
         int items_per_wi = (sm_range + wg_size - 1) / wg_size;
 
         int mpl = wg_size * items_per_wi;
-        int nd_range = (sm_range + mpl - 1) / mpl * wg_size;
+        uint32_t pad = (sm_range + mpl - 1) % mpl;
+        uint32_t nd_range = (pad + sm_range + mpl - 1) / mpl * wg_size;
         Context ctx(e);
 #if VULKAN_API
 		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"softmax",
