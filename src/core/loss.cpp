@@ -7,6 +7,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/core/activation.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <iostream>
 
 namespace dlprim {
 namespace core {
