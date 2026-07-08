@@ -150,7 +150,6 @@ namespace core {
                                                                            "#LOADS",loads.str(),
                                                                            "#SAVES",saves.str(),
                                                                            "#CALC",code_fixed.str());
-        std::cout << "	PARAMS: " << params.str() << std::endl;
         tart::kernel_ptr k = prog->getKernel("exec");
         uint32_t total = ref.total_size();
         int p=0;

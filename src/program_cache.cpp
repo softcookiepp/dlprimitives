@@ -70,7 +70,7 @@ cl::Program
 	Cache::build_program(Context  &ctx,std::string const &source,std::vector<Parameter> const &params)
 {
 #if VULKAN_API
-	std::cout << "	Getting program: " << source << std::endl;
+	// std::cout << "	Getting program: " << source << std::endl;
 	auto ks = kernel_sources.find(source);
     if(ks == kernel_sources.end())
         throw ValidationError("Unknow program source " + source);
@@ -95,7 +95,7 @@ cl::Program
         {
 			std::stringstream optSS;
 			optSS << "-D" << params[i].name <<"=" <<params[i].value;
-			std::cout << "OPTION: " << optSS.str() << "\n";
+			// std::cout << "OPTION: " << optSS.str() << "\n";
             options.push_back(optSS.str());
         }
     }
@@ -200,7 +200,7 @@ cl::Program
 	// just make the program correctly.
 	// for now it will use clspv
 	// at some point the OpenCL C codegen will be adapted for GLSL; that day has not come
-	std::cout << "BUILD ARGS: " << sparams << std::endl;
+	//std::cout << "BUILD ARGS: " << sparams << std::endl;
 #if 1
 	// this may be more complicated than I thought :c
 	//tart::shader_module_ptr mod = ctx.device()->compileGLSL(code, sparams);
