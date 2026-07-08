@@ -1,12 +1,6 @@
-///////////////////////////////////////////////////////////////////////////////
-///
-/// Copyright (c) 2021-2022 Artyom Beilis <artyomtnk@yahoo.com>
-///
-/// MIT License, see LICENSE.TXT
-///
-///////////////////////////////////////////////////////////////////////////////
+#version 450
 #include "defs.h"
-#include "reduce.h"
+#include "../common/reduce.glsl"
 
 #ifndef WG_SIZE
 #define WG_SIZE 256
