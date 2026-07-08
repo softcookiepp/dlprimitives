@@ -100,7 +100,7 @@ namespace core {
             wg_size = 256;
         
         int items_per_wi = (sm_range + wg_size - 1) / wg_size;
-
+		if (items_per_wi == 0) items_per_wi += 1;
         int mpl = wg_size * items_per_wi;
         int nd_range = (sm_range + mpl - 1) / mpl * wg_size;
         Context ctx(e);
