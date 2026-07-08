@@ -16,13 +16,13 @@ namespace core {
         DLPRIM_CHECK(x.dtype() == float_data);
         DLPRIM_CHECK(y.shape()==x.shape());
         DLPRIM_CHECK(y.dtype() == x.dtype());
-        int sm_range=x.shape()[1];
-#if 0
+        uint32_t sm_range=x.shape()[1];
+#if 1
 		// band-aid solution over a bigger problem.
 		// need to find out why the kernel isn't working.
-		int wg_size = 1;
+		uint32_t wg_size = 1;
 #else
-        int wg_size;
+        uint32_t wg_size;
         if(sm_range <= 64)
             wg_size = 64;
         else if(sm_range <= 128)
@@ -31,9 +31,9 @@ namespace core {
             wg_size = 256;
 #endif
         
-        int items_per_wi = (sm_range + wg_size - 1) / wg_size;
+        uint32_t items_per_wi = (sm_range + wg_size - 1) / wg_size;
 
-        int mpl = wg_size * items_per_wi;
+        uint32_t mpl = wg_size * items_per_wi;
         uint32_t nd_range = (sm_range + mpl - 1) / mpl * wg_size;
         Context ctx(e);
 #if VULKAN_API
@@ -43,12 +43,12 @@ namespace core {
                             "LOG_SM",int(log_softmax));
         tart::kernel_ptr kernel = prog->getKernel("softmax");
         Shape in_shape = x.shape();
-        int b0 = in_shape[0];
-        int b2 = in_shape.size() == 3 ? in_shape[2] : 1;
-        int p = 0;
-        kernel->setArg(p++, (uint32_t)b0);
-        kernel->setArg(p++, (uint32_t)sm_range);
-        kernel->setArg(p++, (uint32_t)b2);
+        uint32_t b0 = in_shape[0];
+        uint32_t b2 = in_shape.size() == 3 ? in_shape[2] : 1;
+        uint32_t p = 0;
+        kernel->setArg(p++, b0);
+        kernel->setArg(p++, sm_range);
+        kernel->setArg(p++, b2);
         x.set_arg(kernel, p);
         y.set_arg(kernel, p);
 
