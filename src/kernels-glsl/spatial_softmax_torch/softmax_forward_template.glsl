@@ -47,7 +47,7 @@ void do_softmax_forward()
 #if 1
 			if (blockDim.x > 1)
 			{
-				dtype max_input = std::numeric_limits<dtype>::lowest();
+				dtype max_input = -DTYPE_MAX;
 				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x) {
 					const dtype value = dtype(inp[data_offset + d * dim_stride]);
 					max_input = Max<dtype>()(max_input, value);
