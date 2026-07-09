@@ -1,5 +1,7 @@
 #version 450
-#define SOFTMAX_EPILOGUE_TYPE SOFTMAX_FORWARD_EPILOGUE
+#ifndef SOFTMAX_EPILOGUE_TYPE
+	#define SOFTMAX_EPILOGUE_TYPE SOFTMAX_FORWARD_EPILOGUE
+#endif
 #include "softmax_forward_template.glsl"
 
 void main()
