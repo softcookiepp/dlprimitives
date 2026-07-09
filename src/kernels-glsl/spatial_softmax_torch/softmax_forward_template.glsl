@@ -44,7 +44,7 @@ void do_softmax_forward()
 			// I didn't want to thread an extra template parameter, and nvcc
 			// seems to be smart enough to hoist the if outside of the loops.
 			////////////////////////////////////////////////////////////
-#if 0
+#if 1
 			if (blockDim.x > 1)
 			{
 				dtype max_input = std::numeric_limits<dtype>::lowest();
@@ -52,17 +52,21 @@ void do_softmax_forward()
 					const dtype value = dtype(inp[data_offset + d * dim_stride]);
 					max_input = Max<dtype>()(max_input, value);
 				}
-				max_input = spatialBlockReduceX<dtype, Max>(sdata,max_input);
+				spatialBlockReduceX(max_input, max, sdata, 0, max_input);
 
 				dtype sum = 0;
 				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
-					sum += exp(dtype(inp[data_offset + d * dim_stride])
-								 - max_input);
-				sum = spatialBlockReduceX<dtype, Add>(sdata, sum);
+					sum += exp(dtype(inp[data_offset + d * dim_stride]) - max_input);
+				spatialBlockReduceX(sum, add_fn, sdata, 0, sum);
 
-				Epilogue<scalar_t, dtype, outscalar_t> epilogue(max_input, sum);
+				Epilogue epilogue = Epilogue(max_input, sum);
 				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
-					outp[data_offset + d * dim_stride] = epilogue(inp[data_offset + d * dim_stride]);
+				{
+					dtype s;
+					dtype si = inp[data_offset + d * dim_stride + inp_offset];
+					do_epilogue(epilogue, s, si);
+					outp[data_offset + d * dim_stride + outp_offset] = s;
+				}
 			}
 			else
 #endif
