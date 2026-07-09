@@ -1,7 +1,7 @@
 #version 450
 #include "softmax-common.glsl"
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 1, local_size_y = WG_SIZE, local_size_z = 1) in;
 
 
 #if USE_BDA == 0

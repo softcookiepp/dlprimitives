@@ -1,30 +1,6 @@
 #version 450
-#include "defs.h"
-#include "../common/reduce.glsl"
+#include "softmax_common.glsl"
 
-#ifndef WG_SIZE
-#define WG_SIZE 256
-#endif
-
-#ifndef ITEMS_PER_WI
-#define ITEMS_PER_WI 1
-#endif
-
-#ifndef LOG_SM
-#define LOG_SM 0
-#endif
-
-#ifndef CALC_LOSS
-#define CALC_LOSS 0
-#endif
-
-#if CALC_LOSS==1
-#include "atomic.h"
-#endif
-
-
-
-#define LOCAL_ITEMS_LIMIT 32
 __kernel 
 __attribute__((reqd_work_group_size(1,WG_SIZE,1)))
 void softmax(int batch,int channels,int extra_batch,
@@ -129,7 +105,7 @@ void softmax(int batch,int channels,int extra_batch,
     #endif
 }
 
-
+#if 0
 __kernel 
 __attribute__((reqd_work_group_size(1,WG_SIZE,1)))
 void softmax_backward(int batch,int channels,int extra_batch,
@@ -197,4 +173,4 @@ void softmax_backward(int batch,int channels,int extra_batch,
         }
     }
 }
-
+#endif

@@ -18,11 +18,7 @@ namespace core {
         DLPRIM_CHECK(y.shape()==x.shape());
         DLPRIM_CHECK(y.dtype() == x.dtype());
         uint32_t sm_range=x.shape()[1];
-#if 1
-		// band-aid solution over a bigger problem.
-		// need to find out why the kernel isn't working.
-		uint32_t wg_size = 1;
-#else
+        
         uint32_t wg_size;
         if(sm_range <= 64)
             wg_size = 64;
@@ -30,7 +26,6 @@ namespace core {
             wg_size = 128;
         else 
             wg_size = 256;
-#endif
         
         uint32_t items_per_wi = (sm_range + wg_size - 1) / wg_size;
         if (items_per_wi == 0) items_per_wi += 1;
