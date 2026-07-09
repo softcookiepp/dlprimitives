@@ -32,47 +32,59 @@ void do_softmax_forward()
 	const uint outer_stride = inner_size * dim_size;
 	const uint dim_stride = inner_size;
 
-	for (uint outer_index = get_group_id(0); outer_index < outer_size; outer_index += get_num_groups(0))
+	for (uint outer_index = blockIdx.x; outer_index < outer_size; outer_index += gridDim.x)
 	{
 		const uint outer_offset = outer_index * outer_stride;
-		// wait isn't that just the global id? I am going to leave it as is out of paranoia
-		for (uint inner_index = get_group_id(1) * get_local_size(1) + get_local_id(1); inner_index < inner_size; inner_index += get_local_size(1) * get_num_groups(1))
+		for (uint inner_index = blockIdx.y * blockDim.y + threadIdx.y; inner_index < inner_size; inner_index += blockDim.y * gridDim.y)
 		{
 			const uint data_offset = outer_offset + inner_index;
-			dtype max_input = DTYPE_MIN;
-			if (get_local_size(0) > 1)
+			////////////////////////////////////////////////////////////
+			// These two blocks are really equivalent, but specializing on
+			// blockDim.x == 1 makes the kernel faster when it's unused.
+			// I didn't want to thread an extra template parameter, and nvcc
+			// seems to be smart enough to hoist the if outside of the loops.
+			////////////////////////////////////////////////////////////
+#if 0
+			if (blockDim.x > 1)
 			{
-				
-				for (uint d = get_local_id(0); d < dim_size; d += get_local_size(0)) {
-					const dtype value = dtype(inp[data_offset + d * dim_stride + inp_offset]);
-					max_input = max(max_input, value);
+				dtype max_input = std::numeric_limits<dtype>::lowest();
+				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x) {
+					const dtype value = dtype(inp[data_offset + d * dim_stride]);
+					max_input = Max<dtype>()(max_input, value);
 				}
-				spatialBlockReduceX(max_input, max, sdata, 0, max_input);
-				//max_input = spatialBlockReduceX(sdata,max_input);
+				max_input = spatialBlockReduceX<dtype, Max>(sdata,max_input);
 
 				dtype sum = 0;
-				for (uint d = get_local_id(0); d < dim_size; d += get_local_size(0))
-					sum += exp(dtype(inp[data_offset + d * dim_stride + inp_offset])
+				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
+					sum += exp(dtype(inp[data_offset + d * dim_stride])
 								 - max_input);
-				//sum = spatialBlockReduceX<dtype, Add>(sdata, sum);
-				spatialBlockReduceX(sum, add_fn, sdata, 0, sum);
+				sum = spatialBlockReduceX<dtype, Add>(sdata, sum);
 
-				Epilogue epilogue = Epilogue(max_input, sum);
-				for (uint d = get_global_id(0); d < dim_size; d += get_local_size(0))
-					do_epilogue(epilogue, outp[data_offset + d * dim_stride + outp_offset], inp[data_offset + d * dim_stride + inp_offset]);
+				Epilogue<scalar_t, dtype, outscalar_t> epilogue(max_input, sum);
+				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
+					outp[data_offset + d * dim_stride] = epilogue(inp[data_offset + d * dim_stride]);
 			}
 			else
+#endif
 			{
-				for (uint d = get_global_id(0); d < dim_size; d += get_local_size(0)) {
+				dtype max_input = -DTYPE_MAX;
+				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
+				{
 					const dtype value = dtype(inp[data_offset + d * dim_stride + inp_offset]);
 					max_input = max(max_input, value);
 				}
 				dtype sum = 0;
-				for (uint d = get_global_id(0); d < dim_size; d += get_local_size(0))
+				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
 					sum += exp(dtype(inp[data_offset + d * dim_stride + inp_offset]) - max_input);
 				Epilogue epilogue = Epilogue(max_input, sum);
-				for (uint d = get_global_id(0); d < dim_size; d += get_local_size(0))
-					do_epilogue(epilogue, outp[data_offset + d * dim_stride + outp_offset], inp[data_offset + d * dim_stride + inp_offset]);
+				
+				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
+				{
+					dtype s;
+					dtype si = inp[data_offset + d * dim_stride + inp_offset];
+					do_epilogue(epilogue, s, si);
+					outp[data_offset + d * dim_stride + outp_offset] = s;
+				}
 			}
 		}
 	}

@@ -32,7 +32,7 @@ dtype add_fn(dtype a, dtype b) { return a + b; }
 		dtype sum;
 	};
 	
-	#define do_epilogue(epilogue_, outp_, inp_) outp_ = exp((inp_) - (epilogue_).max_input)/(epilogue_).sum
+	#define do_epilogue(epilogue_, outp_, inp_) outp_ = exp((inp_) - (epilogue_).max_input)/((epilogue_).sum)
 #elif SOFTMAX_EPILOGUE_TYPE == SOFTMAX_BACKWARD_EPILOGUE
 
 struct Epilogue
