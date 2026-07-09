@@ -163,7 +163,9 @@ namespace core {
             
 		// this should at least keep things safe. There is almost certainly a better way to do this.
 		std::vector<uint32_t> local({ctx.device()->getMetadata().maxComputeWorkGroupSize[0], 1, 1});
-		uint global = (local[0] / total) + 1;
+		uint32_t global = 1;
+		if (total > 0)
+			global = (local[0] / total) + 1;
 		local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
         k->run({total}, local);
 #else
