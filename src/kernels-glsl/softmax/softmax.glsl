@@ -48,7 +48,7 @@ void main()
     // REDUCE_PREPARE(WG_SIZE, dtype);
     //REDUCE_FILL(DTYPE_MIN);
 
-    dtype val = DTYPE_MIX;
+    dtype val = DTYPE_MIN;
 
     #if ITEMS_PER_WI <= LOCAL_ITEMS_LIMIT
         dtype values[ITEMS_PER_WI];
