@@ -1,4 +1,7 @@
 #include <dlprim/gpu/softmax.hpp>
+#include <dlprim/gpu/program_cache.hpp>
+#include <iostream>
+#include <algorithm>
 
 namespace dlprim
 {
@@ -6,223 +9,116 @@ namespace dlprim
 namespace gpu
 {
 
-SoftmaxEpilogue epilogue,
-SoftmaxEpilogue epilogueWithMul,
-bool is_log_softmax,
-bool use_fast_softmax
-const Tensor & input_,
-const int64_t dim_,
-const bool half_to_float,
-const Tensor& output
+using tart::dim3;
+	
+const uint32_t max_threads = 1024;
 
-template<template<typename, typename, typename> class Epilogue,
-					template<typename, typename, typename> class EpilogueWithMul, bool is_log_softmax, bool use_fast_softmax>
-Tensor host_softmax(const Tensor & input_, const int64_t dim_, const bool half_to_float, const Tensor& output){
-	if (half_to_float) {
-		TORCH_CHECK(input_.scalar_type() == ScalarType::Half, "conversion is supported for Half type only");
+inline dim3 SpatialSoftMax_getBlockSize(
+	uint32_t dim_size, uint32_t inner_size)
+{
+	uint32_t inner_threads = inner_size;
+	inner_threads = std::min(inner_threads, static_cast<uint32_t>(max_threads));
+	uint32_t dim_threads = 1;
+	if (inner_threads <= 64 && dim_size >= 64)
+	{
+		while (inner_threads * dim_threads <= max_threads && dim_threads <= dim_size)
+			dim_threads *= 2;
+		dim_threads /= 2;
 	}
-	auto input = input_.contiguous();
-	static_assert(std::is_same_v<acc_type<at::Half, true>, float>, "accscalar_t for half should be float");
-	if (input.dim() == 0) input = input.view(1);
-	int64_t dim = maybe_wrap_dim(dim_, input.dim());
-	TORCH_CHECK(dim >=0 && dim < input.dim(), "dim must be non-negative and less than input dimensions");
-	int64_t outer_size = 1;
-	int64_t dim_size = input.size(dim);
+	return dim3(dim_threads, inner_threads);
+}
 
-	if (input.numel() > 0) {
-		int64_t inner_size = 1;
-		auto stream = getExecutionContext(input_);
-		for (int64_t i = 0; i < dim; ++i)
-			outer_size *= input.size(i);
-		for (int64_t i = dim + 1; i < input.dim(); ++i)
-			inner_size *= input.size(i);
-		// This kernel spawns a block per each element in the batch.
-		// XXX: it assumes that inner_size == 1
-#if 0 // TODO: implement (possibly some) of this stuff
-		if (inner_size == 1)
-		{
-			dim3 grid(outer_size);
-			AT_DISPATCH_FLOATING_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, input.scalar_type(), "host_softmax", [&] {
-				using accscalar_t = acc_type<scalar_t, true>;
-				if (!half_to_float) {
-					auto output_ptr = output.mutable_data_ptr<scalar_t>();
-					auto input_ptr = input.const_data_ptr<scalar_t>();
-					if (dim_size <= 2048 && dim_size*sizeof(scalar_t) <= 8192) {
-						int64_t remaining = outer_size;
-						int64_t chunk_size = (1L << 30L) / dim_size;
-						while(remaining > 0) {
-							dispatch_softmax_forward<scalar_t, scalar_t, accscalar_t, is_log_softmax, false>(
-								output_ptr, input_ptr, dim_size, dim_size, std::min<int64_t>(remaining, chunk_size), nullptr/* not masked */);
-							input_ptr += chunk_size * dim_size;
-							output_ptr += chunk_size * dim_size;
-							remaining -= chunk_size;
-						}
-					} else {
-						constexpr int ILP = sizeof(float4) / sizeof(scalar_t);
-						if constexpr (use_fast_softmax) {
-							dim3 block(512);
-							size_t smem_reduction_sz = block.x / at::cuda::warp_size() * sizeof(accscalar_t);
-							if (dim_size % ILP == 0) {
-								cunn_SoftMaxForwardGmem<ILP, scalar_t, accscalar_t, scalar_t, EpilogueWithMul>
-										<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-							} else {
-								cunn_SoftMaxForwardFast<ILP, scalar_t, accscalar_t, scalar_t, EpilogueWithMul>
-										<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-							}
-						} else {
-							dim3 block = SoftMaxForward_getBlockSize(dim_size);
-							size_t smem_reduction_sz = block.x / at::cuda::warp_size() * sizeof(accscalar_t);
-							auto max_elements_per_smem = (at::cuda::getCurrentDeviceProperties()->sharedMemPerBlock -
-								smem_reduction_sz) / sizeof(scalar_t);
+inline dim3 SpatialSoftMax_getGridSize(
+		dim3 block, dim3 max_active_blocks,
+		uint32_t outer_size, uint32_t inner_size)
+{
+	// First, tile as many blocks as we can over the y axis
+	uint32_t inner_blocks = (inner_size + block.y - 1) / block.y;
+	if (inner_blocks > max_active_blocks.y)
+		inner_blocks = max_active_blocks.y;
+	// Fill the x axis with as many blocks as we can fit (a little more is ok too)
+	uint32_t outer_blocks = (max_active_blocks.x + inner_blocks - 1) / inner_blocks;
+	if (outer_blocks > outer_size)
+		outer_blocks = outer_size;
+	return dim3(outer_blocks, inner_blocks);
+}
 
-							bool can_use_smem = static_cast<size_t>(dim_size) < max_elements_per_smem;
-							can_use_smem &= !(reinterpret_cast<uintptr_t>(input_ptr) % ALIGN_BYTES);
-							can_use_smem &= (!(reinterpret_cast<uintptr_t>(output_ptr) % ALIGN_BYTES));
-							can_use_smem &= !(dim_size % ILP);
+void SpatialSoftMax_getLaunchSizes(
+		//Kernel k,
+		const tart::device_ptr& device,
+		uint32_t outer_size, uint32_t dim_size, uint32_t inner_size,
+		dim3& grid, dim3& block, uint32_t& smem_size)
+{
+	block = SpatialSoftMax_getBlockSize(dim_size, inner_size);
+	uint32_t block_threads = block.x * block.y;
+	smem_size = block.x == 1 ? 0 : block_threads; // shared memory size in Vulkan GLSL is in elements of whatever type you are using, not bytes
+	dim3 max_active_blocks;
+	max_active_blocks.x = device->getMetadata().physicalDeviceProperties.limits.maxComputeWorkGroupCount[0];
+	max_active_blocks.y = device->getMetadata().physicalDeviceProperties.limits.maxComputeWorkGroupCount[1];
+	max_active_blocks.z = device->getMetadata().physicalDeviceProperties.limits.maxComputeWorkGroupCount[2];
+	grid = SpatialSoftMax_getGridSize(block, max_active_blocks, outer_size, inner_size);
+}
 
-							int32_t potential_reg_cnt = potential_register_count(dim_size, block.x);
-							if(potential_reg_cnt < 10){
-								TORCH_INTERNAL_ASSERT(potential_reg_cnt > 0, "potential_reg_cnt for softmax with register should be greater than 0.");
-								switch (potential_reg_cnt) {
-									// TODO(Wenqin): try to investigate why we couldn't use macro for below code,
-									// because it seems on MSVS, it seems the macro way didn't expand correct.
-									case 1:
-										cunn_SoftMaxForwardReg<scalar_t, accscalar_t, scalar_t, Epilogue, int64_t, 1>
-											<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-										break;
-									case 2:
-										cunn_SoftMaxForwardReg<scalar_t, accscalar_t, scalar_t, Epilogue, int64_t, 2>
-											<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-										break;
-									case 3:
-										cunn_SoftMaxForwardReg<scalar_t, accscalar_t, scalar_t, Epilogue, int64_t, 3>
-											<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-										break;
-									case 4:
-										cunn_SoftMaxForwardReg<scalar_t, accscalar_t, scalar_t, Epilogue, int64_t, 4>
-											<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-										break;
-									case 5:
-										cunn_SoftMaxForwardReg<scalar_t, accscalar_t, scalar_t, Epilogue, int64_t, 5>
-											<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-										break;
-									case 6:
-										cunn_SoftMaxForwardReg<scalar_t, accscalar_t, scalar_t, Epilogue, int64_t, 6>
-											<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-										break;
-									case 7:
-										cunn_SoftMaxForwardReg<scalar_t, accscalar_t, scalar_t, Epilogue, int64_t, 7>
-											<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-										break;
-									case 8:
-										cunn_SoftMaxForwardReg<scalar_t, accscalar_t, scalar_t, Epilogue, int64_t, 8>
-											<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-										break;
-									case 9:
-										cunn_SoftMaxForwardReg<scalar_t, accscalar_t, scalar_t, Epilogue, int64_t, 9>
-											<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-										break;
-								}
-							} else if (can_use_smem) {
-								size_t smem_sz = dim_size * sizeof(scalar_t) + smem_reduction_sz;
-								cunn_SoftMaxForwardSmem<ILP, scalar_t, accscalar_t, scalar_t, Epilogue>
-									<<<grid, block, smem_sz, stream>>>(output_ptr, input_ptr, dim_size);
-							} else {
-								cunn_SoftMaxForward<ILP, scalar_t, accscalar_t, scalar_t, Epilogue>
-									<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-							}
-						}
-
-						C10_CUDA_KERNEL_LAUNCH_CHECK();
-					}
-				} else {
-					auto output_ptr = output.mutable_data_ptr<accscalar_t>();
-					auto input_ptr = input.const_data_ptr<scalar_t>();
-					if (dim_size <= 1024 && dim_size*sizeof(scalar_t) <= 4096) {
-						int64_t remaining = outer_size;
-						int64_t chunk_size = (1<<30) / dim_size;
-						while(remaining > 0) {
-							dispatch_softmax_forward<scalar_t, accscalar_t, accscalar_t, is_log_softmax, false>(
-									output_ptr, input_ptr, dim_size, dim_size, std::min<int64_t>(remaining, chunk_size), nullptr/* not masked */);
-							input_ptr += chunk_size * dim_size;
-							output_ptr += chunk_size * dim_size;
-							remaining -= chunk_size;
-						}
-					} else {
-						constexpr int ILP = sizeof(float4) / sizeof(scalar_t);
-						if constexpr (use_fast_softmax) {
-							dim3 block(512);
-							size_t smem_reduction_sz = block.x / at::cuda::warp_size() * sizeof(accscalar_t);
-							if (dim_size % ILP == 0) {
-								cunn_SoftMaxForwardGmem<ILP, scalar_t, accscalar_t, accscalar_t, EpilogueWithMul>
-										<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-							} else {
-								cunn_SoftMaxForwardFast<ILP, scalar_t, accscalar_t, accscalar_t, EpilogueWithMul>
-										<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-							}
-						} else {
-							dim3 block = SoftMaxForward_getBlockSize(dim_size);
-							size_t smem_reduction_sz = block.x / at::cuda::warp_size() * sizeof(accscalar_t);
-							auto max_elements_per_smem = (at::cuda::getCurrentDeviceProperties()->sharedMemPerBlock -
-								smem_reduction_sz) / sizeof(scalar_t);
-
-							bool can_use_smem = static_cast<size_t>(dim_size) < max_elements_per_smem;
-							can_use_smem &= !(reinterpret_cast<uintptr_t>(input_ptr) % ALIGN_BYTES);
-							can_use_smem &= (!(reinterpret_cast<uintptr_t>(output_ptr) % ALIGN_BYTES));
-							can_use_smem &= !(dim_size % ILP);
-
-							if (can_use_smem) {
-								size_t smem_sz = dim_size * sizeof(scalar_t) + smem_reduction_sz;
-								cunn_SoftMaxForwardSmem<ILP, scalar_t, accscalar_t, accscalar_t, Epilogue>
-									<<<grid, block, smem_sz, stream>>>(output_ptr, input_ptr, dim_size);
-							} else {
-								cunn_SoftMaxForward<ILP, scalar_t, accscalar_t, accscalar_t, Epilogue>
-									<<<grid, block, smem_reduction_sz, stream>>>(output_ptr, input_ptr, dim_size);
-							}
-						}
-
-						C10_CUDA_KERNEL_LAUNCH_CHECK();
-					}
-				}
-			});
-		// This kernel runs in a 2D grid, where each application along y dimension has a fixed
-		// outer_size, and runs in parallel over inner_size. Dimension x is parallel over outer_size.
-		// Reductions over dim are done in a single-threaded manner.
-		}
+void spatial_softmax(
+	const ExecutionContext& e,
+	const DataType dtype,
+	const SoftmaxEpilogue epilogue,
+	const tart::buffer_ptr& output_buffer,
+	const uint32_t output_offset,
+	const tart::buffer_ptr& input_buffer,
+	const uint32_t input_offset,
+	const uint32_t outer_size,
+	const uint32_t dim_size,
+	const uint32_t inner_size,
+	const bool half_to_float,
+	const tart::command_sequence_ptr& sequence)
+{
+	Context ctx(e);
+	
+	uint32_t smem_size;
+	dim3 grid, block;
+	
+	if (!half_to_float)
+	{
+		SpatialSoftMax_getLaunchSizes(
+				e.queue(),
+				outer_size, dim_size, inner_size,
+				grid, block, smem_size);
+		tart::program_ptr prg = Cache::instance().get_program(ctx, "spatial_softmax_torch",
+			"dtype", data_type_to_opencl_type(dtype),
+			"SOFTMAX_EPILOGUE_TYPE", static_cast<uint32_t>(epilogue));
+		tart::kernel_ptr k = prg->getKernel("softmax_forward");
+		
+		int p = 0;
+		k->setArg(p++, output_buffer);
+		k->setArg(p++, output_offset);
+		k->setArg(p++, input_buffer);
+		k->setArg(p++, input_offset);
+		k->setArg(p++, outer_size);
+		k->setArg(p++, dim_size);
+		k->setArg(p++, inner_size);
+		
+		std::vector<uint32_t> g = grid.toVector();
+		std::vector<uint32_t> spec = block.toVector();
+		spec.push_back(smem_size);
+		if (sequence)
+			k->record(sequence, g, spec);
 		else
-#endif
-		{
-			uint32_t smem_size;
-			dim3 grid, block;
-			AT_DISPATCH_FLOATING_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, input.scalar_type(), "host_softmax", [&] {
-				using accscalar_t = acc_type<scalar_t, true>;
-				AT_DISPATCH_INDEX_TYPES(
-						at::native::canUse32BitIndexMath(input, INT_MAX) ? ScalarType::Int : ScalarType::Long,
-				"host_softmax_launcher", [&] {
-						if (!half_to_float) {
-								SpatialSoftMax_getLaunchSizes<accscalar_t>(
-										&cunn_SpatialSoftMaxForward<scalar_t, accscalar_t, scalar_t, index_t, Epilogue>,
-										outer_size, dim_size, inner_size,
-										grid, block, smem_size);
-								cunn_SpatialSoftMaxForward<scalar_t, accscalar_t, scalar_t, index_t, Epilogue>
-									<<<grid, block, smem_size, stream>>>(
-									output.mutable_data_ptr<scalar_t>(), input.const_data_ptr<scalar_t>(), outer_size, dim_size, inner_size);
-								C10_CUDA_KERNEL_LAUNCH_CHECK();
-						} else {
-								SpatialSoftMax_getLaunchSizes<accscalar_t>(
-										&cunn_SpatialSoftMaxForward<scalar_t, accscalar_t, accscalar_t, index_t, Epilogue>,
-										outer_size, dim_size, inner_size,
-										grid, block, smem_size);
-								cunn_SpatialSoftMaxForward<scalar_t, accscalar_t, accscalar_t, index_t, Epilogue>
-									<<<grid, block, smem_size, stream>>>(
-									output.mutable_data_ptr<accscalar_t>(), input.const_data_ptr<scalar_t>(), outer_size, dim_size, inner_size);
-								C10_CUDA_KERNEL_LAUNCH_CHECK();
-						}
-				 });
-			});
-		}
+			k->enqueue(g, spec);
 	}
-	return output;
+	else
+	{
+		throw std::runtime_error("half_to_float not implemented");
+#if 0
+		SpatialSoftMax_getLaunchSizes<accscalar_t>(
+				&cunn_SpatialSoftMaxForward<scalar_t, accscalar_t, accscalar_t, index_t, Epilogue>,
+				outer_size, dim_size, inner_size,
+				grid, block, smem_size);
+		cunn_SpatialSoftMaxForward<scalar_t, accscalar_t, accscalar_t, index_t, Epilogue>
+			<<<grid, block, smem_size, stream>>>(
+			output.mutable_data_ptr<accscalar_t>(), input.const_data_ptr<scalar_t>(), outer_size, dim_size, inner_size);
+#endif
+	}
 }
 
 } //namespace gpu
