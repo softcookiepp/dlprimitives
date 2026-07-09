@@ -50,7 +50,7 @@ void do_softmax_forward()
 				dtype max_input = -DTYPE_MAX;
 				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x) {
 					const dtype value = dtype(inp[data_offset + d * dim_stride]);
-					max_input = Max<dtype>()(max_input, value);
+					max_input = max(max_input, value);
 				}
 				spatialBlockReduceX(max_input, max, sdata, 0, max_input);
 
