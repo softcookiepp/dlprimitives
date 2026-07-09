@@ -1,6 +1,7 @@
 #version 450
 #include "../common/defs.glsl"
 #include "../common/workgroup.glsl"
+layout(constant_id = 3) const uint SMEM_SIZE = 1;
 
 // define this before including so that it doesn't do the forward one
 #ifndef SOFTMAX_EPILOGUE_TYPE
@@ -8,12 +9,6 @@
 #endif
 
 #include "softmax_torch_common.glsl"
-
-#ifndef SMEM_SIZE
-	// I have no idea how big it actually needs to be.
-	// It will likely have to be a specialization constant, and use the same dtype as whatever dtype is
-	#define SMEM_SIZE 1024
-#endif
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) buffer gradInputBuf { dtype gradInput[]; };

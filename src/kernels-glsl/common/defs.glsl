@@ -24,13 +24,23 @@
 
 // OpenCL semantics, because why not
 #ifndef CL_ALIASES
-#define CL_ALIASES
-#define get_global_id(dim) gl_GlobalInvocationID[dim]
-#define get_local_id(dim) gl_LocalInvocationID[dim]
-#define get_group_id(dim) gl_WorkGroupID[dim]
-#define get_global_size(idx) gl_NumWorkGroups[idx] * gl_WorkGroupSize[idx]
-#define get_local_size(idx) gl_WorkGroupSize[idx]
-#define get_num_groups(dim) gl_NumWorkGroups[dim]
+	#define CL_ALIASES
+	#define get_global_id(dim) gl_GlobalInvocationID[dim]
+	#define get_local_id(dim) gl_LocalInvocationID[dim]
+	#define get_group_id(dim) gl_WorkGroupID[dim]
+	#define get_global_size(idx) gl_NumWorkGroups[idx] * gl_WorkGroupSize[idx]
+	#define get_local_size(idx) gl_WorkGroupSize[idx]
+	#define get_num_groups(dim) gl_NumWorkGroups[dim]
+#endif
+
+// we are porting cuda kernels from torch too, because some of the OpenCL kernels from dlprimitives are just too stupid to be portable.
+// so we are gonna need this
+#ifndef CUDA_ALIASES
+	#define CUDA_ALIASES
+	#define threadIdx gl_LocalInvocationID
+	#define blockIdx gl_WorkGroupID
+	#define blockDim gl_WorkGroupSize
+	#define gridDim gl_NumWorkGroups
 #endif
 
 #define ACTIVATION_IDENTITY 0
@@ -105,6 +115,8 @@
 		#define UNROLL(d)
 	#endif
 #endif
+
+
 
 // borrowed from pytorch
 #define CUDA_KERNEL_LOOP_TYPE(i, n, index_type) \

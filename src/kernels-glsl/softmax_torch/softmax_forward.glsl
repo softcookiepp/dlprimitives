@@ -3,7 +3,6 @@
 #include "../common/workgroup.glsl"
 // better to have all constants spaced together I guess
 layout(constant_id = 3) const uint SMEM_SIZE = 1;
-
 #include "softmax_torch_common.glsl"
 
 #if USE_BDA == 0
@@ -41,7 +40,7 @@ void main()
 		{
 			const uint data_offset = outer_offset + inner_index;
 			dtype max_input = DTYPE_MIN;
-			if (true) // get_local_size(0) > 1; TODO: make this a specification constant or something
+			if (get_local_size(0) > 1)
 			{
 				
 				for (uint d = get_local_id(0); d < dim_size; d += get_local_size(0)) {
