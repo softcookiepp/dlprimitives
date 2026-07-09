@@ -31,6 +31,22 @@ void spatial_softmax(
 	const bool half_to_float,
 	const tart::command_sequence_ptr& sequence = nullptr);
 
+void spatial_softmax_backward(
+	const ExecutionContext& e,
+	const DataType dtype,
+	const SoftmaxEpilogue epilogue,
+	const tart::buffer_ptr& gI,
+	uint32_t gI_offset,
+	const tart::buffer_ptr& output,
+	uint32_t output_offset,
+	const tart::buffer_ptr& grad,
+	uint32_t grad_offset,
+	uint32_t outer_size,
+	uint32_t dim_size,
+	uint32_t inner_size,
+	bool half_to_float,
+	const tart::command_sequence_ptr& sequence = nullptr);
+
 } // namespace gpu
 
 } // namespace dlprim
