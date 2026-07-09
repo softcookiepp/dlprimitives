@@ -120,6 +120,72 @@ void spatial_softmax(
 	}
 }
 
+void spatial_softmax_backward(
+	const ExecutionContext& e,
+	const DataType dtype,
+	const SoftmaxEpilogue epilogue,
+	const tart::buffer_ptr& gI,
+	uint32_t gI_offset,
+	const tart::buffer_ptr& output,
+	uint32_t output_offset,
+	const tart::buffer_ptr& grad,
+	uint32_t grad_offset,
+	uint32_t outer_size,
+	uint32_t dim_size,
+	uint32_t inner_size,
+	bool half_to_float,
+	const tart::command_sequence_ptr& sequence)
+{
+	Context ctx(e);
+	
+	uint32_t smem_size;
+	dim3 grid, block;
+
+	if (!half_to_float)
+	{
+		SpatialSoftMax_getLaunchSizes(e.queue(), outer_size, dim_size, inner_size, grid, block, smem_size);
+		tart::program_ptr prg = Cache::instance().get_program(ctx, "spatial_softmax_torch",
+			"dtype", data_type_to_opencl_type(dtype));
+		tart::kernel_ptr k = prg->getKernel("softmax_backward");
+		
+		int p = 0;
+		k->setArg(p++, gI);
+		k->setArg(p++, gI_offset);
+		k->setArg(p++, output);
+		k->setArg(p++, output_offset);
+		k->setArg(p++, grad);
+		k->setArg(p++, grad_offset);
+		k->setArg(p++, outer_size);
+		k->setArg(p++, dim_size);
+		k->setArg(p++, inner_size);
+		
+		std::vector<uint32_t> g = grid.toVector();
+		std::vector<uint32_t> spec = block.toVector();
+		spec.push_back(smem_size);
+		if (sequence)
+			k->record(sequence, g, spec);
+		else
+			k->enqueue(g, spec);
+	}
+	else
+	{
+#if 1
+		throw std::runtime_error("half_to_float not implemented");
+#else
+		SpatialSoftMax_getLaunchSizes<accscalar_t>(
+				&cunn_SpatialSoftMaxBackward<scalar_t, accscalar_t, accscalar_t, Epilogue>,
+				outer_size, dim_size, inner_size,
+				grid, block, smem_size);
+
+		cunn_SpatialSoftMaxBackward<scalar_t, accscalar_t, accscalar_t, Epilogue>
+			<<<grid, block, smem_size, stream>>>(
+				gI.mutable_data_ptr<scalar_t>(), output.const_data_ptr<accscalar_t>(), grad.const_data_ptr<accscalar_t>(),
+				outer_size, dim_size, inner_size
+		);
+#endif
+	}
+}
+
 } //namespace gpu
 
 } // namespace dlprim
