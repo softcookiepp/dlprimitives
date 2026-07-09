@@ -46,9 +46,9 @@ void main()
     outp_ += (b * channels * extra_batch + eb);
     
     // REDUCE_PREPARE(WG_SIZE, dtype);
-    //REDUCE_FILL(dtype(-1.0)*DTYPE_MAX);
+    //REDUCE_FILL(DTYPE_MIN);
 
-    dtype val = dtype(-1.0)*DTYPE_MAX;
+    dtype val = DTYPE_MIX;
 
     #if ITEMS_PER_WI <= LOCAL_ITEMS_LIMIT
         dtype values[ITEMS_PER_WI];
