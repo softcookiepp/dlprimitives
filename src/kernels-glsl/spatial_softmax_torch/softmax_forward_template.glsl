@@ -38,6 +38,7 @@ void do_softmax_forward()
 		for (uint inner_index = blockIdx.y * blockDim.y + threadIdx.y; inner_index < inner_size; inner_index += blockDim.y * gridDim.y)
 		{
 			const uint data_offset = outer_offset + inner_index;
+			// TODO: make this determined by a specialization constant instead; they are for this exact purpose!
 			////////////////////////////////////////////////////////////
 			// These two blocks are really equivalent, but specializing on
 			// blockDim.x == 1 makes the kernel faster when it's unused.
