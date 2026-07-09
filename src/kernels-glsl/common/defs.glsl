@@ -50,9 +50,12 @@
 #define ACTIVATION_RELU6    4
 
 #ifndef dtype
+	#define dtype float
+#endif
+
+#if dtype == float
 	#define sizeof_dtype 4
 	#define PRECISION 32
-	#define dtype float
 	#define dtype2 vec2
 	#define dtype4 vec4
 	#define DTYPE_MAX FLT_MAX
@@ -66,6 +69,8 @@
 		#define dtype_to_atomic(v) floatBitsToUint(v)
 		#define atomic_to_dtype(v) uintBitsToFloat(v)
 	#endif
+#else
+	#error "dtype constants not implemented"
 #endif
 
 #define cmp_gt(a, b) (dtype(a) > dtype(b) )
