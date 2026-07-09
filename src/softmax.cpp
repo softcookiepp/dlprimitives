@@ -85,8 +85,7 @@ void spatial_softmax(
 				outer_size, dim_size, inner_size,
 				grid, block, smem_size);
 		tart::program_ptr prg = Cache::instance().get_program(ctx, "spatial_softmax_torch",
-			"dtype", data_type_to_opencl_type(dtype),
-			"SOFTMAX_EPILOGUE_TYPE", static_cast<uint32_t>(epilogue));
+			"dtype", data_type_to_opencl_type(dtype));
 		tart::kernel_ptr k = prg->getKernel("softmax_forward");
 		
 		int p = 0;
