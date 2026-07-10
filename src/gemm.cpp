@@ -315,7 +315,7 @@ namespace gpu {
         {
             check_zorder(ctx,M,N);
 #if VULKAN_API
-            tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm_attempt_2",
+            tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm",
                                         "TILE_SIZE_M",tile_size_m_,
                                         "TILE_SIZE_N",tile_size_n_,
                                         "BLOCK_SIZE_M",block_size_m_,
