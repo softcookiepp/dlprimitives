@@ -37,27 +37,27 @@ layout(push_constant, std430) uniform cunn_SpatialSoftMaxBackward
 
 void do_softmax_backward()
 {
-	const uint32_t outer_stride = inner_size * dim_size;
-	const uint32_t dim_stride = inner_size;
+	const uint outer_stride = inner_size * dim_size;
+	const uint dim_stride = inner_size;
 
-	for (uint32_t outer_index = blockIdx.x; outer_index < outer_size; outer_index += gridDim.x)
+	for (uint outer_index = blockIdx.x; outer_index < outer_size; outer_index += gridDim.x)
 	{
-		const uint32_t outer_offset = outer_index * outer_stride;
-		for (uint32_t inner_index = blockIdx.y * blockDim.y + threadIdx.y; inner_index < inner_size; inner_index += blockDim.y * gridDim.y)
+		const uint outer_offset = outer_index * outer_stride;
+		for (uint inner_index = blockIdx.y * blockDim.y + threadIdx.y; inner_index < inner_size; inner_index += blockDim.y * gridDim.y)
 		{
-			const uint32_t data_offset = outer_offset + inner_index;
+			const uint data_offset = outer_offset + inner_index;
 			// See the comment in forward kernel
 			if (blockDim.x > 1)
 			{
 				accscalar_t sum = 0;
-				for (uint32_t d = threadIdx.x; d < dim_size; d += blockDim.x)
+				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
 					sum += gradOutput[data_offset + d * dim_stride];
 				//sum = spatialBlockReduceX<accscalar_t, Add>(sdata, sum);
 				spatialBlockReduceX(sum, add_fn, sdata, 0, sum)
 
 				//Epilogue<scalar_t, accscalar_t, outscalar_t> epilogue(sum);
 				Epilogue epilogue = Epilogue(sum);
-				for (uint32_t d = threadIdx.x; d < dim_size; d += blockDim.x)
+				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
 				{
 					gradInput[data_offset + d * dim_stride] =
 						do_epilogue(epilogue, gradOutput[data_offset + d * dim_stride],
@@ -67,11 +67,11 @@ void do_softmax_backward()
 			else
 			{
 				accscalar_t sum = 0;
-				for (uint32_t d = 0; d < dim_size; d++)
+				for (uint d = 0; d < dim_size; d++)
 					sum += gradOutput[data_offset + d * dim_stride];
 
 				Epilogue epilogue = Epilogue(sum);
-				for (uint32_t d = 0; d < dim_size; d++) {
+				for (uint d = 0; d < dim_size; d++) {
 					gradInput[data_offset + d * dim_stride] =
 						do_epilogue(epilogue, gradOutput[data_offset + d * dim_stride],
 										output_[data_offset + d * dim_stride]);
