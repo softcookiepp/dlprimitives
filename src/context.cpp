@@ -12,6 +12,16 @@
 
 namespace dlprim
 {
+	
+	void enqueue_or_record(const tart::kernel_ptr& k, const std::vector<uint32_t>& grid,
+		const std::vector<uint32_t>& spec, const tart::command_sequence_ptr& sequence)
+	{
+		if (sequence)
+			k->record(sequence, grid, spec);
+		else
+			k->enqueue(grid, spec);
+	}
+	
 	tart::Instance Context::sInstance;
     Context::Context(ExecutionContext const &ec)
     {
