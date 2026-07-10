@@ -979,115 +979,6 @@ namespace gpu {
 	
 	class BlasSGEMM : public GEMM
 	{
-		// taken from clblast
-		static bool a_want_rotated_(const size_t gemm_kernel_id) { return gemm_kernel_id == 1; }
-		static bool b_want_rotated_(const size_t) { return true; }
-		static bool c_want_rotated_(const size_t gemm_kernel_id) { return gemm_kernel_id == 1; }
-		
-		// Process the user-arguments, computes secondary parameters
-		static void ProcessArguments(const clblast::Layout layout, const clblast::Transpose a_transpose, const clblast::Transpose b_transpose,
-			const size_t m, const size_t n, const size_t k, size_t& a_one, size_t& a_two,
-			size_t& b_one, size_t& b_two, size_t& c_one, size_t& c_two, bool& a_do_transpose,
-			bool& b_do_transpose, bool& c_do_transpose, bool& a_conjugate, bool& b_conjugate,
-			const size_t gemm_kernel_id)
-		{
-			// Makes sure all dimensions are larger than zero
-			if ((m == 0) || (n == 0) || (k == 0))
-			{
-				throw std::runtime_error("invalid dimension");
-			}
-
-			// Computes whether or not the matrices are transposed in memory. This is based on their layout
-			// (row or column-major) and whether or not they are requested to be pre-transposed. Note
-			// that the Xgemm kernel expects either matrices A and C (in case of row-major) or B (in case of
-			// col-major) to be transformed, so transposing requirements are not the same as whether or not
-			// the matrix is actually transposed in memory.
-			const auto a_rotated = (layout == clblast::Layout::kColMajor && a_transpose != clblast::Transpose::kNo) ||
-			(layout == clblast::Layout::kRowMajor && a_transpose == clblast::Transpose::kNo);
-			const auto b_rotated = (layout == clblast::Layout::kColMajor && b_transpose != clblast::Transpose::kNo) ||
-			(layout == clblast::Layout::kRowMajor && b_transpose == clblast::Transpose::kNo);
-			const auto c_rotated = (layout == clblast::Layout::kRowMajor);
-			a_do_transpose = a_rotated != a_want_rotated_(gemm_kernel_id);
-			b_do_transpose = b_rotated != b_want_rotated_(gemm_kernel_id);
-			c_do_transpose = c_rotated != c_want_rotated_(gemm_kernel_id);
-
-			// In case of complex data-types, the transpose can also become a conjugate transpose
-			a_conjugate = (a_transpose == clblast::Transpose::kConjugate);
-			b_conjugate = (b_transpose == clblast::Transpose::kConjugate);
-
-			// Computes the first and second dimensions of the 3 matrices taking into account whether the
-			// matrices are rotated or not
-			a_one = (a_rotated) ? k : m;
-			a_two = (a_rotated) ? m : k;
-			b_one = (b_rotated) ? n : k;
-			b_two = (b_rotated) ? k : n;
-			c_one = (c_rotated) ? n : m;
-			c_two = (c_rotated) ? m : n;
-			
-		}
-
-#if 0
-		void GemmDirect(const size_t m, const size_t n, const size_t k, const float alpha, tart::buffer_ptr& a_buffer,
-			const size_t a_offset, const size_t a_ld, const tart::buffer_ptr& b_buffer, const size_t b_offset,
-			const size_t b_ld, const T beta, tart::buffer_ptr& c_buffer, const size_t c_offset,
-			const size_t c_ld, const bool a_do_transpose, const bool b_do_transpose,
-			const bool c_do_transpose, const bool a_conjugate, const bool b_conjugate)
-		{
-			// Retrieves the proper XgemmDirect kernel from the compiled binary
-			const auto name = (a_do_transpose) ? (b_do_transpose ? "xgemm_direct_tt" : "xgemm_direct_tn") : (b_do_transpose ? "xgemm_direct_nt" : "xgemm_direct_nn");
-			
-			auto prog = Cache::instance().get_program(ctx, "sgemm-from-clblast"
-			// TODO: pull all the defs from the CLBlast DB, then throw them in here
-			);
-			
-			auto kernel = prog->getKernel(name);
-
-			// Sets the kernel arguments
-			kernel->setArg(0, static_cast<int>(m));
-			kernel->setArg(1, static_cast<int>(n));
-			kernel->setArg(2, static_cast<int>(k));
-			kernel->setArg(3, alpha);
-			kernel->setArg(4, beta);
-			kernel->setArg(5, a_buffer);
-			kernel->setArg(6, static_cast<int>(a_offset));
-			kernel->setArg(7, static_cast<int>(a_ld));
-			kernel->setArg(8, b_buffer);
-			kernel->setArg(9, static_cast<int>(b_offset));
-			kernel->setArg(10, static_cast<int>(b_ld));
-			kernel->setArg(11, c_buffer);
-			kernel->setArg(12, static_cast<int>(c_offset));
-			kernel->setArg(13, static_cast<int>(c_ld));
-			kernel->setArg(14, static_cast<int>(c_do_transpose));
-			kernel->setArg(15, static_cast<int>(a_conjugate));
-			kernel->setArg(16, static_cast<int>(b_conjugate));
-			
-			// provide the same buffers twice to get around GLSL's lack of pointer casting
-			kernel->setArg(17, a_buffer());
-			kernel->setArg(18, b_buffer());
-			
-			// default WGD is 8
-			const auto WGD = 8;
-			
-			// default MDIMCD is also 8
-			const auto MDIMCD = 8;
-			
-			// default NDIMCD is, yet again, 8
-			const auto NDIMCD = 8;
-
-			// Computes the global and local thread sizes
-			const auto m_ceiled = Ceil(m, WGD); // where do we even get this from?
-			const auto n_ceiled = Ceil(n, WGD); // or this? or any of the db_ values?
-			const auto global =
-					std::vector<size_t>{//	CeilDiv(m * db_["MDIMCD"], db_["WGD"]),
-															//	CeilDiv(n * db_["NDIMCD"], db_["WGD"])
-															(m_ceiled * MDIMCD) / WGD, (n_ceiled * NDIMCD) / WGD};
-			const auto local = std::vector<size_t>{MDIMCD, NDIMCD};
-
-			// Launches the kernel
-			global.resize(3, 1);
-			kernel->run(global, local);
-		}
-#endif
 		
     public:
         BlasSGEMM(Context &ctx, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0) :
@@ -1116,7 +1007,6 @@ namespace gpu {
                           int size_of_c,
                           ExecutionContext const &ein)
         {
-#if 1
 			const float alpha = 1.0;
 			if (beta == 0.0 && mUseBias)
 			{
@@ -1138,35 +1028,6 @@ namespace gpu {
 			
 			clblast::Gemm(clblast::Layout::kRowMajor, mATrans, mBTrans, M, N, K, alpha,
 				a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc, mDevice);
-#else
-			auto layout = clblast::Layout::kRowMajor
-			auto aTrans = mATrans;
-			auto bTrans = mBTrans;
-			float alpha = 1.0;
-			
-			size_t a_one;
-			size_t a_two;
-			size_t b_one;
-			size_t b_two;
-			size_t c_one;
-			size_t c_two;
-			
-			bool a_do_transpose;
-			bool b_do_transpose;
-			bool c_do_transpose;
-			
-			bool a_conjugate;
-			bool b_conjugate;
-			
-			ProcessArguments(layout, mATrans, mBTrans,
-				M, N, K, a_one, a_two, b_one, b_two, c_one, c_two, a_do_transpose,
-				b_do_transpose, c_do_transpose, a_conjugate, b_conjugate, 0);
-			
-			// just skip testing for now
-			GemmDirect(M, N, K, alpha, a, offset_a, lda, b, offset_b, ldb, beta, c, offset_c, ldc,
-				 a_do_transpose, b_do_transpose, c_do_transpose, a_conjugate, b_conjugate);
-			
-#endif
         }
 
     private:
