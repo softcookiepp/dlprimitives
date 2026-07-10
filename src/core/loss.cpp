@@ -56,8 +56,8 @@ namespace core {
         y.set_arg(kernel, p);
 
         //std::vector<uint32_t> wg({1,wg_size,1});
-        //kernel->run(gr, wg);
-        kernel->run({b0, nd_range/wg_size, b2}, {});
+        //kernel->enqueue(gr, wg);
+        kernel->enqueue({b0, nd_range/wg_size, b2}, {});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"softmax",
                             "WG_SIZE",wg_size,
@@ -123,8 +123,8 @@ namespace core {
         kernel->setArg(p++, factor);
 
         //std::vector<uint32_t> wg({1,wg_size,1});
-        //kernel->run(gr, wg);
-        kernel->run({b0,nd_range/wg_size,b2}, {});
+        //kernel->enqueue(gr, wg);
+        kernel->enqueue({b0,nd_range/wg_size,b2}, {});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"softmax",
                             "WG_SIZE",wg_size,
@@ -200,7 +200,7 @@ namespace core {
         y.set_arg(kernel,p);
         kernel->setArg(p++,scale);
         std::vector<uint32_t> wg({wg_size, 1, 1});
-        kernel->run({1, 1, 1}, {});
+        kernel->enqueue({1, 1, 1}, {});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_fwd",
                             "WG_SIZE",wg_size,
@@ -257,7 +257,7 @@ namespace core {
         dy.set_arg(kernel,p);
         kernel->setArg(p++,scale);
         kernel->setArg(p++,factor);
-        kernel->run({in_shape[1],in_shape[0], 1}, {1, 1, 1});
+        kernel->enqueue({in_shape[1],in_shape[0], 1}, {1, 1, 1});
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_bwd",
                             "REDUCE",int(reduce),

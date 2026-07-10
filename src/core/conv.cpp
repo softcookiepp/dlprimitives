@@ -294,13 +294,13 @@ namespace core {
             g1[0] = g1[0]/l1[0];
             g1[1] = g1[1]/l1[1];
             g1.resize(3, 1);
-            conv_kernel_->run(g1, l1);
+            conv_kernel_->enqueue(g1, l1);
             ec.queue()->sync();
             std::vector<uint32_t> l2({256,1});
             int tiles = ((w + 1) / 2 * (h + 1) / 2 * B + 31)/32;
             std::vector<uint32_t> g2({tiles,(N + 31) / 32});
             g2.resize(3, 1);
-            conv_->run(g2, l2);
+            conv_->enqueue(g2, l2);
 #else
             cl::NDRange l1(8,8);
             cl::NDRange g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
@@ -444,13 +444,13 @@ namespace core {
             g1[0] = g1[0]/l1[0];
             g1[1] = g1[1]/l1[1];
             g1.resize(3, 1);
-            conv_kernel_bwd_->run(g1, l1);
+            conv_kernel_bwd_->enqueue(g1, l1);
 
             std::vector<uint32_t> l2({256, 1});
             int tiles = ((w + 1) / 2 * (h + 1) / 2 * B + 31)/32;
             std::vector<uint32_t> g2({tiles, (C + 31) / 32});
             g1.resize(3, 1);
-            bw_conv_data_->run(g2, l2);
+            bw_conv_data_->enqueue(g2, l2);
 #else
             cl::NDRange l1(8,8);
             cl::NDRange g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
@@ -536,10 +536,10 @@ namespace core {
                 ExecutionContext ec2 = ec.generate_series_context(1,2);
                 s_.enqueue(factor,dK,ec1);
                 gr.resize(3, 1);
-                bw_conv_filter_->run(gr, wg);
+                bw_conv_filter_->enqueue(gr, wg);
             }
             else {
-				bw_conv_filter_->run(gr, wg);
+				bw_conv_filter_->enqueue(gr, wg);
             }
 #else
             bw_conv_filter_.setArg(p++,B);
@@ -635,7 +635,7 @@ namespace core {
             for (size_t i = 0; i < wg.size(); i += 1)
 				gr[i] = gr[i]/wg[i];
 			gr.resize(3, 1);
-            conv_->run(gr, wg);
+            conv_->enqueue(gr, wg);
 #else
             conv_.setArg(p++,batch);
             conv_.setArg(p++,height);
@@ -742,7 +742,7 @@ namespace core {
 			for (size_t i = 0; i < gr.size(); i += 1)
 				gr[i] = gr[i]/wg[i];
 			gr.resize(3, 1);
-			bw_conv_data_->run(gr, wg);
+			bw_conv_data_->enqueue(gr, wg);
 #else
             cl::NDRange wg(lH,lW,lD);
             cl::NDRange gr=gpu::round_range(gH,gW,batch*config_.channels_in,wg);
@@ -881,7 +881,7 @@ namespace core {
             if(second_reduce_ == 1) {
 #if VULKAN_API
 				gr.resize(3, 1);
-				bw_conv_filter_->run(gr, wg);
+				bw_conv_filter_->enqueue(gr, wg);
 #else
                 ec.queue().enqueueNDRangeKernel(bw_conv_filter_,cl::NullRange,gr,wg,ec.events(),ec.event("sep_conv_bw_filter"));
 #endif
@@ -891,7 +891,7 @@ namespace core {
                 auto ec2 = ec.generate_series_context(1,2);
 #if VULKAN_API
 				gr.resize(3, 1);
-				bw_conv_filter_->run(gr, wg);
+				bw_conv_filter_->enqueue(gr, wg);
 #else
                 ec.queue().enqueueNDRangeKernel(bw_conv_filter_,cl::NullRange,gr,wg,ec1.events(),ec1.event("sep_conv_bw_filter"));
 #endif
@@ -901,7 +901,7 @@ namespace core {
                 dK.set_arg(reduce_,p);
 #if VULKAN_API
 				reduce_->setArg(p++,factor);
-				reduce_->run({1, reduce_items}, {second_reduce_, 1});
+				reduce_->enqueue({1, reduce_items}, {second_reduce_, 1});
 #else
 				reduce_.setArg(p++,factor);
                 ec.queue().enqueueNDRangeKernel(reduce_,

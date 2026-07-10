@@ -90,7 +90,7 @@ namespace dlprim { namespace core {
         int gr_size = (bc + work_per_thread - 1) / work_per_thread;
 #if VULKAN_API
 		std::vector<uint32_t> gr({tgtH,tgtW,gr_size});
-		k->run(gr, {1, 1, 1});
+		k->enqueue(gr, {1, 1, 1});
 #else
         cl::NDRange gr(tgtH,tgtW,gr_size);
         char const *name = (bilinear ? (fwd_bilinear ? "bilinear_fwd" : "bilinear_bwd") : "nearest_fwd");
@@ -174,7 +174,7 @@ namespace dlprim { namespace core {
         int gr_size = (bc + work_per_thread - 1) / work_per_thread;
 #if VULKAN_API
 		std::vector<uint32_t> gr({srcH,srcW,gr_size});
-		k->run(gr, {1, 1, 1});
+		k->enqueue(gr, {1, 1, 1});
 #else
         cl::NDRange gr(srcH,srcW,gr_size);
         e.queue().enqueueNDRangeKernel(k,cl::NullRange,gr,cl::NullRange,e.events(),e.event("nearest_bwd"));

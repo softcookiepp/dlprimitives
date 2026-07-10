@@ -167,7 +167,7 @@ namespace core {
 		if (total > 0)
 			global = (local[0] / total) + 1;
 		local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
-        k->run({total}, local);
+        k->enqueue({total}, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"pointwise",
                                                                            "dtype",data_type_to_opencl_type(ref_type),
@@ -434,7 +434,7 @@ namespace core {
         // well this is going to be a pain in the bum
         //device->validateWorkSize(range);
         range.resize(3, 1);
-		k->run(range, local);
+		k->enqueue(range, local);
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
                                                                            "DIMS",ref.size(),
@@ -570,12 +570,12 @@ namespace core {
 				wg_range_.resize(3, 1);
 			glob.resize(3, 1);
 			if(second_stage_stride_ == 1) {
-				kernel_->run(glob, wg_range_);
+				kernel_->enqueue(glob, wg_range_);
             }
             else {
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
-                kernel_->run(glob, wg_range_);
+                kernel_->enqueue(glob, wg_range_);
                 DLPRIM_CHECK(second_stage_->workspace() == 0);
                 Tensor tmp;
                 second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);

@@ -46,7 +46,7 @@ namespace core {
         std::vector<uint32_t> g = gpu::round_range(size,l);
         g[0] = g[0]/l[0];
         g.resize(3, 1);
-        k_->run(g, l);
+        k_->enqueue(g, l);
 #else
         cl::NDRange l(wg);
         cl::NDRange g=gpu::round_range(size,l);
@@ -118,7 +118,7 @@ namespace core {
 			targetLocalSizeX -= 1;
 		}
         const uint32_t adjustedGlobalSizeX = globalSizeX / targetLocalSizeX;
-        k->run({adjustedGlobalSizeX, 1, 1}, {targetLocalSizeX, 1, 1});
+        k->enqueue({adjustedGlobalSizeX, 1, 1}, {targetLocalSizeX, 1, 1});
 #else
         k.setArg(p++,total);
         t.set_arg(k,p);
