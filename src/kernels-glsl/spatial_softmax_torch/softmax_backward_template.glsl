@@ -49,13 +49,13 @@ void do_softmax_backward()
 			// See the comment in forward kernel
 			if (blockDim.x > 1)
 			{
-				accscalar_t sum = 0;
+				dtype sum = 0;
 				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
 					sum += gradOutput[data_offset + d * dim_stride];
-				//sum = spatialBlockReduceX<accscalar_t, Add>(sdata, sum);
+				//sum = spatialBlockReduceX<dtype, Add>(sdata, sum);
 				spatialBlockReduceX(sum, add_fn, sdata, 0, sum)
 
-				//Epilogue<scalar_t, accscalar_t, outscalar_t> epilogue(sum);
+				//Epilogue<dtype, dtype, outdtype> epilogue(sum);
 				Epilogue epilogue = Epilogue(sum);
 				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
 				{
@@ -66,7 +66,7 @@ void do_softmax_backward()
 			}
 			else
 			{
-				accscalar_t sum = 0;
+				dtype sum = 0;
 				for (uint d = 0; d < dim_size; d++)
 					sum += gradOutput[data_offset + d * dim_stride];
 
