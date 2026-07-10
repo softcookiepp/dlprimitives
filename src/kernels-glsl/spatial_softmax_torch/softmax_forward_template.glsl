@@ -85,10 +85,14 @@ void do_softmax_forward()
 				
 				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
 				{
+#if 1
+					do_epilogue(epilogue, outp[data_offset + d * dim_stride + outp_offset], inp[data_offset + d * dim_stride + inp_offset]);
+#else
 					dtype s;
 					dtype si = inp[data_offset + d * dim_stride + inp_offset];
 					do_epilogue(epilogue, s, si);
 					outp[data_offset + d * dim_stride + outp_offset] = s;
+#endif
 				}
 			}
 		}
