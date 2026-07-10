@@ -397,17 +397,6 @@ public:
     /// 
     int estimated_core_count();
 
-    /// checks if the device is AMD GPU
-    bool is_amd();
-    /// checks if the device is Apple GPU
-    bool is_apple();
-    /// checks if the device is NVidia GPU
-    bool is_nvidia();
-    /// checks if the device is Intel GPU
-    bool is_intel();
-    /// checks if the device is Imagination GPU
-    bool is_imagination();
-
     /// Get OpenCL context object
 	tart::device_ptr &context()
     {

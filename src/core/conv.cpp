@@ -315,7 +315,7 @@ namespace core {
         Conv2DForwardWinograd(Context &ctx,Conv2DSettings const &config,bool bias,StandardActivations activation = StandardActivations::identity) :
             config_(config)
         {
-            int off = ctx.is_amd() ? 0 : 1;
+            int off = 1;
             int toff = 1;
 #if VULKAN_API
 			// this is how you do it for now lol
@@ -367,7 +367,7 @@ namespace core {
             config_(config),
             s_(ctx,config.dtype)
         {
-            int off = ctx.is_amd() ? 0 : 1;
+            int off = 1;
             int toff = 1;
 #if VULKAN_API
 			int local_mem_size = ctx.device()->getMetadata().physicalDeviceProperties.limits.maxComputeSharedMemorySize;
@@ -487,7 +487,7 @@ namespace core {
             int w = config.shape[3];
             int winograd_work_items = (config_.channels_in / 32) * (config_.channels_out / 32) * 256;
             reduce_k_ = winograd_work_items < ctx.estimated_core_count();
-            int off = ctx.is_amd() ? 0 : 1;
+            int off = 1;
             int toff = 1;
 #if VULKAN_API
 			int local_mem_size = ctx.device()->getMetadata().physicalDeviceProperties.limits.maxComputeSharedMemorySize;
@@ -943,8 +943,6 @@ namespace core {
     }
     static bool is_winograd_compatible(Context &ctx,Conv2DSettings const &config)
     {
-        if(!(ctx.is_amd() || ctx.is_nvidia() || ctx.is_intel()))
-            return false;
 #if VULKAN_API
 		if (ctx.device()->getMetadata().physicalDeviceProperties.limits.maxComputeSharedMemorySize < 32768)
 			return false;

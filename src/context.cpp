@@ -110,91 +110,15 @@ namespace dlprim {
         return res;
     }
 
-    bool Context::is_amd()
-    {
-#if VULKAN_API
-		return false;
-#else
-        if(is_cpu_context())
-            return false;
-        return device().getInfo<CL_DEVICE_VENDOR_ID>() == 0x1002;
-        //return device_extensions().find("cl_amd_") != std::string::npos;
-#endif
-    }
-    bool Context::is_apple()
-    {
-#if VULKAN_API
-		return false;
-#else
-        if(is_cpu_context())
-            return false;
-        return device().getInfo<CL_DEVICE_VENDOR_ID>() == 0x1027f00;
-#endif
-    }
-    bool Context::is_intel()
-    {
-#if VULKAN_API
-		return false;
-#else
-        if(is_cpu_context())
-            return false;
-        return device().getInfo<CL_DEVICE_VENDOR_ID>() == 0x8086;
-        //return device_extensions().find("cl_intel_") != std::string::npos;
-#endif
-    }
-    bool Context::is_nvidia()
-    {
-#if VULKAN_API
-		return false;
-#else
-        if(is_cpu_context())
-            return false;
-        return device().getInfo<CL_DEVICE_VENDOR_ID>() == 0x10DE;
-        //return device_extensions().find("cl_nv_") != std::string::npos;
-#endif
-    }
-    bool Context::is_imagination()
-    {
-#if VULKAN_API
-		return false;
-#else
-        if(is_cpu_context())
-            return false;
-        return device().getInfo<CL_DEVICE_VENDOR_ID>() == 0x1010;
-#endif
-    }
-
     int Context::estimated_core_count()
     {
-#if VULKAN_API
 		// not implemented in tart yet; will do later
 		return 0;
-#else
-        int cu = device().getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
-        if(is_apple())
-            // TODO: detect Apple8+ generation, then return cu * 512
-            return cu * 256;
-        if(is_nvidia())
-            return cu * 128;
-        if(is_amd())
-            return cu * 64;
-        if(is_intel())
-            return cu * 8;
-        return cu;
-#endif
     }
 
     std::string const &Context::device_extensions()
     {
-#if VULKAN_API
 		return ext_;
-#else
-        if(is_cpu_context())
-            return ext_;
-        if(ext_.empty())
-            ext_ = device().getInfo<CL_DEVICE_EXTENSIONS>();
-        return ext_;
-#endif
     }
 
 
@@ -202,40 +126,17 @@ namespace dlprim {
     {
         if(is_cpu_context())
             return "CPU";
-#if VULKAN_API
 		std::string name = "not implemented"; //device_->getMetadata().name();
 		return name;
-#else
-        std::string plat = platform_.getInfo<CL_PLATFORM_NAME>().c_str();
-        std::string dev  = device_.getInfo<CL_DEVICE_NAME>().c_str();
-        return dev + " on " + plat;
-#endif
     }
 
     void Context::select_opencl_device(int p,int d)
     {
-#if VULKAN_API
 		tart::Instance& instance = sInstance;
 		if (d >= instance.getNumDevices() )
 			throw ValidationError("No such device : " + std::to_string(d));
 		device_ = instance.getDevice(d);
 		context_ = device_;
-#else
-        std::vector<cl::Platform> platforms;
-        cl::Platform::get(&platforms);
-        if(p < 0 || size_t(p) >= platforms.size()) {
-            throw ValidationError("No such platform id " + std::to_string(p) + " total " + std::to_string(platforms.size()) + " avaliblie");
-        }
-        std::vector<cl::Device> devices;
-        platform_ = platforms[p];
-        platform_.getDevices(CL_DEVICE_TYPE_ALL, &devices);
-        if(d < 0 || size_t(d) >= devices.size()) {
-            throw ValidationError("No such device id " + std::to_string(d) + " for platform " 
-                                 + std::to_string(p) + " total " + std::to_string(devices.size()) + " avaliblie");
-        }
-        device_ = devices[d];
-        context_ = cl::Context(device_);
-#endif
     }
 }
 

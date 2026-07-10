@@ -25,121 +25,46 @@ namespace gpu {
             sep_act_ = false;
             batch_gemm_ = batch_gemm;
             reduce_k_ = 1;
-            if(ctx.check_device_extension("cl_intel_subgroups")) {
-                block_size_m_ = 8;
-                block_size_n_ = 8;
-                tile_size_k_ = 4;
-                off_ = 0;
-                if(M >= 128 && N >= 128) {
-                    tile_size_m_ = tile_size_n_ = 128;
-                }
-                else {
-                    tile_size_m_ = tile_size_n_ = 64;
-                }
-            }
-            else {
-                if (ctx.is_apple()) {
-                    tile_size_m_ = 32;
-                    tile_size_n_ = 32;
-                    block_size_m_ = 4;
-                    block_size_n_ = 4;
-                    tile_size_k_ = 16;
-                    off_ = 0;
-                }
-                else if (ctx.is_imagination())
-                {
-                   tile_size_m_ = 64;
-                   tile_size_n_ = 64;
-                   block_size_m_ = 8;
-                   block_size_n_ = 8;
-                   tile_size_k_ = 16;
-                   off_ = 1;
-                }
-                else if(ctx.is_amd() && !actual_gemm) {
-                    if(M >= 256 && N >= 256) {
-                        tile_size_m_ = 96;
-                        tile_size_n_ = 96;
-                        block_size_m_ = 6;
-                        block_size_n_ = 6;
-                        tile_size_k_ = 16;
-                        off_ = 0;
-                    }
-                    else if(M >= 64 && N>= 64) {
-                        tile_size_m_ = 64;
-                        tile_size_n_ = 64;
-                        block_size_m_ = 4;
-                        block_size_n_ = 4;
-                        tile_size_k_ = 16;
-                        off_ = 0;
-                    }
-                    else if(M >= 32 && N >= 32) {
-                        tile_size_m_ = 32;
-                        tile_size_n_ = 32;
-                        block_size_m_ = 4;
-                        block_size_n_ = 4;
-                        tile_size_k_ = 32;
-                        off_ = 0;
-                    }
-                    else if(M * N <= 256) {
-                        tile_size_m_ = 16;
-                        tile_size_n_ = 16;
-                        block_size_m_ = 1;
-                        block_size_n_ = 1;
-                        tile_size_k_ = 128;
-                        off_ = 0;
-                    }
-                    else {
-                        tile_size_m_ = 16;
-                        tile_size_n_ = 16;
-                        block_size_m_ = 2;
-                        block_size_n_ = 2;
-                        tile_size_k_ = 64;
-                        off_ = 0;
-                    }
-                }
-                else {
-                    if(M >= 256 && N >= 256) {
-                        tile_size_m_ = 128;
-                        tile_size_n_ = 128;
-                        block_size_m_ = 8;
-                        block_size_n_ = 8;
-                        tile_size_k_ = 16;
-                        off_ = ctx.is_amd() ? 0 :1;
-                    }
-                    else if(M >= 128 && N>= 128) {
-                        tile_size_m_ = 64;
-                        tile_size_n_ = 64;
-                        block_size_m_ = 8;
-                        block_size_n_ = 8;
-                        tile_size_k_ = 16;
-                        off_ = ctx.is_amd() ? 0: 1;
-                    }
-                    else if(M >= 32 && N >= 32) {
-                        tile_size_m_ = 32;
-                        tile_size_n_ = 32;
-                        block_size_m_ = 4;
-                        block_size_n_ = 4;
-                        tile_size_k_ = 32;
-                        off_ = 0;
-                    }
-                    else if(M * N <= 256) {
-                        tile_size_m_ = 16;
-                        tile_size_n_ = 16;
-                        block_size_m_ = 1;
-                        block_size_n_ = 1;
-                        tile_size_k_ = 128;
-                        off_ = 0;
-                    }
-                    else {
-                        tile_size_m_ = 16;
-                        tile_size_n_ = 16;
-                        block_size_m_ = 2;
-                        block_size_n_ = 2;
-                        tile_size_k_ = 64;
-                        off_ = 0;
-                    }
-                }
-            }
+			if(M >= 256 && N >= 256) {
+				tile_size_m_ = 128;
+				tile_size_n_ = 128;
+				block_size_m_ = 8;
+				block_size_n_ = 8;
+				tile_size_k_ = 16;
+				off_ = 1;
+			}
+			else if(M >= 128 && N>= 128) {
+				tile_size_m_ = 64;
+				tile_size_n_ = 64;
+				block_size_m_ = 8;
+				block_size_n_ = 8;
+				tile_size_k_ = 16;
+				off_ = 1;
+			}
+			else if(M >= 32 && N >= 32) {
+				tile_size_m_ = 32;
+				tile_size_n_ = 32;
+				block_size_m_ = 4;
+				block_size_n_ = 4;
+				tile_size_k_ = 32;
+				off_ = 0;
+			}
+			else if(M * N <= 256) {
+				tile_size_m_ = 16;
+				tile_size_n_ = 16;
+				block_size_m_ = 1;
+				block_size_n_ = 1;
+				tile_size_k_ = 128;
+				off_ = 0;
+			}
+			else {
+				tile_size_m_ = 16;
+				tile_size_n_ = 16;
+				block_size_m_ = 2;
+				block_size_n_ = 2;
+				tile_size_k_ = 64;
+				off_ = 0;
+			}
             if(!batch_gemm_) {
                 int cores = ctx.estimated_core_count();
                 if(cores >= 256 && M * N / (block_size_m_ * block_size_n_) < 4 * cores && K > M*16 && K > N*16) {
@@ -160,12 +85,6 @@ namespace gpu {
             //  all ops in Z-order/Morton order
             ///
             zorder_ = 0;
-            if(ctx.is_amd() && (M % 1024 == 0 || N % 1024 == 0)) {
-                if(M >= N && N*10 >= M)
-                    zorder_ = 1;
-                if(N >= M && M*10 >= N)
-                    zorder_ = 1;
-            }
         }
         void calc_dims(int &gs0,int &ls0,int &gs1,int &ls1,int M,int N)
         {
