@@ -26,37 +26,10 @@ if(BUILD_CORE_ONLY)
     set(USE_PYDLPRIM OFF)
 endif()
 
-if(USE_VULKAN_API)
-	add_subdirectory("CLBlast")
-else()
-	if(USE_CL_HPP)
-		if(APPLE)
-			find_path(OCL_PATH OpenCL/cl.hpp)
-		else()
-			find_path(OCL_PATH CL/cl.hpp)
-		endif()
-		set(DLPRIM_USE_CL1_HPP 1)
-		set(DLPRIM_USE_CL2_HPP 0)
-	elseif(USE_CL2_HPP)
-		if(APPLE)
-			find_path(OCL_PATH OpenCL/cl2.hpp)
-		else()
-			find_path(OCL_PATH CL/cl2.hpp)
-		endif()
-		set(DLPRIM_USE_CL1_HPP 0)
-		set(DLPRIM_USE_CL2_HPP 1)
-	else()
-		if(APPLE)
-			find_path(OCL_PATH OpenCL/opencl.hpp)
-		else()
-			find_path(OCL_PATH CL/opencl.hpp)
-		endif()
-		set(DLPRIM_USE_CL1_HPP 0)
-		set(DLPRIM_USE_CL2_HPP 0)
-	endif()
-
-	find_library(OCL_LIB OpenCL)
+if(NOT USE_VULKAN_API)
+	message(FATAL_ERROR "OpenCL API is being removed, do not use it")
 endif()
+add_subdirectory("CLBlast")
 
 set(WITH_SQLITE3 OFF)
 if (USE_SQLITE3)
@@ -87,10 +60,6 @@ set(DLPRIM_PUBLIC_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/dlprim/config.hpp)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include") 
 include_directories("${CMAKE_CURRENT_BINARY_DIR}") 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/my_blas") 
-if (USE_VULKAN_API)
-else()
-	include_directories("${OCL_PATH}")
-endif()
 
 find_program(PYTHON NAMES python3 python python2)
 if(NOT PYTHON)
@@ -120,12 +89,7 @@ if(NOT USE_INTERNAL_BLAS)
 endif()
 
 
-if(USE_VULKAN_API)
-	file(GLOB CL_SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl/*.glsl)
-else()
-	file(GLOB CL_SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/*.cl)
-	file(GLOB CL_HEADERS  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/*.h)
-endif()
+file(GLOB CL_SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl/*.glsl)
 
 if(NOT BUILD_CORE_ONLY)
     find_package(PythonLibs 3)
@@ -178,10 +142,6 @@ if(NOT BUILD_CORE_ONLY)
 endif()
 
 message("=== Status ===")
-if(NOT USE_VULKAN_API)
-	message("  OpenCL: include ${OCL_PATH}")
-	message("          lib     ${OCL_LIB}")
-endif()
 message("  Python: ${PYTHON}")
 if(BLAS_LIB)
     message("  BLAS: include ${CBLAS_PATH}")
@@ -222,29 +182,16 @@ else()
     message("  Python dlprim: disabled")
 endif()
 
-if(USE_VULKAN_API)
-	add_custom_command(
-				  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp 
-				  DEPENDS
-				  ${CL_SOURCES} ${CL_HEADERS} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl/build_source.py
-				  COMMAND 
-				  ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl/build_source.py 
-					-o ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp
-					-I ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl
-					${CL_SOURCES}
-				  )
-else()
-	add_custom_command(
-					  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp 
-					  DEPENDS
-					  ${CL_SOURCES} ${CL_HEADERS} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/build_source.py
-					  COMMAND 
-					  ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels/build_source.py 
-						-o ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp
-						-I ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels
-						${CL_SOURCES}
-					  )
-endif()
+add_custom_command(
+			  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp 
+			  DEPENDS
+			  ${CL_SOURCES} ${CL_HEADERS} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl/build_source.py
+			  COMMAND 
+			  ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl/build_source.py 
+				-o ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp
+				-I ${CMAKE_CURRENT_SOURCE_DIR}/src/kernels-glsl
+				${CL_SOURCES}
+			  )
 
 set(DLPRIM_CORE_SRC
         src/context.cpp
@@ -307,20 +254,15 @@ else()
 	add_library(dlprim_core SHARED ${DLPRIM_CORE_SRC})
 endif()
 
-if(USE_VULKAN_API)
-	target_link_libraries(dlprim_core PUBLIC tart clblast)
-else()
-	target_link_libraries(dlprim_core ${OCL_LIB})	
-endif()
+target_link_libraries(dlprim_core PUBLIC tart clblast)
 
 if(WITH_SQLITE3)
     target_link_libraries(dlprim_core ${SQLITE3_LIB})
 endif()
 
-if(USE_VULKAN_API)
-	target_compile_definitions(dlprim_core PUBLIC VULKAN_API)
-	target_include_directories(dlprim_core PUBLIC CLBlast/tart/include CLBlast/tart/xxhashct)
-endif()
+
+target_compile_definitions(dlprim_core PUBLIC VULKAN_API)
+target_include_directories(dlprim_core PUBLIC CLBlast/tart/include CLBlast/tart/xxhashct)
 
 if(NOT BUILD_CORE_ONLY)
 		
@@ -330,11 +272,7 @@ if(NOT BUILD_CORE_ONLY)
         add_library(dlprim SHARED ${DLPRIM_SRC})
     endif()
 	
-	if(USE_VULKAN_API)
-		target_link_libraries(dlprim dlprim_core ${BLAS_LIB})
-	else()
-		target_link_libraries(dlprim dlprim_core ${OCL_LIB} ${BLAS_LIB})
-	endif()
+	target_link_libraries(dlprim dlprim_core ${BLAS_LIB})
     if(HDF5_FOUND)
         target_link_libraries(dlprim ${HDF5_LIBRARIES} hdf5_cpp) 
     endif()

@@ -12,16 +12,11 @@ namespace dlprim {
 namespace core {
 
     void copy_strided(  Shape shape,
-#if VULKAN_API
-                        tart::buffer_ptr& src, uint32_t src_offset, Shape src_strides,
-                        tart::buffer_ptr& dst, uint32_t dst_offset, Shape dst_strides,
-#else
-                        cl::Buffer const &src,cl_ulong src_offset,Shape src_strides,
-                        cl::Buffer const &dst,cl_ulong dst_offset,Shape dst_strides,
-#endif
-                        DataType dtype_src,
-                        DataType dtype_tgt,
-                        ExecutionContext const &q);
+		tart::buffer_ptr& src, uint32_t src_offset, Shape src_strides,
+		tart::buffer_ptr& dst, uint32_t dst_offset, Shape dst_strides,
+		DataType dtype_src,
+		DataType dtype_tgt,
+		ExecutionContext const &q);
 } // core
 } // dlprim
 

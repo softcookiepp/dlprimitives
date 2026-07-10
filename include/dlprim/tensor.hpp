@@ -115,17 +115,9 @@ namespace dlprim {
         /// Create a tensor from external buffer
         ///
         Tensor(
-#if VULKAN_API
 			tart::buffer_ptr
-#else
-			cl::Buffer const &
-#endif
 				buffer,
-#if VULKAN_API
 				uint64_t
-#else
-				cl_ulong
-#endif
 				offset,Shape const &s,DataType d=float_data,bool is_trainable=true);
 
         ///
@@ -142,12 +134,7 @@ namespace dlprim {
         Tensor &operator=(Tensor const &) = default;
         Tensor(Tensor &&) = default;
         Tensor &operator=(Tensor &&) = default;
-        ~Tensor()
-#if VULKAN_API
-		;
-#else
-        {}
-#endif
+        ~Tensor();
         
         TensorSpecs const &specs() const
         {
@@ -191,11 +178,7 @@ namespace dlprim {
         ///
         /// Get cl::Buffer for the tensor
         ///
-#if VULKAN_API
         tart::buffer_ptr& device_buffer()
-#else
-        cl::Buffer &device_buffer()
-#endif
         { 
             return buffer_;
         }
@@ -205,11 +188,7 @@ namespace dlprim {
         ///
         /// Always uses 64 bit ulong even of the device 32 bit. 
         ///
-#if VULKAN_API
         uint32_t device_offset()
-#else
-        cl_ulong device_offset() 
-#endif
         {
             return offset_; 
         }
@@ -301,40 +280,24 @@ namespace dlprim {
         ///
         /// Assign buffer and offset as kernel argumnets, at position pos and pos+1, pos incrementeded twice
         ///
-#if VULKAN_API
 		void set_arg(tart::kernel_ptr &k,int &pos)
         {
             k->setArg(pos++,device_buffer());
             k->setArg(pos++,device_offset());
         }
-#else
-        void set_arg(cl::Kernel &k,int &pos)
-        {
-            k.setArg(pos++,device_buffer());
-            k.setArg(pos++,device_offset());
-        }
-#endif
 
     private:
 		struct HostMem;
         std::shared_ptr<TensorSpecs> specs_;
         std::shared_ptr<HostMem> host_;
         bool cpu_tensor_;
-#if VULKAN_API
         uint32_t offset_;
-#else
-        int offset_;
-#endif
-#if VULKAN_API
 		tart::buffer_ptr buffer_;
 		// for deallocation
 		tart::device_ref dev_;
 		
 		// whether or not the buffer belongs to another tensor.
 		bool own_buffer_ = false;
-#else
-        cl::Buffer buffer_;
-#endif
         size_t capacity_;
         size_t full_capacity_;
     };

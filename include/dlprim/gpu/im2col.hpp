@@ -2,7 +2,6 @@
 #include <dlprim/context.hpp>
 #include <dlprim/tensor.hpp>
 
-#if VULKAN_API
 namespace dlprim
 {
 	
@@ -101,4 +100,3 @@ void col2im_batched(
 } // namespace gpu
 	
 } // namespace dlprim
-#endif // VULKAN_API
