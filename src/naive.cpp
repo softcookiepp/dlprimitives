@@ -1,4 +1,3 @@
-#if VULKAN_API // if no vulkan, no need for this crap
 
 #include <dlprim/gpu/naive.hpp>
 #include <dlprim/gpu/program_cache.hpp>
@@ -17,4 +16,4 @@ namespace gpu
 
 } // dlprim
 
-#endif
+

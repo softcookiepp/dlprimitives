@@ -30,11 +30,7 @@ namespace core {
             int inps  = x.shape().size_no_batch();
             int outs  = y.shape()[1];
             int bias_offset = bias ? bias->device_offset() : 0;
-#if VULKAN_API
 			tart::buffer_ptr bias_buffer = bias ? bias->device_buffer() :  nullptr;
-#else
-            cl::Buffer* bias_buffer = bias ? &bias->device_buffer() :  nullptr;
-#endif
             gemm_->gemm(batch,outs,inps,
                     x.device_buffer(),x.device_offset(),inps,
                     w.device_buffer(),w.device_offset(),inps,
@@ -166,20 +162,12 @@ namespace core {
                 else
                     wg2_ = 64;
                 items_per_wi2_ = (size2_ + wg2_ - 1) / wg2_;
-#if VULKAN_API
 				tart::program_ptr
-#else
-                cl::Program const &
-#endif
 				prog = gpu::Cache::instance().get_program(ctx,"bwd_bias",
                         "WG_SIZE",wg2_,
                         "ITEMS_PER_WI",items_per_wi2_,
                         "SIZE_2D",size2_);
-#if VULKAN_API
 				kernel2_ = prog->getKernel("bwd_bias");
-#else
-                kernel2_ = cl::Kernel(prog,"bwd_bias");
-#endif
             }
             else {
                 two_stage_reduction_ = false;
@@ -193,21 +181,12 @@ namespace core {
                 items_per_wi_ = (total_size + wg_ - 1) / wg_;
 
             }
-#if VULKAN_API
 			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"bwd_bias",
                     "WG_SIZE",wg_,
                     "ITEMS_PER_WI",items_per_wi_,
                     "SIZE_2D",rows_columns_
                     );
             kernel_ = prog->getKernel("bwd_bias");
-#else
-            cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"bwd_bias",
-                    "WG_SIZE",wg_,
-                    "ITEMS_PER_WI",items_per_wi_,
-                    "SIZE_2D",rows_columns_
-                    );
-            kernel_ = cl::Kernel(prog,"bwd_bias");
-#endif
 
         }
         virtual size_t workspace()
@@ -222,16 +201,10 @@ namespace core {
             int total_size = dy.shape()[0] * rows_columns_;
             if(two_stage_reduction_) {
                 Tensor float_ws = ws.workspace_as_type(dt_);
-#if VULKAN_API
 				std::vector<uint32_t> l({wg_, 1});
 				std::vector<uint32_t> g = gpu::round_range(wg_ * size2_,features_,l);
 				g[0] = g[0]/l[0];
-#else
-                cl::NDRange l(wg_,1);
-                cl::NDRange g=gpu::round_range(wg_ * size2_,features_,l);
-#endif
                 int p=0;
-#if VULKAN_API
 				kernel_->setArg(p++,features_);
                 kernel_->setArg(p++,total_size);
                 dy.set_arg(kernel_,p);
@@ -250,29 +223,9 @@ namespace core {
                 kernel2_->setArg(p++, 1);
                 kernel2_->setArg(p++, beta);
                 kernel2_->enqueue({1, features_}, {});
-#else
-                kernel_.setArg(p++,features_);
-                kernel_.setArg(p++,total_size);
-                dy.set_arg(kernel_,p);
-                float_ws.set_arg(kernel_,p);
-                kernel_.setArg(p++,size2_);
-                kernel_.setArg(p++,0.0f);
-                auto ec1 = e.generate_series_context(0,2);
-                auto ec2 = e.generate_series_context(1,2);
-                e.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,g,l,ec1.events(),ec1.event("bwd_bias_a"));
-                p=0;
-                kernel2_.setArg(p++,features_);
-                kernel2_.setArg(p++,size2_);
-                float_ws.set_arg(kernel2_,p);
-                dw.set_arg(kernel2_,p); 
-                kernel2_.setArg(p++,1);
-                kernel2_.setArg(p++,beta);
-                e.queue().enqueueNDRangeKernel(kernel2_,cl::NullRange,cl::NDRange(wg2_,features_),cl::NDRange(wg2_,1),ec2.events(),ec2.event("bwd_bias_b"));
-#endif
             }
             else {
                 int norm_size = (total_size + items_per_wi_ - 1) / items_per_wi_;
-#if VULKAN_API
 				std::vector<uint32_t> l({wg_, 1});
 				std::vector<uint32_t> g = gpu::round_range(norm_size,features_,l);
 				g[0] = g[0]/l[0];
@@ -287,19 +240,6 @@ namespace core {
                 kernel_->setArg(p++,beta);
                 g.resize(3, 1);
                 kernel_->enqueue(g, {});
-#else
-                cl::NDRange l(wg_,1);
-                cl::NDRange g=gpu::round_range(norm_size,features_,l);
-               
-                int p=0;
-                kernel_.setArg(p++,features_);
-                kernel_.setArg(p++,total_size);
-                dy.set_arg(kernel_,p);
-                dw.set_arg(kernel_,p);
-                kernel_.setArg(p++,1);
-                kernel_.setArg(p++,beta);
-                e.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,g,l,e.events(),e.event("bwd_bias"));
-#endif
             }
         }
     private:
@@ -314,13 +254,8 @@ namespace core {
         int size2_;
 
         bool two_stage_reduction_;
-#if VULKAN_API
 		tart::kernel_ptr kernel_ = nullptr;
 		tart::kernel_ptr kernel2_ = nullptr;
-#else
-        cl::Kernel kernel_;
-        cl::Kernel kernel2_;
-#endif
         DataType dt_;
     };
     std::unique_ptr<BiasBackwardFilter> BiasBackwardFilter::create(Context &ctx,Shape const &sp,DataType dt)
@@ -336,7 +271,7 @@ namespace core {
         DLPRIM_CHECK(t.dtype() == float_data);
         DLPRIM_CHECK(t.shape().size() >= 2);
         DLPRIM_CHECK(t.shape()[1] == bias.shape().total_size());
-#if VULKAN_API
+
 		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"fwd_bias");
         tart::kernel_ptr k = prog->getKernel("fwd_bias");
 
@@ -356,27 +291,6 @@ namespace core {
         t.set_arg(k,p);
         bias.set_arg(k,p);
         k->enqueue({RC,F,B}, {1, 1, 1});
-#else
-        cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"fwd_bias");
-        cl::Kernel k(prog,"fwd_bias");
-
-        Shape const &s = t.shape();
-        int B = s[0];
-        int F = s[1];
-        int RC = 1;
-        if(s.size() >= 3)
-            RC *= s[2];
-        if(s.size() >= 4)
-            RC *= s[3];
-
-        int p = 0;
-        k.setArg(p++,B);
-        k.setArg(p++,F);
-        k.setArg(p++,RC);
-        t.set_arg(k,p);
-        bias.set_arg(k,p);
-        e.queue().enqueueNDRangeKernel(k,cl::NullRange,cl::NDRange(RC,F,B),cl::NullRange,e.events(),e.event("fwd_bias"));
-#endif
     }
 
 
