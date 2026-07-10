@@ -10,41 +10,20 @@
 #include <sstream>
 #include <iostream>
 
-namespace dlprim {
-	
-#if VULKAN_API
-	// TODO put instance here c:
+namespace dlprim
+{
 	tart::Instance Context::sInstance;
-#endif
     Context::Context(ExecutionContext const &ec)
     {
         if(!ec.queue_) {
             type_ = cpu;
             return;
         }
-#if VULKAN_API
 		tart::device_ptr dev = ec.queue_;
 		const tart::device_ptr& ctx = dev;
-#else
-        cl::Context ctx = ec.queue_->getInfo<CL_QUEUE_CONTEXT>();
-        cl::Device  dev = ec.queue_->getInfo<CL_QUEUE_DEVICE>();
-#endif
 
-#if VULKAN_API
-		// ha! no platforms for vulkan c:
-#else
-        // there is no clRetainPlatform this you can construct cl::Platform without true/false flag
-        // in fact cl.hpp does not have true/false parameter but cl2.hpp has - but 
-        // it is stub that does nothing
-        cl::Platform plat(dev.getInfo<CL_DEVICE_PLATFORM>());
-#endif
-
-#if VULKAN_API
 		// just use the device as a placeholder, then even
 		platform_ = dev;
-#else
-        platform_ = plat;
-#endif
         device_ = dev;
         context_ = ctx;
         // ??
@@ -52,21 +31,11 @@ namespace dlprim {
     }
 
     Context::Context(
-#if VULKAN_API
 		tart::device_ptr d
-#else
-		cl::Context const &c,cl::Platform const &p,cl::Device const &d
-#endif
 		) : 
-#if VULKAN_API
 		platform_(d),
 		device_(d),
 		context_(d),
-#else
-        platform_(p),
-        device_(d),
-        context_(c),
-#endif
         type_(Context::ocl)
     {
     }

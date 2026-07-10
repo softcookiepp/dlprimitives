@@ -17,13 +17,8 @@ AXPBY::AXPBY(Context &ctx,DataType dt) : ctx_(ctx)
     DLPRIM_CHECK(dt == float_data);
     if(ctx_.is_cpu_context())
         return;
-#if VULKAN_API
     tart::program_ptr prog = gpu::Cache::instance().get_program(ctx_,"axpby");
     kernel_ = prog->getKernel("axpby");
-#else
-    cl::Program const &prog = gpu::Cache::instance().get_program(ctx_,"axpby");
-    kernel_ = cl::Kernel(prog,"axpby");
-#endif
 }
 AXPBY::~AXPBY()
 {
@@ -34,11 +29,7 @@ void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext
     DLPRIM_CHECK(x.shape().total_size() == y.shape().total_size());
     DLPRIM_CHECK(z.shape().total_size() == y.shape().total_size());
     size_t total = x.shape().total_size();
-#if VULKAN_API
 	e.queue()->sync();
-#else
-    e.queue().finish();
-#endif
     if(ctx_.is_cpu_context()) {
         float *xp = x.data<float>();
         float *yp = y.data<float>();
@@ -48,7 +39,6 @@ void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext
         cblas_saxpy(total,b,yp,1,zp,1);
     }
     else {
-#if VULKAN_API
         std::vector<uint32_t> l(1);
         if(total >= 256)
             l[0] = 256;
@@ -60,36 +50,14 @@ void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext
         std::vector<uint32_t> g = gpu::round_range(total,l);
         // because of course
         g[0] = g[0] / l[0];
-#else
-        cl::NDRange l;
-        if(total >= 256)
-            l=cl::NDRange(256);
-        else if(total >= 128)
-            l=cl::NDRange(128);
-        else
-            l=cl::NDRange(64);
-
-        cl::NDRange g=gpu::round_range(total,l);
-#endif
         int p=0;
-#if VULKAN_API
 		kernel_->setArg(p++, uint64_t(total));
         kernel_->setArg(p++, a);
         x.set_arg(kernel_, p);
         kernel_->setArg(p++, b);
-#else
-        kernel_.setArg(p++, cl_ulong(total));
-        kernel_.setArg(p++, a);
-        x.set_arg(kernel_, p);
-        kernel_.setArg(p++, b);
-#endif
         y.set_arg(kernel_, p);
         z.set_arg(kernel_, p);
-#if VULKAN_API
 		kernel_->enqueue(g, l);
-#else
-        e.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,g,l,e.events(),e.event("axpby"));
-#endif
     }
 }
 

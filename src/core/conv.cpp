@@ -50,18 +50,10 @@ namespace core {
         }
         virtual void enqueue(Tensor &x,Tensor &W,Tensor *bias,Tensor &y, Tensor &,float factor,ExecutionContext const &e) 
         {
-#if VULKAN_API
 			tart::buffer_ptr bias_buffer = nullptr;
-#else
-            cl::Buffer *bias_buffer = nullptr;
-#endif
             int bias_offset = 0;
             if(bias) {
-#if VULKAN_API
                 bias_buffer = bias->device_buffer();
-#else
-                bias_buffer = &bias->device_buffer();
-#endif
                 bias_offset = bias->device_offset();
             }
             int batch = x.shape()[0];
@@ -249,30 +241,17 @@ namespace core {
             int p=0;
 
             Tensor float_ws = ws.workspace_as_type(float_data);
-#if VULKAN_API
             conv_kernel_->setArg(p++,config_.channels_out);
             conv_kernel_->setArg(p++,config_.channels_in);
-#else
-            conv_kernel_.setArg(p++,config_.channels_out);
-            conv_kernel_.setArg(p++,config_.channels_in);
-#endif
             W.set_arg(conv_kernel_,p);
             float_ws.set_arg(conv_kernel_,p);
 
             p=0;
-#if VULKAN_API
             conv_->setArg(p++,B);
             conv_->setArg(p++,N);
             conv_->setArg(p++,C);
             conv_->setArg(p++,h);
             conv_->setArg(p++,w);
-#else
-            conv_.setArg(p++,B);
-            conv_.setArg(p++,N);
-            conv_.setArg(p++,C);
-            conv_.setArg(p++,h);
-            conv_.setArg(p++,w);
-#endif
 
             in.set_arg(conv_,p);
             float_ws.set_arg(conv_,p);
@@ -280,15 +259,10 @@ namespace core {
                 bias->set_arg(conv_,p);
             }
             out.set_arg(conv_,p);
-#if VULKAN_API
 			conv_->setArg(p++,factor);
-#else
-            conv_.setArg(p++,factor);
-#endif
 
             auto ec1 = ec.generate_series_context(0,2);
             auto ec2 = ec.generate_series_context(1,2);
-#if VULKAN_API
 			std::vector<uint32_t> l1({8,8});
             std::vector<uint32_t> g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
             g1[0] = g1[0]/l1[0];
@@ -301,15 +275,6 @@ namespace core {
             std::vector<uint32_t> g2({tiles,(N + 31) / 32});
             g2.resize(3, 1);
             conv_->enqueue(g2, l2);
-#else
-            cl::NDRange l1(8,8);
-            cl::NDRange g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
-            ec.queue().enqueueNDRangeKernel(conv_kernel_,cl::NullRange,g1,l1,ec.events(),ec1.event("winograd_3to4_kernel"));
-            cl::NDRange l2(256,1);
-            int tiles = ((w + 1) / 2 * (h + 1) / 2 * B + 31)/32;
-            cl::NDRange g2(tiles * 256,(N + 31) / 32);
-            ec.queue().enqueueNDRangeKernel(conv_,cl::NullRange,g2,l2,ec.events(),ec2.event("winograd_3x3_main"));
-#endif
         }
 
         Conv2DForwardWinograd(Context &ctx,Conv2DSettings const &config,bool bias,StandardActivations activation = StandardActivations::identity) :
@@ -317,22 +282,13 @@ namespace core {
         {
             int off = 1;
             int toff = 1;
-#if VULKAN_API
 			// this is how you do it for now lol
 			int local_mem_size = ctx.device()->getMetadata().physicalDeviceProperties.limits.maxComputeSharedMemorySize;
-#else
-            int local_mem_size = ctx.device().getInfo<CL_DEVICE_LOCAL_MEM_SIZE>();
-#endif
             if(local_mem_size < 40960) {
                 off = 0;
                 toff = 0;
             }
-#if VULKAN_API
-			tart::program_ptr
-#else
-            cl::Program const &
-#endif
-            prog = gpu::Cache::instance().get_program(ctx,"winograd_fwd",
+			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"winograd_fwd",
                                             "ACTIVATION",int(activation),
                                             "STRIDE_OFFSET",off,
                                             "TR_STRIDE_OFFSET",toff,
@@ -345,11 +301,7 @@ namespace core {
 #endif
         }
     private:
-#if VULKAN_API
         tart::kernel_ptr conv_,conv_kernel_;
-#else
-        cl::Kernel conv_,conv_kernel_;
-#endif
         Conv2DSettings config_;
     };
 
@@ -369,29 +321,16 @@ namespace core {
         {
             int off = 1;
             int toff = 1;
-#if VULKAN_API
 			int local_mem_size = ctx.device()->getMetadata().physicalDeviceProperties.limits.maxComputeSharedMemorySize;
-#else
-            int local_mem_size = ctx.device().getInfo<CL_DEVICE_LOCAL_MEM_SIZE>();
-#endif
             if(local_mem_size < 40960) {
                 off = 0;
                 toff = 0;
             }
-#if VULKAN_API
 			tart::program_ptr
-#else
-            cl::Program const &
-#endif
             prog = gpu::Cache::instance().get_program(ctx,"winograd_bwd_data",
                         "STRIDE_OFFSET",off,"TR_STRIDE_OFFSET",toff);
-#if VULKAN_API
 			conv_kernel_bwd_ = prog->getKernel("winconv_calc_gkgt_3x3");
             bw_conv_data_ = prog->getKernel("winconv_3x3_bwd_data");
-#else
-            conv_kernel_bwd_ = cl::Kernel(prog,"winconv_calc_gkgt_3x3");
-            bw_conv_data_ = cl::Kernel(prog,"winconv_3x3_bwd_data");
-#endif
         }
         virtual void enqueue(Tensor &dx,Tensor &K,Tensor &dy,Tensor &ws_bytes,float factor,ExecutionContext const &ec)
         {
@@ -407,7 +346,6 @@ namespace core {
 
             int p=0;
             Tensor ws = ws_bytes.workspace_as_type(float_data);
-#if VULKAN_API
             conv_kernel_bwd_->setArg(p++,config_.channels_out);
             conv_kernel_bwd_->setArg(p++,config_.channels_in);
             K.set_arg(conv_kernel_bwd_,p);
@@ -419,26 +357,12 @@ namespace core {
             bw_conv_data_->setArg(p++,C);
             bw_conv_data_->setArg(p++,h);
             bw_conv_data_->setArg(p++,w);
-#else
-            conv_kernel_bwd_.setArg(p++,config_.channels_out);
-            conv_kernel_bwd_.setArg(p++,config_.channels_in);
-            K.set_arg(conv_kernel_bwd_,p);
-            ws.set_arg(conv_kernel_bwd_,p);
-            
-            p=0;
-            bw_conv_data_.setArg(p++,B);
-            bw_conv_data_.setArg(p++,N);
-            bw_conv_data_.setArg(p++,C);
-            bw_conv_data_.setArg(p++,h);
-            bw_conv_data_.setArg(p++,w);
-#endif
-
             dx.set_arg(bw_conv_data_,p);
             ws.set_arg(bw_conv_data_,p);
             dy.set_arg(bw_conv_data_,p);
             
             s_.enqueue(factor,dx,ec1);
-#if VULKAN_API
+
             std::vector<uint32_t> l1({8,8});
             std::vector<uint32_t> g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
             g1[0] = g1[0]/l1[0];
@@ -451,25 +375,11 @@ namespace core {
             std::vector<uint32_t> g2({tiles, (C + 31) / 32});
             g1.resize(3, 1);
             bw_conv_data_->enqueue(g2, l2);
-#else
-            cl::NDRange l1(8,8);
-            cl::NDRange g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
-            ec.queue().enqueueNDRangeKernel(conv_kernel_bwd_,cl::NullRange,g1,l1,ec2.events(),ec2.event("winograd_3to4_kernel"));
-
-            cl::NDRange l2(256,1);
-            int tiles = ((w + 1) / 2 * (h + 1) / 2 * B + 31)/32;
-            cl::NDRange g2(tiles * 256,(C + 31) / 32);
-            ec.queue().enqueueNDRangeKernel(bw_conv_data_,cl::NullRange,g2,l2,ec.events(),ec2.event("winograd_3x3_main_bwd"));
-#endif
         }
     private:
         Conv2DSettings config_;
         Scale s_;
-#if VULKAN_API
 		tart::kernel_ptr conv_kernel_bwd_, bw_conv_data_;
-#else
-        cl::Kernel conv_kernel_bwd_, bw_conv_data_;
-#endif
     };
 
     class Conv2DBackwardFilterWinograd: public Conv2DBackwardFilter  {
@@ -489,28 +399,16 @@ namespace core {
             reduce_k_ = winograd_work_items < ctx.estimated_core_count();
             int off = 1;
             int toff = 1;
-#if VULKAN_API
 			int local_mem_size = ctx.device()->getMetadata().physicalDeviceProperties.limits.maxComputeSharedMemorySize;
-#else
-            int local_mem_size = ctx.device().getInfo<CL_DEVICE_LOCAL_MEM_SIZE>();
-#endif
             if(local_mem_size < 40960) {
                 off = 0;
                 toff = 0;
             }
-#if VULKAN_API
             tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"winograd_bwd_filter",
                                                                             "IMG_H",h,"IMG_W",w,
                                                                             "STRIDE_OFFSET",off,
                                                                             "TR_STRIDE_OFFSET",toff);
             bw_conv_filter_ = prog->getKernel("winconv_3x3_bwd_filter");
-#else
-            cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"winograd_bwd_filter",
-                                                                            "IMG_H",h,"IMG_W",w,
-                                                                            "STRIDE_OFFSET",off,
-                                                                            "TR_STRIDE_OFFSET",toff);
-            bw_conv_filter_ = cl::Kernel(prog,"winconv_3x3_bwd_filter");
-#endif
         }
         virtual void enqueue(Tensor &x,Tensor &dK,Tensor &dy,Tensor &,float factor,ExecutionContext const &ec) 
         {
@@ -518,7 +416,6 @@ namespace core {
             int N = config_.channels_out;
             int C = config_.channels_in;
             int p=0;
-#if VULKAN_API
 			bw_conv_filter_->setArg(p++,B);
             bw_conv_filter_->setArg(p++,N);
             bw_conv_filter_->setArg(p++,C);
@@ -541,38 +438,11 @@ namespace core {
             else {
 				bw_conv_filter_->enqueue(gr, wg);
             }
-#else
-            bw_conv_filter_.setArg(p++,B);
-            bw_conv_filter_.setArg(p++,N);
-            bw_conv_filter_.setArg(p++,C);
-            x.set_arg(bw_conv_filter_,p);
-            dK.set_arg(bw_conv_filter_,p);
-            dy.set_arg(bw_conv_filter_,p);
-            bw_conv_filter_.setArg(p++,factor);
-            
-            cl::NDRange wg(256,1,1);
-            int g1 = 256 * ((C+31)/32);
-            int g2 = (N+31)/32;
-            cl::NDRange gr(g1,g2,reduce_k_ ? 8 : 1);
-            if(reduce_k_) {
-                ExecutionContext ec1 = ec.generate_series_context(0,2);
-                ExecutionContext ec2 = ec.generate_series_context(1,2);
-                s_.enqueue(factor,dK,ec1);
-                ec.queue().enqueueNDRangeKernel(bw_conv_filter_,cl::NullRange,gr,wg,ec2.events(),ec2.event("winograd_bwd_filter"));
-            }
-            else {
-                ec.queue().enqueueNDRangeKernel(bw_conv_filter_,cl::NullRange,gr,wg,ec.events(),ec.event("winograd_bwd_filter"));
-            }
-#endif
         }
     private:
         Conv2DSettings config_;
         Scale s_;
-#if VULKAN_API
         tart::kernel_ptr bw_conv_filter_;
-#else
-        cl::Kernel bw_conv_filter_;
-#endif
         bool reduce_k_;
     };
 
@@ -609,7 +479,6 @@ namespace core {
             int height = in.shape()[2];
             int width = in.shape()[3];
             int p=0;
-#if VULKAN_API 
             conv_->setArg(p++,batch);
             conv_->setArg(p++,height);
             conv_->setArg(p++,width);
@@ -636,38 +505,11 @@ namespace core {
 				gr[i] = gr[i]/wg[i];
 			gr.resize(3, 1);
             conv_->enqueue(gr, wg);
-#else
-            conv_.setArg(p++,batch);
-            conv_.setArg(p++,height);
-            conv_.setArg(p++,width);
-            in.set_arg(conv_,p);
-            W.set_arg(conv_,p);
-            if(bias) {
-                bias->set_arg(conv_,p);
-            }
-            out.set_arg(conv_,p);
-            conv_.setArg(p++,factor);
-            
-            int gW = (width+1)/2;
-            int gH = (height+1)/2;
-
-            int lW = get_opt_val(gW);
-            int lH = get_opt_val(gH);
-            int lD = 1;
-            if(lW * lH < 64)
-                lD = 64 / (lW * lH);
-            
-            cl::NDRange wg(lH,lW,lD);
-            cl::NDRange gr=gpu::round_range(gH,gW,batch*config_.channels_in,wg);
-                        
-            ec.queue().enqueueNDRangeKernel(conv_,cl::NullRange,gr,wg,ec.events(),ec.event("sep_conv"));
-#endif
         }
 
         Conv2DForwardDepthwiseSeparable(Context &ctx,Conv2DSettings const &config,bool bias,StandardActivations activation = StandardActivations::identity) :
             config_(config)
         {
-#if VULKAN_API
             tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"depthwise_separable_conv",
                                     "ACTIVATION",int(activation),
                                     "BIAS",int(bias),
@@ -676,24 +518,10 @@ namespace core {
                                     "KERN",config_.kernel[0],
                                     "CHANNELS",config_.channels_in);
             conv_ = prog->getKernel("conv");
-#else
-            cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"depthwise_separable_conv",
-                                    "ACTIVATION",int(activation),
-                                    "BIAS",int(bias),
-                                    "PATCH_ROWS",ds_patch_rows,
-                                    "PATCH_COLS",ds_patch_cols,
-                                    "KERN",config_.kernel[0],
-                                    "CHANNELS",config_.channels_in);
-            conv_ = cl::Kernel(prog,"conv");
-#endif
         }
     private:
         Conv2DSettings config_;
-#if VULKAN_API
         tart::kernel_ptr conv_;
-#else
-        cl::Kernel conv_;
-#endif
     };
     
     class Conv2DBackwardDataDepthwiseSeparable  : public Conv2DBackwardData, public DepthwiseSeparableBase {
@@ -715,15 +543,9 @@ namespace core {
             int height = dx.shape()[2];
             int width = dx.shape()[3];
             int p=0;
-#if VULKAN_API
             bw_conv_data_->setArg(p++,batch);
             bw_conv_data_->setArg(p++,height);
             bw_conv_data_->setArg(p++,width);
-#else
-            bw_conv_data_.setArg(p++,batch);
-            bw_conv_data_.setArg(p++,height);
-            bw_conv_data_.setArg(p++,width);
-#endif
             dx.set_arg(bw_conv_data_,p);
             K.set_arg(bw_conv_data_,p);
             dy.set_arg(bw_conv_data_,p);
@@ -736,49 +558,30 @@ namespace core {
             int lD = 1;
             if(lW * lH < 64)
                 lD = 64 / (lW * lH);
-#if VULKAN_API
 			std::vector<uint32_t> wg({lH,lW,lD});
 			std::vector<uint32_t> gr = gpu::round_range(gH,gW,batch*config_.channels_in,wg);
 			for (size_t i = 0; i < gr.size(); i += 1)
 				gr[i] = gr[i]/wg[i];
 			gr.resize(3, 1);
 			bw_conv_data_->enqueue(gr, wg);
-#else
-            cl::NDRange wg(lH,lW,lD);
-            cl::NDRange gr=gpu::round_range(gH,gW,batch*config_.channels_in,wg);
-            
-            ec.queue().enqueueNDRangeKernel(bw_conv_data_,cl::NullRange,gr,wg,ec2.events(),ec2.event("sep_conv_bw_data"));
-#endif
         }
 
         Conv2DBackwardDataDepthwiseSeparable(Context &ctx,Conv2DSettings const &config) :
             config_(config),
             s_(ctx,config.dtype)
         {
-#if VULKAN_API
 			tart::program_ptr
-#else
-            cl::Program const &
-#endif
             prog = gpu::Cache::instance().get_program(ctx,"depthwise_separable_conv",
                                     "PATCH_ROWS",ds_patch_rows,
                                     "PATCH_COLS",ds_patch_cols,
                                     "KERN",config_.kernel[0],
                                     "CHANNELS",config_.channels_in);
-#if VULKAN_API
             bw_conv_data_ = prog->getKernel("backward_data_conv");
-#else
-            bw_conv_data_ = cl::Kernel(prog,"backward_data_conv");
-#endif
         }
     private:
         Conv2DSettings config_;
         Scale s_;
-#if VULKAN_API
         tart::kernel_ptr bw_conv_data_ = nullptr;
-#else
-        cl::Kernel bw_conv_data_;
-#endif
     };
 
     class Conv2DBackwardFilterDepthwiseSeparable: public Conv2DBackwardFilter  {
@@ -817,28 +620,16 @@ namespace core {
                     second_reduce_ = 64;
                 
             }
-#if VULKAN_API
 			tart::program_ptr
-#else
-            cl::Program const &
-#endif
             prog = gpu::Cache::instance().get_program(ctx,
                         "depthwise_separable_bw_filter",
                         "KERN",config_.kernel[0],
                         "WG_SIZE",dwsc_bw_filter_wg_,
                         "SECOND_REDUCE_SIZE",second_reduce_,
                         "CHANNELS",config_.channels_in);
-#if VULKAN_API
             bw_conv_filter_ = prog->getKernel("conv_bw_filter");
-#else
-            bw_conv_filter_ = cl::Kernel(prog,"conv_bw_filter");
-#endif
             if(second_reduce_ > 1)
-#if VULKAN_API
                 reduce_ = prog->getKernel("reduce");
-#else
-                reduce_ = cl::Kernel(prog,"reduce");
-#endif
         }
         virtual void enqueue(Tensor &x,Tensor &dK,Tensor &dy,Tensor &ws_bytes,float factor,ExecutionContext const &ec) 
         {
@@ -848,15 +639,9 @@ namespace core {
             int width = x.shape()[3];
             int p=0;
             Tensor ws = ws_bytes.workspace_as_type(float_data);
-#if VULKAN_API
 			bw_conv_filter_->setArg(p++,batch);
             bw_conv_filter_->setArg(p++,height);
             bw_conv_filter_->setArg(p++,width);
-#else
-            bw_conv_filter_.setArg(p++,batch);
-            bw_conv_filter_.setArg(p++,height);
-            bw_conv_filter_.setArg(p++,width);
-#endif
             x.set_arg(bw_conv_filter_,p);
             if(second_reduce_ == 1) {
                 dK.set_arg(bw_conv_filter_,p);
@@ -866,62 +651,33 @@ namespace core {
             }
             dy.set_arg(bw_conv_filter_,p);
             
-#if VULKAN_API
 			if(second_reduce_ == 1)
                bw_conv_filter_->setArg(p++,factor);
 			std::vector<uint32_t> wg({dwsc_bw_filter_wg_,1});
             std::vector<uint32_t> gr({second_reduce_, kitems});
-#else
-			if(second_reduce_ == 1)
-               bw_conv_filter_.setArg(p++,factor);
-            cl::NDRange wg(dwsc_bw_filter_wg_,1);
-            cl::NDRange gr(dwsc_bw_filter_wg_ * second_reduce_,kitems);
-#endif
 
             if(second_reduce_ == 1) {
-#if VULKAN_API
 				gr.resize(3, 1);
 				bw_conv_filter_->enqueue(gr, wg);
-#else
-                ec.queue().enqueueNDRangeKernel(bw_conv_filter_,cl::NullRange,gr,wg,ec.events(),ec.event("sep_conv_bw_filter"));
-#endif
             }
             else  {
                 auto ec1 = ec.generate_series_context(0,2);
                 auto ec2 = ec.generate_series_context(1,2);
-#if VULKAN_API
 				gr.resize(3, 1);
 				bw_conv_filter_->enqueue(gr, wg);
-#else
-                ec.queue().enqueueNDRangeKernel(bw_conv_filter_,cl::NullRange,gr,wg,ec1.events(),ec1.event("sep_conv_bw_filter"));
-#endif
                 p=0;
                 int reduce_items = dK.shape().total_size();
                 ws.set_arg(reduce_,p);
                 dK.set_arg(reduce_,p);
-#if VULKAN_API
 				reduce_->setArg(p++,factor);
 				reduce_->enqueue({1, reduce_items}, {second_reduce_, 1});
-#else
-				reduce_.setArg(p++,factor);
-                ec.queue().enqueueNDRangeKernel(reduce_,
-                            cl::NullRange,
-                            cl::NDRange(second_reduce_,reduce_items),
-                            cl::NDRange(second_reduce_,1),
-                            ec2.events(),ec2.event("sep_conv_bw_filter_reduce"));
-#endif
 
             }
         }
     private:
         Conv2DSettings config_;
-#if VULKAN_API
 		tart::kernel_ptr bw_conv_filter_ = nullptr;
         tart::kernel_ptr reduce_ = nullptr;
-#else
-        cl::Kernel bw_conv_filter_;
-        cl::Kernel reduce_;
-#endif
         int dwsc_bw_filter_wg_;
         int second_reduce_;
     };
@@ -943,13 +699,8 @@ namespace core {
     }
     static bool is_winograd_compatible(Context &ctx,Conv2DSettings const &config)
     {
-#if VULKAN_API
 		if (ctx.device()->getMetadata().physicalDeviceProperties.limits.maxComputeSharedMemorySize < 32768)
 			return false;
-#else
-        if(ctx.device().getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() < 32768)
-            return false;
-#endif
         return 
             config.kernel[0] == config.kernel[1] 
             && config.pad[0] == config.pad[1] 

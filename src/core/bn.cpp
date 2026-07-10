@@ -45,35 +45,21 @@ namespace core {
                 ws_ += second_reduce_ * 2 * size_of_data_type(dtype) * features_;
             }
             
-#if VULKAN_API
 			tart::program_ptr
-#else
-            cl::Program const &
-#endif
             fwd_sums = gpu::Cache::instance().get_program(ctx,
                         "bn_sums",
                         "WG_SIZE",wg_,
                         "BACKWARD",0,
                         "SECOND_REDUCE_SIZE",second_reduce_);
 
-#if VULKAN_API
 			tart::program_ptr
-#else
-            cl::Program const &
-#endif
             bwd_sums = gpu::Cache::instance().get_program(ctx,
                         "bn_sums",
                         "WG_SIZE",wg_,
                         "BACKWARD",1,
                         "SECOND_REDUCE_SIZE",second_reduce_);
-
-#if VULKAN_API
 			tart::program_ptr
-#else
-            cl::Program const &
-#endif
             utils = gpu::Cache::instance().get_program(ctx,"bn_utils");
-#if VULKAN_API
 			sums_ = fwd_sums->getKernel("compute");
             if(second_reduce_ > 1) {
                 sums_reduce_ = fwd_sums->getKernel("reduce");
@@ -92,26 +78,6 @@ namespace core {
             backward_filter_ = utils->getKernel("backward_filter");
             var_gamma_to_a_ = utils->getKernel("var_gamma_to_a");
             backward_test_ = utils->getKernel("backward_test");
-#else
-            sums_ = cl::Kernel(fwd_sums,"compute");
-            if(second_reduce_ > 1) {
-                sums_reduce_ = cl::Kernel(fwd_sums,"reduce");
-            }
-            dyx_sums_ = cl::Kernel(bwd_sums,"compute");
-            if(second_reduce_ > 1) {
-                dyx_sums_reduce_ = cl::Kernel(bwd_sums,"reduce");
-            }
-
-            update_sums_ = cl::Kernel(utils,"update_sums");
-            mean_var_to_a_b_ =cl::Kernel(utils,"mean_var_to_a_b");
-            combine_mean_var_with_gamma_beta_ = cl::Kernel(utils,"combine_mean_var_with_gamma_beta");
-            compute_backward_factors_ = cl::Kernel(utils,"compute_backward_factors");
-            forward_ = cl::Kernel(utils,"forward");
-            backward_data_ = cl::Kernel(utils,"backward_data");
-            backward_filter_ = cl::Kernel(utils,"backward_filter");
-            var_gamma_to_a_ = cl::Kernel(utils,"var_gamma_to_a");
-            backward_test_ = cl::Kernel(utils,"backward_test");
-#endif
         }
 
         size_t get_plane_size(Shape const &s)
@@ -138,29 +104,14 @@ namespace core {
             DLPRIM_CHECK(channels==features_);
             int hw = get_plane_size(x.shape());
             int p = 0;
-#if VULKAN_API
 			sums_->setArg(p++,batch);
             sums_->setArg(p++,channels);
             sums_->setArg(p++,hw);
             x.set_arg(sums_,p);
-#else
-            sums_.setArg(p++,batch);
-            sums_.setArg(p++,channels);
-            sums_.setArg(p++,hw);
-            x.set_arg(sums_,p);
-#endif
             if(second_reduce_ <= 1) {
                 mean.set_arg(sums_,p);
                 var.set_arg(sums_,p);
-#if VULKAN_API
 				sums_->enqueue({1, features_}, {});
-#else
-                e.queue().enqueueNDRangeKernel( sums_,
-                                                cl::NullRange,
-                                                cl::NDRange(wg_,features_),
-                                                cl::NDRange(wg_,1),
-                                                e.events(),e.event("calc_mean_var"));
-#endif
             }
             else {
                 Tensor x_sum = ws.sub_tensor(0,Shape(second_reduce_,features_),dt_);
@@ -169,41 +120,18 @@ namespace core {
                 x_sum.set_arg(sums_,p);
                 x2_sum.set_arg(sums_,p);
                 p=0;
-#if VULKAN_API
 				sums_reduce_->setArg(p++,features_);
                 x_sum.set_arg(sums_reduce_,p);
                 x2_sum.set_arg(sums_reduce_,p);
                 mean.set_arg(sums_reduce_,p);
                 var.set_arg(sums_reduce_,p);
                 sums_reduce_->setArg(p++,1.0f/(batch*hw));
-#else
-                sums_reduce_.setArg(p++,features_);
-                x_sum.set_arg(sums_reduce_,p);
-                x2_sum.set_arg(sums_reduce_,p);
-                mean.set_arg(sums_reduce_,p);
-                var.set_arg(sums_reduce_,p);
-                sums_reduce_.setArg(p++,1.0f/(batch*hw));
-#endif
 
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
-#if VULKAN_API
 				sums_->enqueue({second_reduce_,features_}, {});
 				e.queue()->sync();
 				sums_reduce_->enqueue({1, features_}, {});
-#else
-                e.queue().enqueueNDRangeKernel( sums_,
-                                                cl::NullRange,
-                                                cl::NDRange(wg_*second_reduce_,features_),
-                                                cl::NDRange(wg_,1),
-                                                e1.events(),e1.event("calc_mean_var"));
-
-                e.queue().enqueueNDRangeKernel( sums_reduce_,
-                                                cl::NullRange,
-                                                cl::NDRange(second_reduce_,features_),
-                                                cl::NDRange(second_reduce_,1),
-                                                e2.events(),e2.event("calc_mean_var_reduce"));
-#endif
             }
         }
         
@@ -214,7 +142,6 @@ namespace core {
                                                   Tensor &ws,ExecutionContext const &e)
         {
             int p=0;
-#if VULKAN_API
 			update_sums_->setArg(p++,features_);
             batch_mean.set_arg(update_sums_,p);
             batch_var.set_arg(update_sums_,p);
@@ -224,36 +151,11 @@ namespace core {
             update_sums_->setArg(p++,running_mean_factor);
             update_sums_->setArg(p++,batch_var_factor);
             update_sums_->setArg(p++,running_var_factor);
-#else
-            update_sums_.setArg(p++,features_);
-            batch_mean.set_arg(update_sums_,p);
-            batch_var.set_arg(update_sums_,p);
-            running_mean.set_arg(update_sums_,p);
-            running_var.set_arg(update_sums_,p);
-            update_sums_.setArg(p++,batch_mean_factor);
-            update_sums_.setArg(p++,running_mean_factor);
-            update_sums_.setArg(p++,batch_var_factor);
-            update_sums_.setArg(p++,running_var_factor);
-#endif
-#if VULKAN_API
 			update_sums_->enqueue({features_}, {1, 1, 1});
-#else
-            e.queue().enqueueNDRangeKernel(update_sums_,
-                                           cl::NullRange,cl::NDRange(features_),cl::NullRange,
-                                           e.events(),e.event("update_sums"));
-#endif
         }
-#if VULKAN_API
         void enqueue3D(tart::kernel_ptr &k,int batches,int rc,ExecutionContext const &e,char const *name)
-#else
-        void enqueue3D(cl::Kernel &k,int batches,int rc,ExecutionContext const &e,char const *name)
-#endif
         {
-#if VULKAN_API
 			k->enqueue({rc, features_, batches}, {1, 1, 1});
-#else
-            e.queue().enqueueNDRangeKernel(k,cl::NullRange,cl::NDRange(rc,features_,batches),cl::NullRange,e.events(),e.event(name));
-#endif
         }
 
         ///
@@ -266,15 +168,9 @@ namespace core {
             int p = 0;
             int batches = x.shape()[0];
             int rc = get_plane_size(x.shape());
-#if VULKAN_API
 			forward_->setArg(p++,int(x.shape()[0]));
             forward_->setArg(p++,features_);
             forward_->setArg(p++,int(rc));
-#else
-            forward_.setArg(p++,int(x.shape()[0]));
-            forward_.setArg(p++,features_);
-            forward_.setArg(p++,int(rc));
-#endif
 
             x.set_arg(forward_,p);
             y.set_arg(forward_,p);
@@ -305,13 +201,8 @@ namespace core {
             DLPRIM_CHECK(ws.memory_size() >= ws_);
             Tensor b = ws.sub_tensor_target_offset(0,Shape(features_),dt_);
             int p = 0;
-#if VULKAN_API
 			mean_var_to_a_b_->setArg(p++,features_);
             mean_var_to_a_b_->setArg(p++,eps);
-#else
-            mean_var_to_a_b_.setArg(p++,features_);
-            mean_var_to_a_b_.setArg(p++,eps);
-#endif
 
             mean.set_arg(mean_var_to_a_b_,p);
             var.set_arg(mean_var_to_a_b_,p);
@@ -320,11 +211,7 @@ namespace core {
 
             auto e1=e.generate_series_context(0,2);
             auto e2=e.generate_series_context(1,2);
-#if VULKAN_API
 			mean_var_to_a_b_->enqueue({features_}, {1, 1, 1});
-#else
-            e.queue().enqueueNDRangeKernel(mean_var_to_a_b_,cl::NullRange,cl::NDRange(features_),cl::NullRange,e1.events(),e1.event("mean_to_ab"));
-#endif
             forward_ab(x,y,rstd,b,e2);
 
         }
@@ -337,13 +224,8 @@ namespace core {
             split_ws_to_a_b(ws,a,b);
 
             int p = 0;
-#if VULKAN_API
 			mean_var_to_a_b_->setArg(p++,features_);
             mean_var_to_a_b_->setArg(p++,eps);
-#else
-            mean_var_to_a_b_.setArg(p++,features_);
-            mean_var_to_a_b_.setArg(p++,eps);
-#endif
             mean.set_arg(mean_var_to_a_b_,p);
             var.set_arg(mean_var_to_a_b_,p);
             a.set_arg(mean_var_to_a_b_,p);
@@ -351,11 +233,7 @@ namespace core {
 
             auto e1=e.generate_series_context(0,2);
             auto e2=e.generate_series_context(1,2);
-#if VULKAN_API
 			mean_var_to_a_b_->enqueue({features_}, {1, 1, 1});
-#else
-            e.queue().enqueueNDRangeKernel(mean_var_to_a_b_,cl::NullRange,cl::NDRange(features_),cl::NullRange,e1.events(),e1.event("mean_to_ab"));
-#endif
             forward_ab(x,y,a,b,e2);
 
         }
@@ -377,13 +255,8 @@ namespace core {
             split_ws_to_a_b(ws,a,b);
 
             int p = 0;
-#if VULKAN_API
 			combine_mean_var_with_gamma_beta_->setArg(p++, features_);
             combine_mean_var_with_gamma_beta_->setArg(p++,eps);
-#else
-            combine_mean_var_with_gamma_beta_.setArg(p++,features_);
-            combine_mean_var_with_gamma_beta_.setArg(p++,eps);
-#endif
             mean.set_arg(combine_mean_var_with_gamma_beta_,p);
             var.set_arg(combine_mean_var_with_gamma_beta_,p);
             gamma.set_arg(combine_mean_var_with_gamma_beta_,p);
@@ -393,11 +266,7 @@ namespace core {
 
             auto e1=e.generate_series_context(0,2);
             auto e2=e.generate_series_context(1,2);
-#if VULKAN_API
 			combine_mean_var_with_gamma_beta_->enqueue({features_}, {1, 1, 1});
-#else
-            e.queue().enqueueNDRangeKernel(combine_mean_var_with_gamma_beta_,cl::NullRange,cl::NDRange(features_),cl::NullRange,e1.events(),e1.event("mean_gamma_to_ab"));
-#endif
             forward_ab(x,y,a,b,e2);
         }
 
@@ -456,29 +325,15 @@ namespace core {
             DLPRIM_CHECK(channels==features_);
             int hw = get_plane_size(x.shape());
             int p = 0;
-#if VULKAN_API
 			dyx_sums_->setArg(p++,batch);
             dyx_sums_->setArg(p++,channels);
             dyx_sums_->setArg(p++,hw);
-#else
-            dyx_sums_.setArg(p++,batch);
-            dyx_sums_.setArg(p++,channels);
-            dyx_sums_.setArg(p++,hw);
-#endif
             x.set_arg(dyx_sums_,p);
             dy.set_arg(dyx_sums_,p);
             if(second_reduce_ <= 1) {
                 dyx_sum.set_arg(dyx_sums_,p);
                 dy_sum.set_arg(dyx_sums_,p);
-#if VULKAN_API
 				dyx_sums_->enqueue({1, features_}, {});
-#else
-                e.queue().enqueueNDRangeKernel( dyx_sums_,
-                                                cl::NullRange,
-                                                cl::NDRange(wg_,features_),
-                                                cl::NDRange(wg_,1),
-                                                e.events(),e.event("calc_dyx_sums"));
-#endif
             }
             else {
                 Tensor s1 = ws.sub_tensor(0,Shape(second_reduce_,features_),dt_);
@@ -487,11 +342,7 @@ namespace core {
                 s1.set_arg(dyx_sums_,p);
                 s2.set_arg(dyx_sums_,p);
                 p=0;
-#if VULKAN_API
                 dyx_sums_reduce_->setArg(p++,features_);
-#else
-                dyx_sums_reduce_.setArg(p++,features_);
-#endif
                 s1.set_arg(dyx_sums_reduce_,p);
                 s2.set_arg(dyx_sums_reduce_,p);
                 dyx_sum.set_arg(dyx_sums_reduce_,p);
@@ -499,22 +350,8 @@ namespace core {
 
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
-#if VULKAN_API
 				dyx_sums_->enqueue({second_reduce_, features_}, {});
 				dyx_sums_reduce_->enqueue({1, features_}, {});
-#else
-                e.queue().enqueueNDRangeKernel( dyx_sums_,
-                                                cl::NullRange,
-                                                cl::NDRange(wg_*second_reduce_,features_),
-                                                cl::NDRange(wg_,1),
-                                                e1.events(),e1.event("calc_dyx_x"));
-
-                e.queue().enqueueNDRangeKernel( dyx_sums_reduce_,
-                                                cl::NullRange,
-                                                cl::NDRange(second_reduce_,features_),
-                                                cl::NDRange(second_reduce_,1),
-                                                e2.events(),e2.event("calc_dyx_x_reduce"));
-#endif
             }
         }
 
@@ -528,7 +365,6 @@ namespace core {
             int batches = dx.shape()[0];
             int hw = get_plane_size(dx.shape());
             int p=0;
-#if VULKAN_API
 			var_gamma_to_a_->setArg(p++,features_);
             var_gamma_to_a_->setArg(p++,eps);
             var.set_arg(var_gamma_to_a_,p);
@@ -537,18 +373,7 @@ namespace core {
 			var_gamma_to_a_->setArg(p++, use_gamma);
             dy_factor.set_arg(var_gamma_to_a_,p);
 			var_gamma_to_a_->enqueue({features_}, {1, 1, 1});
-#else
-			var_gamma_to_a_.setArg(p++,features_);
-            var_gamma_to_a_.setArg(p++,eps);
-            var.set_arg(var_gamma_to_a_,p);
-            gamma.set_arg(var_gamma_to_a_,p);
-            dy_factor.set_arg(var_gamma_to_a_,p);
-            e.queue().enqueueNDRangeKernel(var_gamma_to_a_,
-                                           cl::NullRange,cl::NDRange(features_),cl::NullRange,
-                                           e1.events(),e2.event("var_gamma_to_a"));
-#endif
             p=0;
-#if VULKAN_API
 			backward_test_->setArg(p++,batches);
             backward_test_->setArg(p++,features_);
             backward_test_->setArg(p++,hw);
@@ -556,15 +381,6 @@ namespace core {
             dy.set_arg(backward_test_,p);
             dy_factor.set_arg(backward_test_,p);
             backward_test_->setArg(p++,dx_factor);
-#else
-            backward_test_.setArg(p++,batches);
-            backward_test_.setArg(p++,features_);
-            backward_test_.setArg(p++,hw);
-            dx.set_arg(backward_test_,p);
-            dy.set_arg(backward_test_,p);
-            dy_factor.set_arg(backward_test_,p);
-            backward_test_.setArg(p++,dx_factor);
-#endif
             enqueue3D(backward_test_,batches,hw,e2,"backward_data");
         }
 
@@ -584,37 +400,22 @@ namespace core {
             int hw = get_plane_size(dx.shape());
             int total = batches*hw;
             int p=0;
-#if VULKAN_API
 			compute_backward_factors_->setArg(p++,features_);
             compute_backward_factors_->setArg(p++,total);
             compute_backward_factors_->setArg(p++,eps);
-#else
-            compute_backward_factors_.setArg(p++,features_);
-            compute_backward_factors_.setArg(p++,total);
-            compute_backward_factors_.setArg(p++,eps);
-#endif
             mean.set_arg(compute_backward_factors_,p);
             var.set_arg(compute_backward_factors_,p);
             dy_sum.set_arg(compute_backward_factors_,p);
             dyx_sum.set_arg(compute_backward_factors_,p);
             gamma.set_arg(compute_backward_factors_,p);
-#if VULKAN_API
 			uint32_t use_gamma = 1;
 			compute_backward_factors_->setArg(p++, use_gamma);
-#endif
             x_factor.set_arg(compute_backward_factors_,p);
             dy_factor.set_arg(compute_backward_factors_,p);
             b_offset.set_arg(compute_backward_factors_,p);
 
-#if VULKAN_API
 			compute_backward_factors_->enqueue({features_}, {1, 1, 1});
-#else
-            e.queue().enqueueNDRangeKernel(compute_backward_factors_,
-                                   cl::NullRange,cl::NDRange(features_),cl::NullRange,
-                                   e1.events(),e1.event("compute_backward_factors"));
-#endif
             p=0;
-#if VULKAN_API
 			backward_data_->setArg(p++,batches);
             backward_data_->setArg(p++,features_);
             backward_data_->setArg(p++,hw);
@@ -625,18 +426,6 @@ namespace core {
             b_offset.set_arg(backward_data_,p);
             dx.set_arg(backward_data_,p);
             backward_data_->setArg(p++,scale);
-#else
-            backward_data_.setArg(p++,batches);
-            backward_data_.setArg(p++,features_);
-            backward_data_.setArg(p++,hw);
-            x.set_arg(backward_data_,p);
-            dy.set_arg(backward_data_,p);
-            x_factor.set_arg(backward_data_,p);
-            dy_factor.set_arg(backward_data_,p);
-            b_offset.set_arg(backward_data_,p);
-            dx.set_arg(backward_data_,p);
-            backward_data_.setArg(p++,scale);
-#endif
             enqueue3D(backward_data_,batches,hw,e2,"backward_data");
         }
 
@@ -645,7 +434,6 @@ namespace core {
                              float dg_fact,float db_fact,float eps,ExecutionContext const &e)
         {
             int p=0;
-#if VULKAN_API 
 			backward_filter_->setArg(p++,features_);
             mean.set_arg(backward_filter_,p);
             var.set_arg(backward_filter_,p);
@@ -660,24 +448,7 @@ namespace core {
             backward_filter_->setArg(p++,eps);
             backward_filter_->setArg(p++,dg_fact);
             backward_filter_->setArg(p++,db_fact);
-#else
-            backward_filter_.setArg(p++,features_);
-            mean.set_arg(backward_filter_,p);
-            var.set_arg(backward_filter_,p);
-            dy_sum.set_arg(backward_filter_,p);
-            dyx_sum.set_arg(backward_filter_,p);
-            dgamma.set_arg(backward_filter_,p);
-            dbeta.set_arg(backward_filter_,p);
-            backward_filter_.setArg(p++,eps);
-            backward_filter_.setArg(p++,dg_fact);
-            backward_filter_.setArg(p++,db_fact);
-#endif
-#if VULKAN_API
 			backward_filter_->enqueue({features_}, {1, 1, 1});
-#else
-            e.queue().enqueueNDRangeKernel(backward_filter_,cl::NullRange,cl::NDRange(features_),cl::NullRange,
-                        e.events(),e.event("backward_filter"));
-#endif
         }
 
         ///
@@ -738,59 +509,33 @@ namespace core {
             int hw = get_plane_size(dx.shape());
             int total = batches*hw;
             int p=0;
-#if VULKAN_API
 			compute_backward_factors_->setArg(p++,features_);
             compute_backward_factors_->setArg(p++,total);
             compute_backward_factors_->setArg(p++,-1.0f); // use rstd instead of var
-#else
-            compute_backward_factors_.setArg(p++,features_);
-            compute_backward_factors_.setArg(p++,total);
-            compute_backward_factors_.setArg(p++,-1.0f); // use rstd instead of var
-#endif
             mean.set_arg(compute_backward_factors_,p);
             rstd.set_arg(compute_backward_factors_,p);
             dy_sum.set_arg(compute_backward_factors_,p);
             dyx_sum.set_arg(compute_backward_factors_,p);
             
-#if VULKAN_API
 			// use another tensor, who cares
 			dyx_sum.set_arg(compute_backward_factors_,p);
 			const uint32_t useGamma = 0;
 			compute_backward_factors_->setArg(p++, useGamma);
-#else
-			null_.set_arg(compute_backward_factors_,p);
-#endif
             x_factor.set_arg(compute_backward_factors_,p);
             dy_factor.set_arg(compute_backward_factors_,p);
             b_offset.set_arg(compute_backward_factors_,p);
-#if VULKAN_API
 			compute_backward_factors_->enqueue({features_}, {1, 1, 1});
-#else
-            e.queue().enqueueNDRangeKernel(compute_backward_factors_,
-                                   cl::NullRange,cl::NDRange(features_),cl::NullRange,
-                                   e1.events(),e1.event("compute_backward_factors"));
-#endif
             p=0;
-#if VULKAN_API
             backward_data_->setArg(p++,batches);
             backward_data_->setArg(p++,features_);
             backward_data_->setArg(p++,hw);
-#else
-            backward_data_.setArg(p++,batches);
-            backward_data_.setArg(p++,features_);
-            backward_data_.setArg(p++,hw);
-#endif
             x.set_arg(backward_data_,p);
             dy.set_arg(backward_data_,p);
             x_factor.set_arg(backward_data_,p);
             dy_factor.set_arg(backward_data_,p);
             b_offset.set_arg(backward_data_,p);
             dx.set_arg(backward_data_,p);
-#if VULKAN_API
             backward_data_->setArg(p++,scale);
-#else
-            backward_data_.setArg(p++,scale);
-#endif
             enqueue3D(backward_data_,batches,hw,e2,"backward_data");
         }
 
@@ -800,7 +545,6 @@ namespace core {
         int wg_;
         int second_reduce_;
         DataType dt_;
-#if VULKAN_API
 		tart::kernel_ptr sums_,sums_reduce_;
         tart::kernel_ptr dyx_sums_,dyx_sums_reduce_;
         tart::kernel_ptr forward_,backward_data_,backward_filter_;
@@ -810,17 +554,6 @@ namespace core {
         tart::kernel_ptr combine_mean_var_with_gamma_beta_;
         tart::kernel_ptr var_gamma_to_a_;
         tart::kernel_ptr backward_test_;
-#else
-        cl::Kernel sums_,sums_reduce_;
-        cl::Kernel dyx_sums_,dyx_sums_reduce_;
-        cl::Kernel forward_,backward_data_,backward_filter_;
-        cl::Kernel update_sums_;
-        cl::Kernel mean_var_to_a_b_;
-        cl::Kernel compute_backward_factors_;
-        cl::Kernel combine_mean_var_with_gamma_beta_;
-        cl::Kernel var_gamma_to_a_;
-        cl::Kernel backward_test_;
-#endif
 
         Tensor null_;
     };

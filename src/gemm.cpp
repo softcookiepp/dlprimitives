@@ -9,9 +9,7 @@
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/ops/scal.hpp>
 #include <iostream>
-#if VULKAN_API
 #include <clblast_vk.h>
-#endif
 #include <dlprim/core/pointwise.hpp>
 
 namespace dlprim {
@@ -108,32 +106,15 @@ namespace gpu {
         void set_scale(Context &ctx,StandardActivations &activation)
         {
             if(sep_scale_ == false) {
-#if VULKAN_API
 				tart::program_ptr
-#else
-                cl::Program const &
-#endif
 					prog = gpu::Cache::instance().get_program(ctx,"scal");
-#if VULKAN_API
                 scal_ = prog->getKernel("sscal");
-#else
-                scal_ = std::move(cl::Kernel(prog,"sscal"));
-#endif
                 if(activation != StandardActivations::identity) {
-#if VULKAN_API
 					tart::program_ptr
-#else
-                    cl::Program const &
-#endif
 						prog = gpu::Cache::instance().get_program(ctx,"activation",
                                                         "ACTIVATION",int(activation));
-#if VULKAN_API
 					tart::kernel_ptr k = prog->getKernel("activation");
 					act_ = k;
-#else
-                    cl::Kernel k(prog,"activation");
-                    act_ = std::move(k);
-#endif
                     activation = StandardActivations::identity;
                     sep_act_ = true;
                 }
@@ -143,67 +124,33 @@ namespace gpu {
         }
 
         void activation(size_t size, 
-#if VULKAN_API
 			tart::buffer_ptr x,
 			size_t x_offset,
-#else
-			cl::Buffer &x,
-			cl_ulong x_offset,
-#endif
 			ExecutionContext const &ec)
         {
-#if VULKAN_API
 			act_->setArg(0, uint32_t(size));
 			act_->setArg(1, x);
 			act_->setArg(2, x_offset);
 			act_->setArg(3, x);
 			act_->setArg(4, x_offset);
-#else
-			act_.setArg(0, cl_ulong(size));
-			act_.setArg(1, x);
-			act_.setArg(2, x_offset);
-			act_.setArg(3, x);
-			act_.setArg(4, x_offset);
-#endif
-#if VULKAN_API
 			// TODO: ensure the global size for this isn't wrong
 			act_->enqueue({size}, {1});
-#else
-			ec.queue().enqueueNDRangeKernel(act_, cl::NullRange, cl::NDRange(size),cl::NullRange,ec.events(),ec.event("activation"));
-#endif
         }
-#if VULKAN_API
         void scale(size_t size,float s, const tart::buffer_ptr& x, uint32_t x_offset,ExecutionContext const &ec)
-#else
-        void scale(size_t size,float s,cl::Buffer &x,cl_ulong x_offset,ExecutionContext const &ec)
-#endif
         {
             int wg = 64;
             if(size >= 1024)
                 wg = 256;
             int p=0;
-#if VULKAN_API 
             scal_->setArg(p++, uint32_t(size));
             scal_->setArg(p++, s);
             scal_->setArg(p++, x);
             scal_->setArg(p++, x_offset);
-#else
-            scal_.setArg(p++, cl_ulong(size));
-            scal_.setArg(p++,s);
-            scal_.setArg(p++,x);
-            scal_.setArg(p++,x_offset);
-#endif
-#if VULKAN_API
 			std::vector<uint32_t> l({wg});
 			std::vector<uint32_t> g = gpu::round_range(size, l);
 			g[0] = g[0]/wg;
 			g.resize(3, 1);
 			scal_->enqueue(g, {});
-#else
-            cl::NDRange l(wg);
-            cl::NDRange g=gpu::round_range(size,l);
-            ec.queue().enqueueNDRangeKernel(scal_,cl::NullRange,g,l,ec.events(),ec.event("gemm_beta_scale"));
-#endif
         }
         int tile_size_n_,tile_size_m_,tile_size_k_;
         int block_size_n_,block_size_m_;
@@ -212,13 +159,8 @@ namespace gpu {
         bool sep_scale_;
         bool sep_act_;
         bool batch_gemm_;
-#if VULKAN_API
         tart::kernel_ptr scal_;
         tart::kernel_ptr act_;
-#else
-        cl::Kernel scal_;
-        cl::Kernel act_;
-#endif
         bool zorder_ = false;
     };
 
@@ -233,7 +175,6 @@ namespace gpu {
                 StandardSGEMMBase(ctx,M,N,K,true,false,act)
         {
             check_zorder(ctx,M,N);
-#if VULKAN_API
             tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm",
                                         "TILE_SIZE_M",tile_size_m_,
                                         "TILE_SIZE_N",tile_size_n_,
@@ -249,23 +190,6 @@ namespace gpu {
                                         "ZORDER",zorder_,
                                         "ACTIVATION",int(act));
             kernel_ = prog->getKernel("sgemm");
-#else
-            cl::Program const &prog = Cache::instance().get_program(ctx,"sgemm",
-                                        "TILE_SIZE_M",tile_size_m_,
-                                        "TILE_SIZE_N",tile_size_n_,
-                                        "BLOCK_SIZE_M",block_size_m_,
-                                        "BLOCK_SIZE_N",block_size_n_,
-                                        "TILE_SIZE_K",tile_size_k_,
-                                        "TILE_OFFSET",off_,
-                                        "BIAS",bias,
-                                        "ATRANS",int(atrans),
-                                        "BTRANS",int(btrans),
-                                        "IM2COL_OCHAN",im2col_chan,
-                                        "REDUCE_K",reduce_k_,
-                                        "ZORDER",zorder_,
-                                        "ACTIVATION",int(act));
-            kernel_ = cl::Kernel(prog,"sgemm");
-#endif
             bias_ = bias;
         }
         static int round_up_div(int x,int y)
@@ -273,7 +197,6 @@ namespace gpu {
             return (x + y - 1)/y;
         }
         virtual void gemm(int M,int N,int K,
-#if VULKAN_API
 						tart::buffer_ptr &a,
 						uint32_t offset_a,
 						int lda,
@@ -285,19 +208,6 @@ namespace gpu {
 						int ldc,
 						tart::buffer_ptr bias,
 						uint32_t bias_offset,
-#else
-                          cl::Buffer &a,
-                          cl_ulong offset_a,
-                          int lda,
-                          cl::Buffer &b,
-                          cl_ulong offset_b,
-                          int ldb,
-                          cl::Buffer &c,
-                          cl_ulong offset_c,
-                          int ldc,
-                          cl::Buffer *bias,
-                          cl_ulong bias_offset,
-#endif
                           float beta,
                           int size_of_c,
                           ExecutionContext const &ein)
@@ -314,7 +224,6 @@ namespace gpu {
                 e=ein;
             }
             int ind=0;
-#if VULKAN_API
             kernel_->setArg(ind++,M);
             kernel_->setArg(ind++,N);
             kernel_->setArg(ind++,K);
@@ -333,57 +242,22 @@ namespace gpu {
                 kernel_->setArg(ind++,*bias);
                 kernel_->setArg(ind++,bias_offset);
             }
-#else
-            kernel_.setArg(ind++,M);
-            kernel_.setArg(ind++,N);
-            kernel_.setArg(ind++,K);
-            kernel_.setArg(ind++,a);
-            kernel_.setArg(ind++,offset_a);
-            kernel_.setArg(ind++,lda);
-            kernel_.setArg(ind++,b);
-            kernel_.setArg(ind++,offset_b);
-            kernel_.setArg(ind++,ldb);
-            kernel_.setArg(ind++,c);
-            kernel_.setArg(ind++,offset_c);
-            kernel_.setArg(ind++,ldc);
-            kernel_.setArg(ind++,beta);
-            if(bias_) {
-                DLPRIM_CHECK(bias != nullptr);
-                kernel_.setArg(ind++,*bias);
-                kernel_.setArg(ind++,bias_offset);
-            }
-#endif
             else {
                 DLPRIM_CHECK(bias == nullptr);
             }
 
             int gs0,gs1,ls0,ls1;
             calc_dims(gs0,ls0,gs1,ls1,M,N);
-#if VULKAN_API
 			std::vector<uint32_t>
-#else
-            cl::NDRange
-#endif
 				global,local;
             if(reduce_k_ > 1) {
-#if VULKAN_API
 				global = {reduce_k_,gs0/ls0,gs1/ls1};
 				local = {1,ls0,ls1};
-#else
-                global = cl::NDRange(reduce_k_,gs0,gs1);
-                local =  cl::NDRange(1,ls0,ls1);
-#endif
             }
             else {
-#if VULKAN_API
 				global = {gs0/ls0,gs1/ls1};
                 local =  {ls0,ls1};
-#else
-                global = cl::NDRange(gs0,gs1);
-                local =  cl::NDRange(ls0,ls1);
-#endif
             }
-#if VULKAN_API
 			// correct global size
 			for (size_t i = 0; i < global.size(); i += 1)
 			{
@@ -392,9 +266,6 @@ namespace gpu {
 			// weeeeeeeeeeeeeee
 			global.resize(3, 1);
 			kernel_->enqueue(global, {});
-#else
-            e.queue().enqueueNDRangeKernel(kernel_, cl::NullRange, global,local,e.events(),e.event("gemm"));
-#endif
             
             if(sep_act_) {
                 auto e2 = ein.generate_series_context(kernel_runs-1,kernel_runs);
@@ -403,15 +274,10 @@ namespace gpu {
         }
 
     private:
-#if VULKAN_API
         tart::kernel_ptr kernel_;
-#else
-        cl::Kernel kernel_;
-#endif
         bool bias_;
     };
 
-#if VULKAN_API
 	class BlasBatchSGEMM
 	{
 		tart::device_ptr mDevice = nullptr;
@@ -452,7 +318,6 @@ namespace gpu {
 				batches, mDevice);
 		}
 	};
-#endif
 
     class BatchSGEMM : public StandardSGEMMBase {
     public:
@@ -465,12 +330,7 @@ namespace gpu {
         {
             DLPRIM_CHECK(act == StandardActivations::identity);
             check_zorder(ctx,M,N);
-#if VULKAN_API
-			tart::program_ptr
-#else
-            cl::Program const &
-#endif
-				prog = Cache::instance().get_program(ctx,"sgemm",
+			tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm",
                                         "BATCH_GEMM",1,
                                         "TILE_SIZE_M",tile_size_m_,
                                         "TILE_SIZE_N",tile_size_n_,
@@ -485,16 +345,11 @@ namespace gpu {
                                         "REDUCE_K",0,
                                         "ZORDER",zorder_,
                                         "ACTIVATION",0);
-#if VULKAN_API
 			throw std::runtime_error("using this right now might be a bad idea");
 			kernel_ = prog->getKernel("sgemm");
-#else
-            kernel_ = cl::Kernel(prog,"sgemm");
-#endif
             bias_ = false;
         }
         virtual void gemm(int batches,int M,int N,int K,
-#if VULKAN_API
 						tart::buffer_ptr a,
 						uint32_t offset_a,
 						int batch_stride_a,
@@ -505,18 +360,6 @@ namespace gpu {
 						int ldb,
 						tart::buffer_ptr c,
 						uint32_t offset_c,
-#else
-                          cl::Buffer &a,
-                          cl_ulong offset_a,
-                          int batch_stride_a,
-                          int lda,
-                          cl::Buffer &b,
-                          cl_ulong offset_b,
-                          int batch_stride_b,
-                          int ldb,
-                          cl::Buffer &c,
-                          cl_ulong offset_c,
-#endif
                           int batch_stride_c,
                           int ldc,
                           float beta,
@@ -524,7 +367,6 @@ namespace gpu {
         {
 
             int ind=0;
-#if VULKAN_API
             kernel_->setArg(ind++,batches);
             kernel_->setArg(ind++,M);
             kernel_->setArg(ind++,N);
@@ -542,149 +384,20 @@ namespace gpu {
             kernel_->setArg(ind++,batch_stride_c);
             kernel_->setArg(ind++,ldc);
             kernel_->setArg(ind++,beta);
-#else
-            kernel_.setArg(ind++,batches);
-            kernel_.setArg(ind++,M);
-            kernel_.setArg(ind++,N);
-            kernel_.setArg(ind++,K);
-            kernel_.setArg(ind++,a);
-            kernel_.setArg(ind++,offset_a);
-            kernel_.setArg(ind++,batch_stride_a);
-            kernel_.setArg(ind++,lda);
-            kernel_.setArg(ind++,b);
-            kernel_.setArg(ind++,offset_b);
-            kernel_.setArg(ind++,batch_stride_b);
-            kernel_.setArg(ind++,ldb);
-            kernel_.setArg(ind++,c);
-            kernel_.setArg(ind++,offset_c);
-            kernel_.setArg(ind++,batch_stride_c);
-            kernel_.setArg(ind++,ldc);
-            kernel_.setArg(ind++,beta);
-#endif
            
             int gs0,gs1,ls0,ls1;
             calc_dims(gs0,ls0,gs1,ls1,M,N);
-#if VULKAN_API
 			std::vector<uint32_t>  local({1,ls0,ls1});
 			std::vector<uint32_t> global({batches/local[0],gs0/local[1],gs1/local[2]});
-			kernel_->enqueue(global, {});
-#else
-            cl::NDRange global = cl::NDRange(batches,gs0,gs1);
-            cl::NDRange local =  cl::NDRange(1,ls0,ls1);
-            e.queue().enqueueNDRangeKernel(kernel_, cl::NullRange, global,local,e.events(),e.event("gemm"));
-#endif      
+			kernel_->enqueue(global, {});     
         }
 
     private:
-#if VULKAN_API
 		tart::kernel_ptr kernel_;
-#else
-        cl::Kernel kernel_;
-#endif
         bool bias_;
         bool zorder_;
     };
     
-#if VULKAN_API
-	class BlasConvSGEMM : public GEMM
-	{
-		tart::device_ptr mDevice;
-		clblast::Transpose mATrans;
-		clblast::Transpose mBTrans;
-		
-		GemmOpMode mGemmOpMode;
-		size_t mSrcChannels;
-		size_t mDstChannels;
-		const std::vector<size_t> mKernel;
-		const std::vector<size_t> mDilate;
-		const std::vector<size_t> mPadding;
-		const std::vector<size_t> mStride;
-		size_t mGroups;
-		const bool mUseBias = false;
-		
-	public:
-		BlasConvSGEMM(  Context &ctx,
-                    GemmOpMode op_mode,
-                    bool atrans,bool btrans,
-                    int M,int N,int K,
-                    int kernel[2],int dilate[2],int padding[2],int stride[2],int groups,
-                    int src_channels,int src_rows,int src_cols,
-                    int tgt_rows,int tgt_cols,
-                    int bias,
-                    StandardActivations act,
-                    int im2col_chan = 0):
-			//StandardSGEMMBase(ctx,M,N,K,false,false,act),
-			mGemmOpMode(op_mode),
-			mSrcChannels(src_channels),
-			mKernel({kernel[0], kernel[1]}),
-			mDilate({dilate[0], dilate[1]}),
-			mPadding({padding[0], padding[1]}),
-			mStride({stride[0], stride[1]}),
-			mGroups(groups),
-			mUseBias(bias)
-		{
-			
-			//if (mGemmOpMode != GemmOpMode::forward)
-			//	throw std::runtime_error("only forward is implemented right now :c");
-			mDevice = ctx.device();
-			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
-			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
-		}
-		
-		virtual void gemm(int M,int N,int K,
-						tart::buffer_ptr &a,
-						uint32_t offset_a,
-						int lda,
-						tart::buffer_ptr &b,
-						uint32_t offset_b,
-						int ldb,
-						tart::buffer_ptr &c,
-						uint32_t offset_c,
-						int ldc,
-						tart::buffer_ptr bias,
-						uint32_t bias_offset,
-                          float beta,
-                          int size_of_c,
-                          ExecutionContext const &ein)
-        {
-#if 1
-			throw std::runtime_error("not implemented");
-#else
-			clblast::Convgemm<float>(clblast::KernelMode::kCrossCorrelation, mSrcChannels, (size_t)M, (size_t)N,
-				size_t(mKernel[0]), size_t(mKernel[1]), size_t(mPadding[0]), size_t(mPadding[1]),
-				size_t(mStride[0]), size_t(mStride[1]), size_t(mDilate[0]), size_t(mDilate[1]),
-				mDstChannels, //const size_t num_kernels,
-				mGroups, // const size_t batch_count,
-				a, (size_t)offset_a,
-				b, (size_t)offset_b,
-				c, (size_t)offset_c,
-				mDevice, nullptr);
-			#if 0
-				if (mUseBias)
-				#if 1
-				{
-					// so we basically have to go over the entire thing and add the bias ourselves. hmm.....
-					// how to do that?
-					// wait isn't it literally just the same thing????
-					const float alpha = 0.0;
-					for (size_t i = 0; i < M; i += 1)
-					{
-						uint32_t c_row_offset = (ldc*i) + offset_c;
-						// pretty sure x_inc is just 1, unless C somehow has strides.
-						clblast::Axpy<float>(N, alpha, bias, bias_offset, 1,
-							c, c_row_offset, 1, mDevice);
-					}
-				}
-				#else
-					throw std::runtime_error("using bias in convgemm is not yet implemented");
-				#endif
-			#endif
-#endif
-		}
-		
-		
-	};
-#endif
     class ConvSGEMM : public GEMM, public StandardSGEMMBase {
     public:
         ConvSGEMM(  Context &ctx,
@@ -699,12 +412,7 @@ namespace gpu {
                     int im2col_chan = 0) :
                 StandardSGEMMBase(ctx,M,N,K,false,false,act)
         {
-#if VULKAN_API
-			tart::program_ptr
-#else
-            cl::Program const &
-#endif
-            prog = Cache::instance().get_program(ctx,"sgemm",
+			tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm",
                                         "TILE_SIZE_M",tile_size_m_,
                                         "TILE_SIZE_N",tile_size_n_,
                                         "BLOCK_SIZE_M",block_size_m_,
@@ -737,12 +445,7 @@ namespace gpu {
                 gemm_name_="conv_gemm_bwd_filter";
             else
                 gemm_name_="conv_gemm";
-            kernel_ = 
-#if VULKAN_API
-				prog->getKernel("sgemm");
-#else
-				cl::Kernel(prog,"sgemm");
-#endif
+            kernel_ = prog->getKernel("sgemm");
             bias_ = bias;
             groups_ = groups;
             md_ = int(op_mode);
@@ -753,7 +456,6 @@ namespace gpu {
             w_ = src_cols;
         }
         virtual void gemm(int M,int N,int K,
-#if VULKAN_API
 						tart::buffer_ptr &a,
 						uint32_t offset_a,
 						int lda,
@@ -765,19 +467,6 @@ namespace gpu {
 						int ldc,
 						tart::buffer_ptr bias,
 						uint32_t bias_offset,
-#else
-                          cl::Buffer &a,
-                          cl_ulong offset_a,
-                          int lda,
-                          cl::Buffer &b,
-                          cl_ulong offset_b,
-                          int ldb,
-                          cl::Buffer &c,
-                          cl_ulong offset_c,
-                          int ldc,
-                          cl::Buffer *bias,
-                          cl_ulong bias_offset,
-#endif
                           float beta,
                           int size_of_c,
                           ExecutionContext const &ein)
@@ -793,7 +482,6 @@ namespace gpu {
                 e=ein;
             }
             int ind=0;
-#if VULKAN_API
             kernel_->setArg(ind++,M);
             kernel_->setArg(ind++,N);
             kernel_->setArg(ind++,K);
@@ -812,26 +500,6 @@ namespace gpu {
                 kernel_->setArg(ind++,*bias);
                 kernel_->setArg(ind++,bias_offset);
             }
-#else
-            kernel_.setArg(ind++,M);
-            kernel_.setArg(ind++,N);
-            kernel_.setArg(ind++,K);
-            kernel_.setArg(ind++,a);
-            kernel_.setArg(ind++,offset_a);
-            kernel_.setArg(ind++,lda);
-            kernel_.setArg(ind++,b);
-            kernel_.setArg(ind++,offset_b);
-            kernel_.setArg(ind++,ldb);
-            kernel_.setArg(ind++,c);
-            kernel_.setArg(ind++,offset_c);
-            kernel_.setArg(ind++,ldc);
-            kernel_.setArg(ind++,beta);
-            if(bias_) {
-                DLPRIM_CHECK(bias != nullptr);
-                kernel_.setArg(ind++,*bias);
-                kernel_.setArg(ind++,bias_offset);
-            }
-#endif
             else {
                 DLPRIM_CHECK(bias == nullptr);
             }
@@ -840,35 +508,17 @@ namespace gpu {
             int ls1 = tile_size_n_ / block_size_n_; 
             int gs0 = round_up_div(M,tile_size_m_) * tile_size_m_ / block_size_m_;
             int gs1 = round_up_div(N,tile_size_n_) * tile_size_n_ / block_size_n_;
-#if VULKAN_API
 			std::vector<uint32_t> global,local;
-#else
-            cl::NDRange global,local;
-#endif
             if(groups_ > 1 || reduce_k_ > 1) {
-#if VULKAN_API
 				local = {1,ls0,ls1};
 				global = { (groups_ * reduce_k_)/local[0], gs0/local[1], gs1/local[2]};
-#else
-                global = cl::NDRange(groups_ * reduce_k_,gs0,gs1);
-                local =  cl::NDRange(1,ls0,ls1);
-#endif
             }
             else {
-#if VULKAN_API
 				local = {ls0, ls1, 1};
 				global = {gs0/ls0, gs1/ls1, 1};
-#else
-                global = cl::NDRange(gs0,gs1,1);
-                local =  cl::NDRange(ls0,ls1,1);
-#endif
             }
-#if VULKAN_API
 			global.resize(3, 1);
 			kernel_->enqueue(global, {});
-#else
-            e.queue().enqueueNDRangeKernel(kernel_, cl::NullRange, global,local,e.events(),e.event(gemm_name_));
-#endif
 
             if(sep_act_) {
                 auto e2 = ein.generate_series_context(kernel_runs-1,kernel_runs);
@@ -878,13 +528,8 @@ namespace gpu {
 
     private:
         char const *gemm_name_;
-#if VULKAN_API
 		tart::kernel_ptr kernel_ = nullptr;
 		tart::kernel_ptr scal_ = nullptr;
-#else
-        cl::Kernel kernel_;
-        cl::Kernel scal_;
-#endif
         bool bias_;
         int groups_;
         int md_;
@@ -892,7 +537,6 @@ namespace gpu {
         int ci_,co_,k_,pad_,s_;
     };
 
-#if VULKAN_API
 	// dlprim's existing GEMM kernels are too difficult for me to port to GLSL.
 	// So I am simply taking the stuff I developed for CLBlast and putting it here!
 	
@@ -961,8 +605,6 @@ namespace gpu {
 		const bool mSepAct = true;
 		const bool mUseBias;
     };
-	
-#endif
 
     std::unique_ptr<GEMM> GEMM::get_optimal_gemm(
             Context &ctx,DataType dtype,
@@ -972,15 +614,9 @@ namespace gpu {
             StandardActivations act,
             int im2col_chan)
     {
-#if VULKAN_API
 		DLPRIM_CHECK(dtype == float_data);
 		std::unique_ptr<GEMM> g = std::make_unique<BlasSGEMM>(ctx,trans_a,trans_b,M,N,K,bias,act,im2col_chan);
 		return g;
-#else
-        DLPRIM_CHECK(dtype == float_data);
-        std::unique_ptr<GEMM> g(new StandardSGEMM(ctx,trans_a,trans_b,M,N,K,bias,act,im2col_chan));
-        return g;
-#endif
     }
     std::unique_ptr<GEMM> GEMM::get_optimal_conv_gemm(
             Context &ctx,DataType dtype,
@@ -994,29 +630,23 @@ namespace gpu {
             StandardActivations act,
             int im2col_chan)
     {
-#if 1
-		DLPRIM_CHECK(dtype == float_data); // for now, this will be made different later!
-		std::unique_ptr<GEMM> g = std::make_unique<BlasConvSGEMM>(ctx, op_mode,
-			trans_a, trans_b, M, N, K, kernel,dilate, padding,stride, groups,
-			src_channels, src_rows, src_cols, tgt_rows, tgt_cols, bias,act,im2col_chan);
-		return g;
-#else
-        DLPRIM_CHECK(dtype == float_data);
-        std::unique_ptr<GEMM> g(new ConvSGEMM(ctx,op_mode,
-            trans_a,trans_b,M,N,K,
-            kernel,dilate,padding,stride,groups,
-            src_channels,src_rows,src_cols,
-            tgt_rows,tgt_cols,
-            bias,act,im2col_chan));
-        return g;
-#endif
+		// TODO: remove or something. I don't know how this will work :c
+		#if 1
+			throw std::runtime_error("YOU SHALL NOT PASS");
+			return nullptr;
+		#else
+			DLPRIM_CHECK(dtype == float_data); // for now, this will be made different later!
+			std::unique_ptr<GEMM> g = std::make_unique<BlasConvSGEMM>(ctx, op_mode,
+				trans_a, trans_b, M, N, K, kernel,dilate, padding,stride, groups,
+				src_channels, src_rows, src_cols, tgt_rows, tgt_cols, bias,act,im2col_chan);
+			return g;
+		#endif
     }
 
     void GEMM::batch_sgemm(DataType dt,
                           bool trans_a,bool trans_b,
                           int Batch, // number of matrices
                           int M,int N,int K,
-#if VULKAN_API
                           tart::buffer_ptr &a,
                           uint32_t offset_a, 
                           int batch_stride_a,
@@ -1027,24 +657,11 @@ namespace gpu {
                           int ldb,
                           tart::buffer_ptr &c,
                           uint32_t offset_c,
-#else
-                          cl::Buffer &a,
-                          cl_ulong offset_a, 
-                          int batch_stride_a,
-                          int lda,
-                          cl::Buffer &b,
-                          cl_ulong offset_b,
-                          int batch_stride_b,
-                          int ldb,
-                          cl::Buffer &c,
-                          cl_ulong offset_c,
-#endif
                           int batch_stride_c,
                           int ldc,
                           float beta,
                           ExecutionContext const &e)
     {
-#if VULKAN_API
 		DLPRIM_CHECK(dt == float_data);
         
         StandardActivations act = StandardActivations::identity;
@@ -1056,19 +673,6 @@ namespace gpu {
                 c,offset_c,batch_stride_c,ldc,
                 beta,
                 e);
-#else
-        DLPRIM_CHECK(dt == float_data);
-        
-        StandardActivations act = StandardActivations::identity;
-        Context ctx(e);
-        BatchSGEMM gemm_opt(ctx,trans_a,trans_b,M,N,K,act);
-        gemm_opt.gemm(Batch,M,N,K,
-                a,offset_a,batch_stride_a,lda,
-                b,offset_b,batch_stride_b,ldb,
-                c,offset_c,batch_stride_c,ldc,
-                beta,
-                e);
-#endif
     }
 
 
