@@ -211,7 +211,7 @@ set(DLPRIM_CORE_SRC
         src/core/activation.cpp
         src/core/util.cpp
         src/core/interpolate.cpp
-        src/naive.cpp
+        #src/naive.cpp
         src/im2col.cpp
         src/softmax.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp)
