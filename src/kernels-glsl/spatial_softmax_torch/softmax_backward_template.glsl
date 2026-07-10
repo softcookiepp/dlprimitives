@@ -51,7 +51,7 @@ void do_softmax_backward()
 			{
 				dtype sum = 0;
 				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
-					sum += gradOutput[data_offset + d * dim_stride];
+					sum += gradOutput[data_offset + d * dim_stride + gradOutputOffset];
 				//sum = spatialBlockReduceX<dtype, Add>(sdata, sum);
 				spatialBlockReduceX(sum, add_fn, sdata, 0, sum)
 
@@ -59,22 +59,22 @@ void do_softmax_backward()
 				Epilogue epilogue = Epilogue(sum);
 				for (uint d = threadIdx.x; d < dim_size; d += blockDim.x)
 				{
-					gradInput[data_offset + d * dim_stride] =
-						do_epilogue(epilogue, gradOutput[data_offset + d * dim_stride],
-										output_[data_offset + d * dim_stride]);
+					gradInput[data_offset + d * dim_stride + gradInputOffset] =
+						do_epilogue(epilogue, gradOutput[data_offset + d * dim_stride + gradOutputOffset],
+										output_[data_offset + d * dim_stride + output_offset]);
 				}
 			}
 			else
 			{
 				dtype sum = 0;
 				for (uint d = 0; d < dim_size; d++)
-					sum += gradOutput[data_offset + d * dim_stride];
+					sum += gradOutput[data_offset + d * dim_stride + gradOutputOffset];
 
 				Epilogue epilogue = Epilogue(sum);
 				for (uint d = 0; d < dim_size; d++) {
-					gradInput[data_offset + d * dim_stride] =
-						do_epilogue(epilogue, gradOutput[data_offset + d * dim_stride],
-										output_[data_offset + d * dim_stride]);
+					gradInput[data_offset + d * dim_stride + gradInputOffset] =
+						do_epilogue(epilogue, gradOutput[data_offset + d * dim_stride + gradOutputOffset],
+										output_[data_offset + d * dim_stride + output_offset]);
 				}
 			}
 		}
