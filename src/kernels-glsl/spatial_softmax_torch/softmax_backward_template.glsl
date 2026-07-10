@@ -61,7 +61,7 @@ void do_softmax_backward()
 				{
 					gradInput[data_offset + d * dim_stride] =
 						do_epilogue(epilogue, gradOutput[data_offset + d * dim_stride],
-										output[data_offset + d * dim_stride]);
+										output_[data_offset + d * dim_stride]);
 				}
 			}
 			else
@@ -74,7 +74,7 @@ void do_softmax_backward()
 				for (uint32_t d = 0; d < dim_size; d++) {
 					gradInput[data_offset + d * dim_stride] =
 						do_epilogue(epilogue, gradOutput[data_offset + d * dim_stride],
-										output[data_offset + d * dim_stride]);
+										output_[data_offset + d * dim_stride]);
 				}
 			}
 		}
