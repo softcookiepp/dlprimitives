@@ -336,25 +336,13 @@ namespace dlprim {
         switch(cfg_.method) {
         case ReductionConfig::mean:
         case ReductionConfig::sum:
-#if VULKAN_API
             calc = "y0 = typeof_y0(x0);";
-#else
-            calc = "y0 = x0;";
-#endif
             break;
         case ReductionConfig::sumsq:
-#if VULKAN_API
             calc = "y0 = typeof_y0(x0*x0);";
-#else
-            calc = "y0 = x0*x0;";
-#endif
             break;
         case ReductionConfig::abssum:
-#if VULKAN_API
             calc = "y0=typeof_y0((x0 < 0) ? -x0 : x0);";
-#else
-            calc = "y0=(x0 < 0) ? -x0 : x0;";
-#endif
             break;
         default:
             throw ValidationError("Internal Error config broadcast");
@@ -382,19 +370,11 @@ namespace dlprim {
         case ReductionConfig::sum:
         case ReductionConfig::mean:
             core::pointwise_operation_broadcast({dy,dx},{dx},{coeff,accum},
-#if VULKAN_API
                         "y0 = typeof_y0( (w1 == 0 ? 0 : w1*x1) + w0 * x0);",q);
-#else
-                        "y0 = (w1 == 0 ? 0 : w1*x1) + w0 * x0;",q);
-#endif
             break;
         case ReductionConfig::sumsq:
             core::pointwise_operation_broadcast({dy,dx,x},{dx},{coeff,accum},
-#if VULKAN_API
                         "y0 = typeof_y0( (w1 == 0 ? 0 : w1*x1) + w0 * 2 * x2 * x0 );",q);
-#else
-                        "y0 = (w1 == 0 ? 0 : w1*x1) + w0 * 2 * x2 * x0;",q);
-#endif
             break;
         case ReductionConfig::abssum:
             core::pointwise_operation_broadcast({dy,dx,x},{dx},{coeff,accum},

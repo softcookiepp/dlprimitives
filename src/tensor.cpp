@@ -10,59 +10,22 @@
 #include <iostream>
 
 namespace dlprim {
-	struct Tensor::HostMem {
-#if VULKAN_API
+	struct Tensor::HostMem
+	{
+		// TODO: maybe take into account mappable buffers somehow.
+		// This would save us the trouble of allocating host memory in some circumstances
 		std::vector<uint8_t> mHostMem;
-#else
-		void *p = nullptr;
-#endif
 		~HostMem()
 		{
-#if VULKAN_API
 			// literally nothing...my frustration with legacy C++ practices grows indefinitely
-#else
-			free();
-#endif
 		}
 		void free()
 		{
-#if VULKAN_API
 			mHostMem.resize(0);
-#else
-			if(p) {
-			#ifndef DLPRIM_WINDOWS
-				::free(p); 
-			#else
-				_aligned_free(p);
-			#endif
-			}
-			p = nullptr;
-#endif
 		}
-		void alloc(
-#if VULKAN_API
-			size_t
-#else
-			cl_ulong
-#endif
-				size)
+		void alloc(size_t size)
 		{
-#if VULKAN_API
 			mHostMem.resize(size);
-#else
-			free();
-            #ifndef DLPRIM_WINDOWS
-            int r = posix_memalign(&p,128,size);
-            if(r!=0) {
-                free();
-                throw std::bad_alloc();
-            }
-            #else
-            p = _aligned_malloc(size,128);
-            #endif
-			if(!p)
-				throw std::bad_alloc();
-#endif
 		}
 	};
     Tensor::Tensor() :
@@ -74,17 +37,9 @@ namespace dlprim {
     {
     }
     Tensor::Tensor(
-#if VULKAN_API
 			tart::buffer_ptr
-#else
-			cl::Buffer const &
-#endif
 			buffer,
-#if VULKAN_API
 			uint64_t offset, 
-#else
-			cl_ulong offset, 
-#endif
 			Shape const &s, DataType d, bool is_train) :
         specs_(new TensorSpecs(s,d,is_train)),
 		host_(new Tensor::HostMem()),
@@ -107,24 +62,19 @@ namespace dlprim {
         DLPRIM_CHECK(size > 0);
 		if(cpu_tensor_)
 			host_->alloc(size);
-        if(!cpu_tensor_) {
-#if VULKAN_API
+        if(!cpu_tensor_)
+        {
 			buffer_ = ctx.context()->allocateBuffer(size);
 			dev_ = ctx.context();
 			own_buffer_ = true;
-#else
-            buffer_ = cl::Buffer(ctx.context(),CL_MEM_READ_WRITE,size);
-#endif
         }
     }
 
-#if VULKAN_API
 	// tart makes you free buffers automatically. this behavior might change in the future.
 	Tensor::~Tensor()
 	{
 		//dev_.lock()->deallocateBuffer(buffer_);
 	}
-#endif
 
     void Tensor::reshape(Shape const &new_shape)
     {
@@ -138,44 +88,28 @@ namespace dlprim {
         if(cpu_tensor_)
             memcpy(host_data(),p,memory_size());
         else
-#if VULKAN_API
 			buffer_->copyIn(p, memory_size(), offset_ * size_of_data_type(dtype()));
-#else
-            c.queue().enqueueWriteBuffer(buffer_, sync ? CL_TRUE : CL_FALSE, offset_ * size_of_data_type(dtype()), memory_size(), p,c.events(),c.event("write"));
-#endif
     }
 
     void Tensor::to_device(ExecutionContext const &c,bool sync)
     {
         if(cpu_tensor_)
             return;
-#if VULKAN_API
 		buffer_->copyIn(host_data(), memory_size(), offset_ * size_of_data_type(dtype()));
-#else
-        c.queue().enqueueWriteBuffer(buffer_, sync ? CL_TRUE : CL_FALSE, offset_ * size_of_data_type(dtype()), memory_size(), host_data(),c.events(),c.event("write"));
-#endif
     }
     void Tensor::to_host(ExecutionContext const &c, void *p,bool sync)
     {
         if(cpu_tensor_) 
             memcpy(p,host_data(),memory_size());
         else
-#if VULKAN_API
 			buffer_->copyOut(p, memory_size(), offset_ * size_of_data_type(dtype()));
-#else
-            c.queue().enqueueReadBuffer(buffer_, sync ? CL_TRUE : CL_FALSE, offset_ * size_of_data_type(dtype()), memory_size(), p,c.events(),c.event("read"));
-#endif
     }
     void Tensor::to_host(ExecutionContext const &c,bool sync)
     {
         if(cpu_tensor_)
             return;
-#if VULKAN_API
 		// all buffer copies in tart are sync, sorry :c
 		buffer_->copyOut(host_data(), memory_size(), offset_ * size_of_data_type(dtype()));
-#else
-        c.queue().enqueueReadBuffer(buffer_, sync ? CL_TRUE : CL_FALSE, offset_ * size_of_data_type(dtype()), memory_size(), host_data(),c.events(),c.event("read"));
-#endif
     }
 
     Tensor Tensor::sub_tensor(size_t offset,Shape const &s,DataType d,bool trainable) const
@@ -197,19 +131,12 @@ namespace dlprim {
 
     void *Tensor::host_data()
     {
-#if VULKAN_API
 		// for now, though I am not happy about this
 		if(host_->mHostMem.size() == 0)
 		{
 			host_->alloc(full_capacity_);
 		}
 		return (char*)(host_->mHostMem.data()) + offset_ * size_of_data_type(dtype());
-#else
-		if(!host_->p) {
-			host_->alloc(full_capacity_);
-		}
-        return static_cast<char*>(host_->p) + offset_ * size_of_data_type(dtype());
-#endif
     }
 };
 /// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

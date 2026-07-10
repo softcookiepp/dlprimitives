@@ -21,7 +21,6 @@ namespace core {
         {
             DLPRIM_CHECK(dt == float_data);
             wg_size_ = 8;
-#if VULKAN_API	
 			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"pooling",
                                         "WG_SIZE",wg_size_,
                                         "POOL_H",k[0],
@@ -34,20 +33,6 @@ namespace core {
                                         "COUNT_INCLUDE_PAD",int(inc_pad));
             kernel_ = prog->getKernel("pooling");
             bwd_kernel_ = prog->getKernel("pooling_bw");
-#else
-            cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"pooling",
-                                        "WG_SIZE",wg_size_,
-                                        "POOL_H",k[0],
-                                        "POOL_W",k[1],
-                                        "STRIDE_H",s[0],
-                                        "STRIDE_W",s[1],
-                                        "PAD_H",p[0],
-                                        "PAD_W",p[1],
-                                        "POOL_MODE",int(avg),
-                                        "COUNT_INCLUDE_PAD",int(inc_pad));
-            kernel_ = cl::Kernel(prog,"pooling");
-            bwd_kernel_ = cl::Kernel(prog,"pooling_bw");
-#endif
         }
 
         void forward(Tensor &in,Tensor &out,ExecutionContext const &ctx)
@@ -61,7 +46,6 @@ namespace core {
             int out_w = out.shape()[3];
 
             int p=0;
-#if VULKAN_API
 			kernel_->setArg(p++,bc);
             kernel_->setArg(p++,in_h);
             kernel_->setArg(p++,in_w);
@@ -76,20 +60,6 @@ namespace core {
             gr[1] = gr[1]/wg[1];
 			gr.resize(3, 1);
 			kernel_->enqueue(gr, {});
-#else
-            kernel_.setArg(p++,bc);
-            kernel_.setArg(p++,in_h);
-            kernel_.setArg(p++,in_w);
-            kernel_.setArg(p++,out_h);
-            kernel_.setArg(p++,out_w);
-            in.set_arg(kernel_,p);
-            out.set_arg(kernel_,p);
-
-            cl::NDRange wg(wg_size_,wg_size_,1);
-            cl::NDRange gr = gpu::round_range(out_h,out_w,bc,wg);
-
-            ctx.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,gr,wg,ctx.events(),ctx.event("pooling"));
-#endif
         }
 
         void backward(Tensor *x,Tensor &dx,Tensor &dy,float factor,ExecutionContext const &ex)
@@ -108,7 +78,6 @@ namespace core {
             auto ec2 = ex.generate_series_context(1,2);
 
             scal_.enqueue(factor,dx,ec1);
-#if VULKAN_API
 			bwd_kernel_->setArg(p++,bc);
             bwd_kernel_->setArg(p++,in_h);
             bwd_kernel_->setArg(p++,in_w);
@@ -127,36 +96,13 @@ namespace core {
 				gr[i] = gr[i]/wg[i];
 			gr.resize(3, 1);
 			bwd_kernel_->enqueue(gr, {});
-#else
-            bwd_kernel_.setArg(p++,bc);
-            bwd_kernel_.setArg(p++,in_h);
-            bwd_kernel_.setArg(p++,in_w);
-            bwd_kernel_.setArg(p++,out_h);
-            bwd_kernel_.setArg(p++,out_w);
-            if(!avg_) {
-                DLPRIM_CHECK(x!=nullptr);
-                x->set_arg(bwd_kernel_,p);
-            }
-            dy.set_arg(bwd_kernel_,p);
-            dx.set_arg(bwd_kernel_,p);
-
-            cl::NDRange wg(wg_size_,wg_size_,1);
-            cl::NDRange gr = gpu::round_range(out_h,out_w,bc,wg);
-
-            ex.queue().enqueueNDRangeKernel(bwd_kernel_,cl::NullRange,gr,wg,ec2.events(),ec2.event("pooling_bw"));
-#endif
         }
     private:
         Scale scal_;
         bool avg_;
         int wg_size_;
-#if VULKAN_API
         tart::kernel_ptr kernel_;
         tart::kernel_ptr bwd_kernel_;
-#else
-        cl::Kernel kernel_;
-        cl::Kernel bwd_kernel_;
-#endif
     };
 
     class GlobalPoolingFWBWImpl  {
@@ -174,7 +120,6 @@ namespace core {
             else 
                 wg_size_ = 256;
             items_per_wi_ = (sm_range + wg_size_ - 1) / wg_size_;
-#if VULKAN_API
 			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"global_pooling",
                     "POOL_MODE",int(avg),
                     "WG_SIZE",wg_size_,
@@ -183,16 +128,6 @@ namespace core {
                     );
             kernel_ = prog->getKernel("global_pooling");
             kernel_bwd_ = prog->getKernel("global_pooling_bwd");
-#else
-            cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"global_pooling",
-                    "POOL_MODE",int(avg),
-                    "WG_SIZE",wg_size_,
-                    "ENABLE_BWD",1,
-                    "ITEMS_PER_WI",items_per_wi_
-                    );
-            kernel_ = cl::Kernel(prog,"global_pooling");
-            kernel_bwd_ = cl::Kernel(prog,"global_pooling_bwd");
-#endif
             sm_range_ = sm_range;
             int mpl = wg_size_ * items_per_wi_;
             nd_range_ = (sm_range_ + mpl - 1) / mpl * wg_size_;
@@ -204,7 +139,6 @@ namespace core {
             int over = in_shape[2] * in_shape[3];
             DLPRIM_CHECK(over == sm_range_);
             int p=0;
-#if VULKAN_API
 			kernel_->setArg(p++,int(in_shape[0]*in_shape[1]));
             kernel_->setArg(p++,sm_range_);
             kernel_->setArg(p++,float(1.0f / (in_shape[2]*in_shape[3])));
@@ -215,17 +149,6 @@ namespace core {
             //std::vector<uint32_t> wg({1, wg_size_});
             gr.resize(3, 1);
             kernel_->enqueue(gr, {});
-#else
-            kernel_.setArg(p++,int(in_shape[0]*in_shape[1]));
-            kernel_.setArg(p++,sm_range_);
-            kernel_.setArg(p++,float(1.0f / (in_shape[2]*in_shape[3])));
-            input.set_arg(kernel_,p);
-            output.set_arg(kernel_,p);
-
-            cl::NDRange gr(in_shape[0]*in_shape[1],nd_range_);
-            cl::NDRange wg(1,wg_size_);
-            ctx.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,gr,wg,ctx.events(),ctx.event("global_pooling"));
-#endif
         }
         void backward(Tensor *x,Tensor &dx,Tensor &dy, float factor,ExecutionContext const &ctx)
         {
@@ -233,7 +156,6 @@ namespace core {
             int over = in_shape[2] * in_shape[3];
             DLPRIM_CHECK(over == sm_range_);
             int p=0;
-#if VULKAN_API
 			kernel_bwd_->setArg(p++,int(in_shape[0]*in_shape[1]));
             kernel_bwd_->setArg(p++,sm_range_);
             kernel_bwd_->setArg(p++,float(1.0f / (in_shape[2]*in_shape[3])));
@@ -247,31 +169,10 @@ namespace core {
 
 			//std::vector<uint32_t> wg(1, wg_size_);
 			kernel_bwd_->enqueue({in_shape[0]*in_shape[1], nd_range_/wg_size_}, {});
-#else
-            kernel_bwd_.setArg(p++,int(in_shape[0]*in_shape[1]));
-            kernel_bwd_.setArg(p++,sm_range_);
-            kernel_bwd_.setArg(p++,float(1.0f / (in_shape[2]*in_shape[3])));
-            if(!avg_) {
-                DLPRIM_CHECK(x!=nullptr);
-                x->set_arg(kernel_bwd_,p);
-            }
-            dx.set_arg(kernel_bwd_,p);
-            dy.set_arg(kernel_bwd_,p);
-            kernel_bwd_.setArg(p++,factor);
-
-            cl::NDRange gr(in_shape[0]*in_shape[1],nd_range_);
-            cl::NDRange wg(1,wg_size_);
-            ctx.queue().enqueueNDRangeKernel(kernel_bwd_,cl::NullRange,gr,wg,ctx.events(),ctx.event("global_pooling_bwd"));
-#endif
         }
     private:
-#if VULKAN_API
         tart::kernel_ptr kernel_;
         tart::kernel_ptr kernel_bwd_;
-#else
-        cl::Kernel kernel_;
-        cl::Kernel kernel_bwd_;
-#endif
         int wg_size_;
         int items_per_wi_;
         int sm_range_;

@@ -93,7 +93,6 @@ void SoftmaxWithLoss::setup_kernel(int sm_range)
 {
     if(!setup_kernel_params(sm_range))
         return;
-#if VULKAN_API
     tart::program_ptr prog_fwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
                                                             "WG_SIZE",wg_size_,
                                                             "ITEMS_PER_WI",items_per_wi_,
@@ -107,21 +106,6 @@ void SoftmaxWithLoss::setup_kernel(int sm_range)
                                                 "CALC_LOSS",2);
 
     kernel_bwd_ = prog_bwd->getKernel("softmax");
-#else
-    cl::Program const &prog_fwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
-                                                            "WG_SIZE",wg_size_,
-                                                            "ITEMS_PER_WI",items_per_wi_,
-                                                            "itype",itype_,
-                                                            "CALC_LOSS",1);
-    kernel_ = cl::Kernel(prog_fwd,"softmax");
-    cl::Program const &prog_bwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
-                                                "WG_SIZE",wg_size_,
-                                                "ITEMS_PER_WI",items_per_wi_,
-                                                "itype",itype_,
-                                                "CALC_LOSS",2);
-
-    kernel_bwd_ = cl::Kernel(prog_bwd,"softmax");
-#endif
     scal_.reset(new Scal(ctx_,dtype_));
 }
 
@@ -242,7 +226,6 @@ void SoftmaxWithLoss::forward_gpu_loss(Tensor &input,Tensor &label, Tensor &outp
     Shape in_shape = input.shape();
     DLPRIM_CHECK(int(in_shape[1]) == sm_range_);
     int p=0;
-#if VULKAN_API
     kernel_->setArg(p++,int(in_shape[0]));
     kernel_->setArg(p++,sm_range_);
     input.set_arg(kernel_,p);
@@ -255,20 +238,6 @@ void SoftmaxWithLoss::forward_gpu_loss(Tensor &input,Tensor &label, Tensor &outp
     std::vector<uint32_t> wg({1, wg_size_});
     auto ec = ctx.generate_series_context(1, 2);
     kernel_->enqueue(gr, wg);
-#else
-    kernel_.setArg(p++,int(in_shape[0]));
-    kernel_.setArg(p++,sm_range_);
-    input.set_arg(kernel_,p);
-    label.set_arg(kernel_,p);
-    output.set_arg(kernel_,p);
-
-    scal_->scale(0,output,ctx.generate_series_context(0,2));
-    
-    cl::NDRange gr(in_shape[0],nd_range_);
-    cl::NDRange wg(1,wg_size_);
-    auto ec = ctx.generate_series_context(1,2);
-    ctx.queue().enqueueNDRangeKernel(kernel_,cl::NullRange,gr,wg,ec.events(),ec.event("softmax_with_loss"));
-#endif
 }
 
 void SoftmaxWithLoss::backward_gpu_loss(Tensor &input,Tensor &diff, Tensor &label,Tensor &output,float factor, ExecutionContext const &ctx)
@@ -276,7 +245,6 @@ void SoftmaxWithLoss::backward_gpu_loss(Tensor &input,Tensor &diff, Tensor &labe
     Shape in_shape = input.shape();
     DLPRIM_CHECK(int(in_shape[1]) == sm_range_);
     int p=0;
-#if VULKAN_API
     kernel_bwd_->setArg(p++,int(in_shape[0]));
     kernel_bwd_->setArg(p++,sm_range_);
     input.set_arg(kernel_bwd_,p);
@@ -288,19 +256,6 @@ void SoftmaxWithLoss::backward_gpu_loss(Tensor &input,Tensor &diff, Tensor &labe
     std::vector<uint32_t> gr({in_shape[0], nd_range_/wg_size_});
     std::vector<uint32_t> wg({1, wg_size_});
     kernel_bwd_->enqueue(gr, wg);
-#else
-    kernel_bwd_.setArg(p++,int(in_shape[0]));
-    kernel_bwd_.setArg(p++,sm_range_);
-    input.set_arg(kernel_bwd_,p);
-    diff.set_arg(kernel_bwd_,p);
-    label.set_arg(kernel_bwd_,p);
-    output.set_arg(kernel_bwd_,p);
-    kernel_bwd_.setArg(p++,factor);
-
-    cl::NDRange gr(in_shape[0],nd_range_);
-    cl::NDRange wg(1,wg_size_);
-    ctx.queue().enqueueNDRangeKernel(kernel_bwd_,cl::NullRange,gr,wg,ctx.events(),ctx.event("softmax_with_loss_bwd"));
-#endif
 }
 
 void Softmax::forward(std::vector<Tensor> &input,std::vector<Tensor> &output, std::vector<Tensor> &, Tensor &,ExecutionContext const &ctx)

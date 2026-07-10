@@ -122,11 +122,7 @@ tart::program_ptr Cache::build_program(Context  &ctx,std::string const &source,s
 
 std::string Cache::make_key(Context &ctx,std::string const &src,std::vector<Parameter> const &params)
 {
-#if VULKAN_API
 	std::uintptr_t ctx_ptr = (std::uintptr_t)(ctx.context().get());
-#else
-    void *ctx_ptr = ctx.context()();
-#endif
     std::ostringstream ss;
     ss << "prg:" << ctx_ptr <<  "@" << src <<  "/?";
     for(size_t i=0;i<params.size();i++) {

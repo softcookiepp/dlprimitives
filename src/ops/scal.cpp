@@ -15,13 +15,8 @@ namespace dlprim {
         DLPRIM_CHECK(dt==float_data);
         if(ctx_.is_cpu_context())
             return;
-#if VULKAN_API
         tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"scal");
         k_ = prog->getKernel("sscal");
-#else
-        cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"scal");
-        k_ = cl::Kernel(prog,"sscal");
-#endif
     }
     Scal::~Scal(){}
     
@@ -42,7 +37,6 @@ namespace dlprim {
                 wg = 256;
             else
                 wg = 64;
-#if VULKAN_API
 			k_->setArg(p++, uint32_t(size));
             k_->setArg(p++,s);
             t.set_arg(k_,p);
@@ -50,14 +44,6 @@ namespace dlprim {
             std::vector<uint32_t> g = gpu::round_range(size,l);
             g[0] = g[0] / l[0];
             k_->enqueue(g, l);
-#else
-            k_.setArg(p++,cl_ulong(size));
-            k_.setArg(p++,s);
-            t.set_arg(k_,p);
-            cl::NDRange l(wg);
-            cl::NDRange g=gpu::round_range(size,l);
-            ec.queue().enqueueNDRangeKernel(k_,cl::NullRange,g,l,ec.events(),ec.event("sscal"));
-#endif
         }
     }
 
