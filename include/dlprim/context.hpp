@@ -15,10 +15,6 @@
 
 namespace dlprim {
 
-// eventually this will be put in tart itself.
-void enqueue_or_record(const tart::kernel_ptr& k, const std::vector<uint32_t>& grid,
-	const std::vector<uint32_t>& spec, const tart::command_sequence_ptr& sequence);
-
 ///
 /// Class used for benchmarking of the model
 ///

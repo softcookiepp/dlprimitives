@@ -70,8 +70,7 @@ void spatial_softmax(
 	const uint32_t outer_size,
 	const uint32_t dim_size,
 	const uint32_t inner_size,
-	const bool half_to_float,
-	const tart::command_sequence_ptr& sequence)
+	const bool half_to_float)
 {
 	Context ctx(e);
 	
@@ -100,10 +99,7 @@ void spatial_softmax(
 		std::vector<uint32_t> g = grid.toVector();
 		std::vector<uint32_t> spec = block.toVector();
 		spec.push_back(smem_size);
-		if (sequence)
-			k->record(sequence, g, spec);
-		else
-			k->enqueue(g, spec);
+		k->enqueue(g, spec);
 	}
 	else
 	{
@@ -133,8 +129,7 @@ void spatial_softmax_backward(
 	uint32_t outer_size,
 	uint32_t dim_size,
 	uint32_t inner_size,
-	bool half_to_float,
-	const tart::command_sequence_ptr& sequence)
+	bool half_to_float)
 {
 	Context ctx(e);
 	
@@ -162,10 +157,7 @@ void spatial_softmax_backward(
 		std::vector<uint32_t> g = grid.toVector();
 		std::vector<uint32_t> spec = block.toVector();
 		spec.push_back(smem_size);
-		if (sequence)
-			k->record(sequence, g, spec);
-		else
-			k->enqueue(g, spec);
+		k->enqueue(g, spec);
 	}
 	else
 	{

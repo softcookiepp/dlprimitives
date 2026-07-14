@@ -28,8 +28,7 @@ void im2col(const ExecutionContext& e,
 	const uint32_t dilation_width,
 	const tart::buffer_ptr& data_col,
 	const uint32_t data_col_offset, // new arg
-	const DataType dtype,
-	const tart::command_sequence_ptr& sequence = nullptr); // also new arg
+	const DataType dtype); // also new arg
 
 void col2im(
 		const ExecutionContext& e,
@@ -51,8 +50,7 @@ void col2im(
 		const tart::buffer_ptr& data_im,
 		const uint32_t data_im_offset,
 		const DataType dtype,
-		const DataType accT,
-		const tart::command_sequence_ptr& sequence = nullptr);
+		const DataType accT);
 
 void col2im_batched(
 		const ExecutionContext& e,
@@ -76,8 +74,7 @@ void col2im_batched(
 		const tart::buffer_ptr& data_im,
 		const uint32_t data_im_offset,
 		const uint32_t im_batch_stride,
-		const DataType dtype,
-		const tart::command_sequence_ptr& sequence = nullptr);
+		const DataType dtype);
 
 } // namespace gpu
 	

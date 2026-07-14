@@ -28,8 +28,7 @@ void spatial_softmax(
 	const uint32_t outer_size,
 	const uint32_t dim_size,
 	const uint32_t inner_size,
-	const bool half_to_float,
-	const tart::command_sequence_ptr& sequence = nullptr);
+	const bool half_to_float);
 
 void spatial_softmax_backward(
 	const ExecutionContext& e,
@@ -44,8 +43,7 @@ void spatial_softmax_backward(
 	uint32_t outer_size,
 	uint32_t dim_size,
 	uint32_t inner_size,
-	bool half_to_float,
-	const tart::command_sequence_ptr& sequence = nullptr);
+	bool half_to_float);
 
 } // namespace gpu
 

@@ -25,8 +25,7 @@ void im2col(const ExecutionContext& e,
 	const uint32_t dilation_width,
 	const tart::buffer_ptr& data_col,
 	const uint32_t data_col_offset, // new arg
-	const DataType dtype,
-	const tart::command_sequence_ptr& sequence)
+	const DataType dtype)
 {
 	Context ctx(e);
 	tart::program_ptr prg = Cache::instance().get_program(ctx, "im2col_torch", "dtype", data_type_to_opencl_type(dtype));
@@ -58,10 +57,7 @@ void im2col(const ExecutionContext& e,
 	im2colKernel->setArg(p++, data_col);
 	im2colKernel->setArg(p++, data_col_offset);
 	
-	if (sequence)
-		im2colKernel->record(sequence, {block_num, 1, 1}, {});
-	else
-		im2colKernel->enqueue({block_num, 1, 1}, {});
+	im2colKernel->enqueue({block_num, 1, 1}, {});
 }
 
 void col2im(
@@ -84,8 +80,7 @@ void col2im(
 		const tart::buffer_ptr& data_im,
 		const uint32_t data_im_offset,
 		const DataType dtype,
-		const DataType accT,
-		const tart::command_sequence_ptr& sequence)
+		const DataType accT)
 {
 	uint32_t num_kernels = channels * height * width;
 	// To avoid involving atomic operations, we will launch one kernel per
@@ -118,10 +113,7 @@ void col2im(
 	col2im_kernel->setArg(p++, data_im);
 	col2im_kernel->setArg(p++, data_im_offset);
 	
-	if (sequence)
-		col2im_kernel->record(sequence, {block_num, 1, 1}, {});
-	else
-		col2im_kernel->enqueue({block_num, 1, 1}, {});
+	col2im_kernel->enqueue({block_num, 1, 1}, {});
 }
 
 void col2im_batched(
@@ -146,8 +138,7 @@ void col2im_batched(
 		const tart::buffer_ptr& data_im,
 		const uint32_t data_im_offset,
 		const uint32_t im_batch_stride,
-		const DataType dtype,
-		const tart::command_sequence_ptr& sequence)
+		const DataType dtype)
 {
 	const uint32_t num_kernels = channels * height * width;
 	const uint32_t output_numel = nbatch * num_kernels;
@@ -184,10 +175,7 @@ void col2im_batched(
 	
 	uint32_t block_num = (num_kernels - 1) / 512 + 1;
 	
-	if (sequence)
-		col2im_kernel->record(sequence, {block_num, 1, 1}, {});
-	else
-		col2im_kernel->enqueue({block_num, 1, 1}, {});
+	col2im_kernel->enqueue({block_num, 1, 1}, {});
 }
 
 

@@ -10,8 +10,7 @@
 
 namespace dlprim {
 namespace core {
-    void activation_forward(Tensor &x,Tensor &y,StandardActivations activation, ExecutionContext const &ec,
-		const tart::command_sequence_ptr& sequence)
+    void activation_forward(Tensor &x,Tensor &y,StandardActivations activation, ExecutionContext const &ec)
     {
         Context ctx(ec);
 		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"activation",
@@ -27,9 +26,9 @@ namespace core {
 		for (size_t i = 0; i < gr.size(); i += 1)
 			gr[i] = gr[i] / wg[i];
 		gr.resize(3, 1);
-		enqueue_or_record(k, gr, wg, sequence);
+		k->enqueue(gr, wg);
     }
-    void activation_backward(Tensor &dx,Tensor &dy,Tensor &y,StandardActivations activation,float beta,ExecutionContext const &ec, const tart::command_sequence_ptr& sequence)
+    void activation_backward(Tensor &dx,Tensor &dy,Tensor &y,StandardActivations activation,float beta,ExecutionContext const &ec)
     {
         Context ctx(ec);
 		tart::program_ptr const &prog = gpu::Cache::instance().get_program(ctx,"activation",
@@ -48,7 +47,7 @@ namespace core {
         std::vector<uint32_t> gr=gpu::round_range(size,wg);
         gr[0] = gr[0]/wg[0];
         gr.resize(3, 1);
-        enqueue_or_record(k, gr, wg, sequence);
+        k->enqueue(gr, wg);
     }
 
 } // core
