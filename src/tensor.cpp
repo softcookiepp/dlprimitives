@@ -102,7 +102,10 @@ namespace dlprim {
         if(cpu_tensor_) 
             memcpy(p,host_data(),memory_size());
         else
+        {
+			std::cout << "COPYING OUT\n";
 			buffer_->copyOut(p, memory_size(), offset_ * size_of_data_type(dtype()));
+		}
     }
     void Tensor::to_host(ExecutionContext const &c,bool sync)
     {

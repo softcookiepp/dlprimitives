@@ -29,7 +29,7 @@ void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext
     DLPRIM_CHECK(x.shape().total_size() == y.shape().total_size());
     DLPRIM_CHECK(z.shape().total_size() == y.shape().total_size());
     size_t total = x.shape().total_size();
-	e.queue()->sync();
+	//e.queue()->sync();
     if(ctx_.is_cpu_context()) {
         float *xp = x.data<float>();
         float *yp = y.data<float>();
