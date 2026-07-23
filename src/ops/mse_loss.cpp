@@ -50,8 +50,8 @@ void MSELoss::setup_gpu(std::vector<TensorSpecs> in,std::vector<TensorSpecs> out
     auto p = core::PointwiseOperationBroadcastReduce::create(ctx_,
             in,out,
             0,dtype_,
-            "y0 = x0 - x1; y0 = y0*y0; ",
-            "reduce_y0 = 0;",
+            "y0 = typeof_y0(x0) - typeof_y0(x1); y0 = y0*y0; ",
+            "reduce_y0 = typeof_y0(0);",
             "reduce_y0 += y0;");
     fwd_ = std::move(p);
     workspace = fwd_->workspace();
@@ -153,12 +153,12 @@ void MSELoss::backward(  std::vector<TensorAndGradient> &input,
         if(left && right) {
             core::pointwise_operation_broadcast({dy,a,b,da,db},{da,db},{scale,accum_0,accum_1},
                                       R"xxx(
-                                        y0 = 2*(x1 - x2)*x0*w0;
+                                        y0 = 2*(typeof_y0(x1) - typeof_y0(x2))*typeof_y0(x0)*typeof_y0(w0);
                                         y1 = -y0; 
                                         if(w1!=0)
-                                            y0 += x3 * w1;
+                                            y0 += typeof_y0(x3) * typeof_y0(w1);
                                         if(w2!=0)
-                                            y1 += x4 * w2;
+                                            y1 += typeof_y0(x4) * typeof_y0(w2);
                                         )xxx"
                                       ,e);
         }
@@ -167,8 +167,8 @@ void MSELoss::backward(  std::vector<TensorAndGradient> &input,
             float factor = left ? scale : -scale;
             float accum = left ? accum_0 : accum_1;
             core::pointwise_operation_broadcast({dy,a,b,dx},{dx},{factor,accum},
-                                      "y0 = 2*(x1 - x2)*x0*w0;"
-                                      "y0 = w1 != 0? y0 + w1 * x3 : y0;"
+                                      "y0 = 2*(typeof_y0(x1) - typeof_y0(x2))*typeof_y0(x0)*typeof_y0(w0);"
+                                      "y0 = w1 != 0? y0 + typeof_y0(w1) * typeof_y0(x3) : y0;"
                                       ,e);
         }
     }
