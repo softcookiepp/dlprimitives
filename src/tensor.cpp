@@ -103,7 +103,6 @@ namespace dlprim {
             memcpy(p,host_data(),memory_size());
         else
         {
-			std::cout << "COPYING OUT\n";
 			buffer_->copyOut(p, memory_size(), offset_ * size_of_data_type(dtype()));
 		}
     }
