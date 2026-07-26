@@ -93,10 +93,7 @@ namespace dlprim
 
     std::string Context::name() const
     {
-        if(is_cpu_context())
-            return "CPU";
-		std::string name = "not implemented"; //device_->getMetadata().name();
-		return name;
+		return device_->getMetadata().name();
     }
 
     void Context::select_opencl_device(int p,int d)

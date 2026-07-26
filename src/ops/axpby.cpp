@@ -15,8 +15,6 @@ namespace dlprim {
 AXPBY::AXPBY(Context &ctx,DataType dt) : ctx_(ctx)
 {
     DLPRIM_CHECK(dt == float_data);
-    if(ctx_.is_cpu_context())
-        return;
     tart::program_ptr prog = gpu::Cache::instance().get_program(ctx_,"axpby");
     kernel_ = prog->getKernel("axpby");
 }
@@ -30,15 +28,7 @@ void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext
     DLPRIM_CHECK(z.shape().total_size() == y.shape().total_size());
     size_t total = x.shape().total_size();
 	//e.queue()->sync();
-    if(ctx_.is_cpu_context()) {
-        float *xp = x.data<float>();
-        float *yp = y.data<float>();
-        float *zp = z.data<float>();
-        memmove(zp,xp,total * sizeof(float));
-        cblas_sscal(total,a,zp,1);
-        cblas_saxpy(total,b,yp,1,zp,1);
-    }
-    else {
+    {
         std::vector<uint32_t> l(1);
         if(total >= 256)
             l[0] = 256;

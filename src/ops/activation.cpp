@@ -59,10 +59,7 @@ void Activation::forward(std::vector<Tensor> &input,std::vector<Tensor> &output,
     
     DLPRIM_CHECK(input[0].dtype() == dtype_);
     DLPRIM_CHECK(output[0].dtype() == dtype_);
-    if(ctx_.is_cpu_context()) {
-        forward_cpu(input[0],output[0]);
-    }
-    else {
+    {
         core::activation_forward(input[0],output[0],config_.activation,e);
     }
 }
@@ -80,10 +77,7 @@ void Activation::backward(std::vector<TensorAndGradient> &input,
     DLPRIM_CHECK(input[0].diff.shape() == output[0].diff.shape());
     DLPRIM_CHECK(input[0].diff.shape() == output[0].data.shape());
     float accum = input[0].accumulate_gradient;
-    if(ctx_.is_cpu_context()) {
-        backward_cpu(output[0].data,output[0].diff,input[0].diff,accum);
-    }
-    else {
+    {
         core::activation_backward(input[0].diff,output[0].diff,output[0].data,config_.activation,accum,e);
     }
 }

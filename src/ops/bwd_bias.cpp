@@ -9,9 +9,6 @@ namespace dlprim {
 
     BWBias::BWBias(Context &ctx,Shape const &sp,DataType dt) 
     {
-        if(ctx.is_cpu_context())
-            return;
-
         impl_ = std::move(core::BiasBackwardFilter::create(ctx,sp,dt));
     }
 

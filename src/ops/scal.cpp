@@ -13,8 +13,6 @@ namespace dlprim {
     Scal::Scal(Context &ctx,DataType dt) : ctx_(ctx)
     {
         DLPRIM_CHECK(dt==float_data);
-        if(ctx_.is_cpu_context())
-            return;
         tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"scal");
         k_ = prog->getKernel("sscal");
     }
@@ -22,14 +20,7 @@ namespace dlprim {
     
     void Scal::scale(float s,Tensor &t,ExecutionContext const &ec)
     {
-        if(ctx_.is_cpu_context()) {
-            float *p=t.data<float>();
-            if(s == 0)
-                memset(p,0,t.shape().total_size()*sizeof(float));
-            else
-                cblas_sscal(t.shape().total_size(),s,p,1);
-        }
-        else {
+        {
             int p = 0;
             size_t size = t.shape().total_size();
             int wg;

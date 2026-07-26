@@ -141,11 +141,7 @@ namespace dlprim {
     size_t Convolution2D::calc_workspace(Shape const &in)
     {
         size_t ws = 0;
-        if(ctx_.is_cpu_context()) {
-            Shape output_shape = get_output_shape(in);
-            ws = output_shape[2] * output_shape[3] * size_of_data_type(dtype_) * get_im2col_width();
-        }
-        else {
+        {
             if(conv_)
                 ws = std::max(ws,conv_->workspace());
             if(conv_bwd_data_)
@@ -227,11 +223,7 @@ namespace dlprim {
             bias = &parameters[1];
         }
 
-        if(ctx_.is_cpu_context()) {
-            DLPRIM_CHECK(ws.shape().total_size() > 0);
-            forward_cpu(in[0],out[0],W,bias,ws.host_data());
-        }
-        else {
+        {
             conv_->enqueue(in[0],W,bias,out[0],ws,0.0f,ectx);
         }
     }
@@ -527,28 +519,20 @@ namespace dlprim {
                                 e.generate_series_context(step++,steps));
         }
         if(parameters[0].requires_gradient) {
-            if(!ctx_.is_cpu_context()) {
+            {
                 auto ec = e.generate_series_context(step++,steps);
                 conv_bwd_filter_->enqueue(input[0].data,parameters[0].diff,output[0].diff,
                                           workspace,
                                           parameters[0].accumulate_gradient,ec);
             }
-            else {
-                backward_filter_cpu(output[0].diff,input[0].data,parameters[0].diff,workspace,
-                                    parameters[0].accumulate_gradient);
-            }
         }
 
         if(input[0].requires_gradient) {
-            if(!ctx_.is_cpu_context()) {
+			{
                 auto ec = e.generate_series_context(step++,steps);
                 conv_bwd_data_->enqueue(input[0].diff,parameters[0].data,output[0].diff,
                                         workspace,
                                         input[0].accumulate_gradient,ec);
-            }
-            else {
-                backward_data_cpu(output[0].diff,parameters[0].data,input[0].diff,workspace,
-                                    input[0].accumulate_gradient);
             }
         }
     }
@@ -672,10 +656,7 @@ namespace dlprim {
     size_t TransposedConvolution2D::calc_workspace(Shape const &in)
     {
         size_t ws = 0;
-        if(ctx_.is_cpu_context()) {
-            ws = in[2] * in[3] * size_of_data_type(dtype_) * get_im2col_width();
-        }
-        else {
+        {
             if(conv_fwd_)
                 ws = std::max(ws,conv_fwd_->workspace());
             if(conv_bwd_data_)
@@ -761,27 +742,7 @@ namespace dlprim {
             bias = &parameters[1];
         }
 
-        if(ctx_.is_cpu_context()) {
-            DLPRIM_CHECK(ws.shape().total_size() > 0);
-            if(bias) {
-                float *ptr = out[0].data<float>();
-                size_t b = out[0].shape()[0];
-                size_t p = out[0].shape()[2]*out[0].shape()[3];
-                float *bptr = bias->data<float>();
-                for(size_t i=0;i<b;i++) {
-                    for(int j=0;j<config_.channels_out;j++) {
-                        float v = bptr[j];
-                        for(size_t k=0;k<p;k++)
-                            *ptr++ = v;
-                    }
-                }
-            }
-            else {
-                memset(out[0].data<float>(),0,sizeof(float) * out[0].shape().total_size());
-            }
-            fwd_bwd_cpu(GemmOpMode::backward_data,out[0],in[0],parameters[0],nullptr,ws.host_data(),conv_config_);
-        }
-        else {
+        {
             int total = 1 + bool(bias) + bool(activation_);
             int p = 0;
             conv_fwd_->enqueue(out[0],W,in[0],ws,0.0,ectx.generate_series_context(p++,total));
@@ -821,32 +782,20 @@ namespace dlprim {
                                 e.generate_series_context(step++,steps));
         }
         if(parameters[0].requires_gradient) {
-            if(!ctx_.is_cpu_context()) {
+            {
                 auto ec = e.generate_series_context(step++,steps);
                 conv_bwd_filter_->enqueue(output[0].diff,parameters[0].diff,input[0].data,
                                           workspace,
                                           parameters[0].accumulate_gradient,ec);
             }
-            else {
-                scale_cpu(parameters[0].diff,parameters[0].accumulate_gradient);
-                fwd_bwd_cpu(GemmOpMode::backward_filter,output[0].diff,input[0].data,parameters[0].diff,nullptr,workspace.host_data(),conv_config_);
-            }
         }
 
         if(input[0].requires_gradient) {
-            if(!ctx_.is_cpu_context()) {
+            {
                 auto ec = e.generate_series_context(step++,steps);
                 conv_bwd_data_->enqueue(output[0].diff,parameters[0].data,nullptr,input[0].diff,
                                         workspace,
                                         input[0].accumulate_gradient,ec);
-            }
-            else {
-                float beta = input[0].accumulate_gradient;
-                if(beta == 0) {
-                    memset(input[0].diff.host_data(),0,sizeof(float)*input[0].diff.shape().total_size());
-                    beta = 0.0f;
-                }
-                fwd_bwd_cpu(GemmOpMode::forward,output[0].diff,input[0].diff,parameters[0].data,nullptr,workspace.host_data(),conv_config_,beta);
             }
         }
     }

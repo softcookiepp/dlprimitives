@@ -89,11 +89,6 @@ namespace dlprim {
                 workspace = std::max(workspace,ws);
             }
         }
- 
-
-        if(ctx_.is_cpu_context()) {
-            return;
-        }
         
         core::IPSettings cfg;
         cfg.inputs = config_.inputs;
@@ -152,9 +147,6 @@ namespace dlprim {
             bias = &parameters[1];
         }
 
-        if(ctx_.is_cpu_context())
-            forward_cpu(in[0],out[0],M,bias);
-        else
             ip_->enqueue(in[0],M,bias,out[0],ectx);
     }
 
@@ -213,23 +205,11 @@ namespace dlprim {
         }
         if(parameters[0].requires_gradient) {
             auto ec = e.generate_series_context(step++,steps);
-            if(!ctx_.is_cpu_context()) {
                 bwd_weights_ip_->enqueue(input[0].data,parameters[0].diff,output[0].diff,parameters[0].accumulate_gradient,ec);
-            }
-            else {
-                backward_filter_cpu(output[0].diff,input[0].data,parameters[0].diff,
-                                    parameters[0].accumulate_gradient);
-            }
         }
         if(input[0].requires_gradient) {
             auto ec = e.generate_series_context(step++,steps);
-            if(!ctx_.is_cpu_context()) {
-                bwd_ip_->enqueue(input[0].diff,parameters[0].data,output[0].diff,input[0].accumulate_gradient,ec);
-            }
-            else {
-                backward_data_cpu(output[0].diff,input[0].diff,parameters[0].data,
-                                    input[0].accumulate_gradient);
-            }
+            bwd_ip_->enqueue(input[0].diff,parameters[0].data,output[0].diff,input[0].accumulate_gradient,ec);
         }
 
     }

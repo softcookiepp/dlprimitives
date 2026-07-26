@@ -23,19 +23,8 @@ namespace dlprim {
     void Parameter::copy_and_scale(Tensor &tgt,Tensor &src,float accum,ExecutionContext const &q)
     {
         DLPRIM_CHECK(tgt.specs() == src.specs());
-        if(ctx_.is_cpu_context()) {
-            if(accum == 0) {
-                memcpy(tgt.host_data(),src.host_data(),tgt.memory_size());
-            }
-            else {
-                size_t N = tgt.shape().total_size();
-                if(accum != 1.0)
-                    cblas_sscal(N,accum, tgt.data<float>(),1);
 
-                cblas_saxpy(N,1.0f,src.data<float>(),1,tgt.data<float>(),1);
-            }
-        }
-        else {
+        {
             if(accum == 0)
                 core::pointwise_operation({src},{tgt},{},"y0=x0;",q);
             else

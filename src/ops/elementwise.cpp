@@ -223,9 +223,6 @@ void Elementwise::setup(std::vector<TensorSpecs> const &in,std::vector<TensorSpe
     out.assign({broadcast(in[0].shape(),in[1].shape())});
     p.clear();
     ws = 0;
-    if(ctx_.is_cpu_context())
-        return;
-    
     setup_bwd_gpu(in,out,ws);
 }
 
@@ -234,9 +231,6 @@ void Elementwise::reshape(std::vector<Shape> const &in,std::vector<Shape> &out,s
     DLPRIM_CHECK(in.size()==2);
     out.assign({broadcast(in[0],in[1])});
     ws = 0;
-    if(ctx_.is_cpu_context())
-        return;
-
     std::vector<TensorSpecs> ins={TensorSpecs(in[0],dtype_),TensorSpecs(in[1],dtype_)};
     std::vector<TensorSpecs> outs={TensorSpecs(out[0],dtype_)};
     setup_bwd_gpu(ins,outs,ws);
@@ -252,10 +246,7 @@ void Elementwise::forward(std::vector<Tensor> &input,std::vector<Tensor> &output
     DLPRIM_CHECK(input[0].dtype() == dtype_);
     DLPRIM_CHECK(input[1].dtype() == dtype_);
     DLPRIM_CHECK(output[0].dtype() == dtype_);
-    if(ctx_.is_cpu_context()) {
-        forward_cpu(input[0],input[1],output[0]);
-    }
-    else {
+    {
         forward_gpu(input[0],input[1],output[0],e);
     }
 }
@@ -283,14 +274,7 @@ void Elementwise::backward(std::vector<TensorAndGradient> &input,
 
     if(!input[0].requires_gradient && !input[1].requires_gradient)
         return;
-    if(ctx_.is_cpu_context()) {
-        backward_cpu(input[0].data,input[0].diff,
-                     input[1].data,input[1].diff,
-                     output[0].data,output[0].diff,
-                     input[0].requires_gradient,input[1].requires_gradient,
-                     input[0].accumulate_gradient,input[1].accumulate_gradient);
-    }
-    else {
+	{
         backward_gpu(input[0].data,input[0].diff,
                      input[1].data,input[1].diff,
                      output[0].data,output[0].diff,

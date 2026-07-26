@@ -60,12 +60,7 @@ namespace dlprim {
                 current_mean_ = Tensor(ctx_,std_shape,dtype_);
                 current_var_ = Tensor(ctx_,std_shape,dtype_);
             }
-            if(ctx_.is_cpu_context()) {
-                workspace = 2 * config_.features * sizeof(float);
-                combined_scale_ = Tensor(ctx_,Shape(config_.features,1,1,1),dtype_);
-                combined_bias_ = Tensor(ctx_,std_shape,dtype_);
-            }
-            else {
+            {
                 bn_gpu_ = std::move(core::BatchNormFwdBwd::create(ctx_,in[0].shape(),dtype_));
                 workspace = bn_gpu_->workspace();
             }
@@ -112,10 +107,7 @@ namespace dlprim {
                                   Tensor &ws,
                                   ExecutionContext const &e)
         {
-            if(ctx_.is_cpu_context()) {
-                forward_cpu(input,output,parameters,ws);
-            }
-            else {
+            {
                 Tensor mean,var;
                 ExecutionContext elast;
                 if(mode() == CalculationsMode::train && !config_.use_global_stats) {
@@ -335,10 +327,7 @@ namespace dlprim {
                                     Tensor &ws,
                                     ExecutionContext const &e)
         {
-            if(ctx_.is_cpu_context()) {
-                backward_cpu(input,output,parameters,ws);
-            }
-            else {
+            {
                 bool training = mode()==CalculationsMode::train;
                 Tensor mean = training ? current_mean_ : parameters[0].data;
                 Tensor var  = training ? current_var_  : parameters[1].data;

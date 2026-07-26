@@ -676,10 +676,6 @@ int main(int argc,char **argv)
 
         dp::Context ctx(argv[1]);
         bool with_half = ctx.check_device_extension("cl_khr_fp16");
-        if(ctx.is_cpu_context()) {
-            std::cout << "CPU - exit" << std::endl;
-            return 0;
-        }
         dp::ExecutionContext q = ctx.make_execution_context();
         std::cout << ctx.name() << std::endl;
         

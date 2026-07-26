@@ -80,10 +80,6 @@ int main(int argc,char **argv)
     }
     try {
         dp::Context ctx(argv[1]);
-        if(ctx.is_cpu_context()) {
-            std::cout << "CPU - exit" << std::endl;
-            return 0;
-        }
         dp::ExecutionContext q = ctx.make_execution_context();
         std::cout << ctx.name() << std::endl;
         int setups[][3] = {

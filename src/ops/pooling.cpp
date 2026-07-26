@@ -62,8 +62,7 @@ void Pooling2D::setup(std::vector<TensorSpecs> const &in,std::vector<TensorSpecs
     out.assign({TensorSpecs(outs,dtype_)});
     p.clear();
     ws = 0;
-    if(ctx_.is_cpu_context())
-        return;
+
     if(config_.mode == PoolingBase::max) {
         fwd_ = std::move(core::Pooling2DForward::create_max_pooling(
                 ctx_,
@@ -108,9 +107,6 @@ void Pooling2D::reshape(std::vector<Shape> const &in,std::vector<Shape> &out,siz
     DLPRIM_CHECK(in.size()==1);
     Shape ins = in[0];
     out.assign({calc_shape(ins)});
-    if(ctx_.is_cpu_context())
-        ws = 0;
-    else
         ws = std::max(fwd_->workspace(),bwd_->workspace());
 }
 
@@ -152,25 +148,8 @@ void Pooling2D::forward(std::vector<Tensor> &input,std::vector<Tensor> &output, 
     DLPRIM_CHECK(output[0].shape() == calc_shape(input[0].shape()));
     DLPRIM_CHECK(input[0].dtype() == dtype_);
     DLPRIM_CHECK(output[0].dtype() == dtype_);
-    if(ctx_.is_cpu_context()) {
-        switch(config_.mode) {
-        case Pooling2DConfig::max:
-            forward_cpu<float>(input[0],output[0],MaxRedcue<float>());
-            break;
-        case Pooling2DConfig::avg:
-            {
-                float factor = 1.0f / (config_.kernel[0]*config_.kernel[1]);
-                if(config_.count_include_pad)
-                    forward_cpu<float>(input[0],output[0],AveReduceFull<float>(factor));
-                else
-                    forward_cpu<float>(input[0],output[0],AveReduceValid<float>(factor));
-            }
-            break;
-        }
-    }
-    else {
+
         forward_gpu(input[0],output[0],e);
-    }
 }
 
 void Pooling2D::backward_cpu_max(Tensor &xt,Tensor &dxt,Tensor &dyt,float factor)
@@ -355,19 +334,7 @@ void Pooling2D::backward(std::vector<TensorAndGradient> &input,
     DLPRIM_CHECK(output[0].diff.dtype() == dtype_);
     DLPRIM_CHECK(input[0].data.dtype() == dtype_);
     DLPRIM_CHECK(input[0].diff.dtype() == dtype_);
-    if(ctx_.is_cpu_context()) {
-        if(config_.mode == Pooling2DConfig::max) {
-            backward_cpu_max(input[0].data,input[0].diff,output[0].diff,input[0].accumulate_gradient);
-        }
-        else {
-            float factor = 1.0f / (config_.kernel[0]*config_.kernel[1]);
-            if(config_.count_include_pad)
-                backward_cpu_ave(input[0].diff,output[0].diff,input[0].accumulate_gradient,AveReduceFull<float>(factor));
-            else
-                backward_cpu_ave(input[0].diff,output[0].diff,input[0].accumulate_gradient,AveReduceValid<float>(factor));
-        }
-    }
-    else {
+	{
         backward_gpu(input[0].data,input[0].diff,output[0].diff,input[0].accumulate_gradient,ctx);
     }
 
@@ -394,8 +361,6 @@ void GlobalPooling::setup(std::vector<TensorSpecs> const &in,std::vector<TensorS
     out.assign({TensorSpecs(Shape(in_shape[0],in_shape[1],1,1),in[0].dtype())});
     par.clear();
     ws = 0;
-    if(ctx_.is_cpu_context())
-        return;
     ws = setup_kernel(in_shape);
 }
 
@@ -419,8 +384,6 @@ void GlobalPooling::reshape(std::vector<Shape> const &in,std::vector<Shape> &out
     DLPRIM_CHECK(in[0].size() == 4);
     ws = 0;
     out.assign({Shape(in[0][0],in[0][1],1,1)});
-    if(ctx_.is_cpu_context())
-        return;
     ws=setup_kernel(in[0]);
 }
 
@@ -512,10 +475,7 @@ void GlobalPooling::forward(std::vector<Tensor> &input,std::vector<Tensor> &outp
     DLPRIM_CHECK(1 == output[0].shape()[2]);
     DLPRIM_CHECK(1 == output[0].shape()[3]);
     DLPRIM_CHECK(output[0].dtype() == dtype_);
-    if(ctx_.is_cpu_context()) {
-        forward_cpu(input[0],output[0]);
-    }
-    else {
+    {
         forward_gpu(input[0],output[0],ctx);
     }
 }
@@ -541,10 +501,7 @@ void  GlobalPooling::backward(std::vector<TensorAndGradient> &input,
     DLPRIM_CHECK(output[0].diff.dtype() == dtype_);
     DLPRIM_CHECK(input[0].diff.dtype() == dtype_);
     DLPRIM_CHECK(input[0].data.dtype() == dtype_);
-    if(ctx_.is_cpu_context()) {
-        backward_cpu(input[0].data,input[0].diff,output[0].diff,input[0].accumulate_gradient);
-    }
-    else {
+    {
         backward_gpu(input[0].data,input[0].diff,output[0].diff,input[0].accumulate_gradient,ctx);
     }
 }

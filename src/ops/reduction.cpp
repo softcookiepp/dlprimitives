@@ -71,10 +71,9 @@ namespace dlprim {
         out.assign({TensorSpecs(squeezed_y_,dtype_)});
         params.clear();
         ws = 0;
-        if(!ctx_.is_cpu_context()) {
-            config_broadcast(in[0],TensorSpecs(full_y_,dtype_));
+        config_broadcast(in[0],TensorSpecs(full_y_,dtype_));
             ws = broadcast_->workspace();
-        }
+        
     }
     
     void Reduction::reshape(std::vector<Shape> const &in,
@@ -86,10 +85,8 @@ namespace dlprim {
         calc_shapes();
         out.assign({squeezed_y_});
         ws = 0;
-        if(!ctx_.is_cpu_context()) {
             config_broadcast(TensorSpecs(in[0],dtype_),TensorSpecs(full_y_,dtype_));
             ws = broadcast_->workspace();
-        }
     }
 	void Reduction::forward( std::vector<Tensor> &input,
                              std::vector<Tensor> &output,
@@ -100,10 +97,7 @@ namespace dlprim {
         DLPRIM_CHECK(input.size() == 1 && output.size() == 1);
         DLPRIM_CHECK(input[0].shape() == x_shape_ && output[0].shape() == squeezed_y_);
 
-        if(ctx_.is_cpu_context()) {
-            forward_cpu(input[0],output[0]);
-        }
-        else {
+		{
             forward_gpu(input[0],output[0],workspace,q);
         }
     }
@@ -122,12 +116,7 @@ namespace dlprim {
         Tensor &dx = input[0].diff;
         Tensor &y = output[0].data;
         Tensor &dy = output[0].diff;
-        if(ctx_.is_cpu_context()) {
-            backward_cpu(x,dx,y,dy,accum);
-        }
-        else {
-            backward_gpu(x,dx,y,dy,accum,q);
-        }
+		backward_gpu(x,dx,y,dy,accum,q);
     }
 
     void Reduction::calc_shapes()

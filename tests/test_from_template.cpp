@@ -232,7 +232,7 @@ int main(int argc,char **argv)
 
         dp::Context ctx(argv[1]);
         dp::ExecutionContext e;
-        if(!ctx.is_cpu_context()) {
+        {
 #if VULKAN_API
 			tart::device_ptr q = ctx.make_queue();
 #else

@@ -84,8 +84,6 @@ void SoftmaxWithLoss::setup(std::vector<TensorSpecs> const &in,std::vector<Tenso
         itype_ = "float";
     par.clear();
     ws = 0;
-    if(ctx_.is_cpu_context())
-        return;
     setup_kernel(in[0].shape()[1]);
 }
 
@@ -125,8 +123,6 @@ void SoftmaxWithLoss::reshape(std::vector<Shape> const &in,std::vector<Shape> &o
     DLPRIM_CHECK(in[1].total_size() == in[0][0]);
     out = {Shape(1)};
     ws = 0;
-    if(ctx_.is_cpu_context())
-        return;
     setup_kernel(in[0][1]);
 }
 
@@ -266,10 +262,6 @@ void Softmax::forward(std::vector<Tensor> &input,std::vector<Tensor> &output, st
     DLPRIM_CHECK(input[0].shape() == output[0].shape());
     DLPRIM_CHECK(input[0].dtype() == dtype_);
     DLPRIM_CHECK(output[0].dtype() == dtype_);
-    if(ctx_.is_cpu_context()) {
-        forward_cpu(input[0],output[0]);
-    }
-    else
     {
 #if 0
 		// because the kernel is being extremely uncooperative
@@ -339,10 +331,7 @@ void Softmax::backward( std::vector<TensorAndGradient> &input,
     Tensor dy = output.at(0).diff;
     Tensor y  = output.at(0).data;
 
-    if(ctx_.is_cpu_context()) {
-        backward_cpu(dx,y,dy,accum);
-    }
-    else {
+	{
         core::softmax_backward(dx,y,dy,cfg_.log,accum,e);
     }
 }
@@ -356,15 +345,7 @@ void SoftmaxWithLoss::forward(std::vector<Tensor> &input,std::vector<Tensor> &ou
     DLPRIM_CHECK(input[0].dtype() == dtype_);
     DLPRIM_CHECK(input[1].dtype() == dtype_ || input[1].dtype() == int32_data);
     DLPRIM_CHECK(output[0].shape().total_size() == 1);
-    if(ctx_.is_cpu_context()) {
-        if(input[1].dtype() == float_data)
-            forward_cpu_loss<float>(input[0],input[1],output[0]);
-        else if(input[1].dtype() == int32_data)
-            forward_cpu_loss<int>(input[0],input[1],output[0]);
-        else
-            throw ValidationError("Invalid data type " + std::to_string(output[0].dtype()));
-    }
-    else {
+    {
         forward_gpu_loss(input[0],input[1],output[0],ctx);
     }
 }
@@ -381,13 +362,7 @@ void SoftmaxWithLoss::backward( std::vector<TensorAndGradient> &input,
     DLPRIM_CHECK(input.size()==2);
     DLPRIM_CHECK(output.size()==1); 
     float accum = input[0].accumulate_gradient;
-    if(ctx_.is_cpu_context()) {
-        if(input[1].data.dtype() == int32_data)
-            backward_cpu_loss<int>(input[0].data,input[0].diff,input[1].data,output[0].diff,accum);
-        else
-            backward_cpu_loss<float>(input[0].data,input[0].diff,input[1].data,output[0].diff,accum);
-    }
-    else {
+	{
         backward_gpu_loss(input[0].data,input[0].diff,input[1].data,output[0].diff,accum,ec);
     }
 }

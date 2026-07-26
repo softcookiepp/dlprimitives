@@ -25,10 +25,6 @@ int main(int argc,char **argv)
 
         dp::Context ctx(argv[1]);
         std::cout << ctx.name() << std::endl;
-        if(ctx.is_cpu_context()) {
-            std::cout << "CPU - exit" << std::endl;
-            return 0;
-        }
         dp::Tensor a(ctx,dp::Shape(10));
 
         dp::ExecutionContext q = ctx.make_execution_context();

@@ -209,13 +209,7 @@ void Interpolation::forward(std::vector<Tensor> &input,std::vector<Tensor> &outp
     DLPRIM_CHECK(output[0].shape() == calc_size(input[0].shape()));
     DLPRIM_CHECK(input[0].dtype() == output[0].dtype());
     Context ctx(e);
-    if(e.is_cpu_context()) {
-        if(config_.method == InterpolateType::bilinear)
-            bilinear_fwd_bwd_cpu<HandleFWD>(input[0],output[0]);
-        else
-            forward_cpu(input[0],output[0]);
-    }
-    else {
+    {
         core::interpolate2d(input[0],output[0],config_.scale_y,config_.scale_x,config_.method,config_.align_corners,e);
     }
 }
@@ -235,23 +229,8 @@ void Interpolation::backward(std::vector<TensorAndGradient> &input,
     DLPRIM_CHECK(output[0].diff.shape() == calc_size(input[0].diff.shape()));
     DLPRIM_CHECK(input[0].diff.dtype() == output[0].diff.dtype());
     float accum = input[0].accumulate_gradient;
-    if(e.is_cpu_context()) {
-        float *dx = input[0].diff.data<float>();
-        size_t len = input[0].diff.shape().total_size();
-        if(accum == 0) {
-            memset(dx,0,sizeof(float)*len);
-        }
-        else {
-            cblas_sscal(len,accum,dx,1);
-        }
-        if(config_.method == InterpolateType::bilinear) {
-            bilinear_fwd_bwd_cpu<HandleBWD>(input[0].diff,output[0].diff);
-        }
-        else {
-            backward_cpu(input[0].diff,output[0].diff);
-        }
-    }
-    else {
+
+	{
         core::interpolate2d_backward(input[0].diff,output[0].diff,config_.scale_y,config_.scale_x,config_.method,config_.align_corners,accum,e);
     }
 }

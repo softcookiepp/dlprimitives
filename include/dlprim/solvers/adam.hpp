@@ -53,10 +53,7 @@ namespace dlprim {
                     Tensor &p = n.param(name);
                     Tensor &g = item.second;
                     Tensor &m = m_[name];
-                    if(ctx_.is_cpu_context()) {
-                        apply_cpu(p,g,m,v);
-                    }
-                    else {
+                    {
                         apply_gpu(p,g,m,v,e);
                     }
                }

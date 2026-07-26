@@ -53,21 +53,16 @@ namespace dlprim {
     Tensor::Tensor(Context &ctx, Shape const &s,DataType d,bool is_train):
         specs_(new TensorSpecs(s,d,is_train)),
 		host_(new Tensor::HostMem()),
-        cpu_tensor_(ctx.is_cpu_context()),
+        cpu_tensor_(false),
         offset_(0),
         capacity_(s.total_size()*size_of_data_type(d)),
         full_capacity_(capacity_)
     {
         size_t size = memory_size();
         DLPRIM_CHECK(size > 0);
-		if(cpu_tensor_)
-			host_->alloc(size);
-        if(!cpu_tensor_)
-        {
-			buffer_ = ctx.context()->allocateBuffer(size);
-			dev_ = ctx.context();
-			own_buffer_ = true;
-        }
+		buffer_ = ctx.context()->allocateBuffer(size);
+		dev_ = ctx.context();
+		own_buffer_ = true;
     }
 
 	// tart makes you free buffers automatically. this behavior might change in the future.

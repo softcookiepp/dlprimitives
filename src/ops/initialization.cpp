@@ -15,10 +15,7 @@ namespace dlprim {
 
 void set_to_zero(Tensor &t,ExecutionContext const &e)
 {
-    if(e.is_cpu_context()) {
-        memset(t.host_data(),0,t.memory_size());
-    }
-    else {
+    {
        core::fill_tensor(t,0,e);
     }
 }
@@ -36,15 +33,7 @@ namespace {
 
 void set_to_constant(Tensor &t,double value,ExecutionContext const &e)
 {
-    if(e.is_cpu_context()) {
-        switch(t.dtype()) {
-        case float_data: fill_value<float>(t,static_cast<float>(value)); break;
-        case int32_data: fill_value<int>(t,static_cast<float>(value)); break;
-        default:
-            throw NotImplementedError("setting value fortype" + data_type_to_string(t.dtype()));
-        }
-    }
-    else {
+    {
         core::fill_tensor(t,value,e);
     }
 }
@@ -139,11 +128,7 @@ void set_to_urandom(Tensor &t,RandomState &state,float minv,float maxv,Execution
     RandomState::seed_type seed;
     RandomState::sequence_type seq;
     get_seed_seq(t.shape().total_size(),state,seed,seq);
-    if(e.is_cpu_context()) {
-        UrandomConverter c(minv,maxv);
-        cpu_random_set(t,seed,seq,c);
-    }
-    else {
+    {
         core::fill_random(t,seed,seq,core::rnd_uniform,minv,maxv,e);
     }
 }
@@ -153,11 +138,7 @@ void set_to_bernoulli(Tensor &t,RandomState &state,float p,ExecutionContext cons
     RandomState::seed_type seed;
     RandomState::sequence_type seq;
     get_seed_seq(t.shape().total_size(),state,seed,seq);
-    if(e.is_cpu_context()) {
-        BernoulliConverter c(p);
-        cpu_random_set(t,seed,seq,c);
-    }
-    else {
+    {
         core::fill_random(t,seed,seq,core::rnd_bernoulli,p,0,e);
     }
 }
@@ -171,11 +152,7 @@ void set_to_normal(Tensor &t,RandomState &state,float mean,float sigma,Execution
     RandomState::seed_type seed;
     RandomState::sequence_type seq;
     get_seed_seq(t.shape().total_size(),state,seed,seq);
-    if(e.is_cpu_context()) {
-        NormalConverter c(mean,sigma);
-        cpu_random_set(t,seed,seq,c);
-    }
-    else {
+    {
         core::fill_random(t,seed,seq,core::rnd_normal,mean,sigma,e);
     }
 }

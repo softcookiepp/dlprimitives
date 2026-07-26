@@ -161,11 +161,6 @@ public:
     {
     }
 
-    bool is_cpu_context() const
-    {
-        return !queue_;
-    }
-
     ExecutionContext(ExecutionContext const &) = default;
     ExecutionContext &operator=(ExecutionContext const &) = default;
 

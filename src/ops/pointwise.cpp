@@ -40,10 +40,7 @@ namespace dlprim {
         DLPRIM_CHECK(input.size() == output.size());
         DLPRIM_CHECK(input[0].shape() == output[0].shape());
         DLPRIM_CHECK(input[0].dtype() == output[0].dtype());
-        if(ctx_.is_cpu_context()) {
-            forward_cpu(input[0],output[0]);
-        }
-        else {
+        {
             forward_gpu(input[0],output[0],q);
         }
     }
@@ -61,10 +58,7 @@ namespace dlprim {
         DLPRIM_CHECK(input[0].diff.shape() == output[0].diff.shape());
         DLPRIM_CHECK(input[0].diff.shape() == output[0].data.shape());
         float accum = input[0].accumulate_gradient;
-        if(ctx_.is_cpu_context()) {
-            backward_cpu(input[0].data,input[0].diff,output[0].data,output[0].diff,accum);
-        }
-        else {
+        {
             backward_gpu(input[0].data,input[0].diff,output[0].data,output[0].diff,accum,q);
         }
     }

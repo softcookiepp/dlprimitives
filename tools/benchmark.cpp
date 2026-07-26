@@ -202,7 +202,7 @@ int main(int argc,char **argv)
             std::cout << std::endl;
             if(i == 0 && timing) {
                 double total_event_time = 0;
-                if(ctx.is_cpu_context()||force_cpu_times) {
+                if(force_cpu_times) {
                     for(unsigned i=0;i<timing->sections().size();i++) {
                         int s = i;
 #if VULKAN_API

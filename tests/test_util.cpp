@@ -20,10 +20,6 @@ int main(int argc,char **argv)
         using namespace dlprim;
         Context ctx(argv[1]);
         ExecutionContext q=ctx.make_execution_context();
-        if(ctx.is_cpu_context()) {
-            std::cout << "No need test for cpu" << std::endl;
-            return 0;
-        }
         { 
             {
                 std::cout << "Test 1.1" << std::endl;

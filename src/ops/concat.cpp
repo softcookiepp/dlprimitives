@@ -154,13 +154,7 @@ namespace dlprim {
         size_t offset = 0;
         int dim = cfg_.dim;
         for(size_t i=0;i<input.size();i++) {
-            if(ctx_.is_cpu_context()) {
-                if(copy_one)
-                    copy_cpu(offset,dim,input[i],output[0],FwdCopyOne());
-                else
-                    copy_cpu(offset,dim,input[i],output[0],FwdCopyBlock());
-            }
-            else {
+            {
                 size_t slice = input[i].shape()[cfg_.dim];
                 copy_->tensor_slice_copy(cfg_.dim,slice,
                                          output[0],offset,
@@ -277,14 +271,7 @@ namespace dlprim {
         bool copy_one = input.at(0).shape().split_and_merge_over_axis(cfg_.dim)[2] == 1;
         int dim = cfg_.dim;
         DLPRIM_CHECK(output.at(0).shape()[cfg_.dim] == unsigned(cfg_.end - cfg_.begin));
-        if(ctx_.is_cpu_context()) {
-            size_t offset = cfg_.begin;
-            if(copy_one)
-                copy_cpu(offset,dim,output[0],input[0],BwdCopyOne());
-            else
-                copy_cpu(offset,dim,output[0],input[0],BwdCopyBlock());
-        }
-        else {
+        {
             size_t slice = cfg_.end - cfg_.begin;
             copy_->tensor_slice_copy(cfg_.dim,slice,
                                      output[0],0,
