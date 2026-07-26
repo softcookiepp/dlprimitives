@@ -51,8 +51,6 @@ namespace dlprim {
         static std::unique_ptr<Activation> get_bwd_op(Context &ctx,StandardActivations act,TensorSpecs spec);
         
     private:
-        void forward_cpu(Tensor &a,Tensor &output);
-        void backward_cpu(Tensor &y,Tensor &dy,Tensor &dx,float beta);
         ActivationConfig config_;
         DataType dtype_;
     };

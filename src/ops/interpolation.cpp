@@ -10,7 +10,6 @@
 #include <dlprim/core/interpolate.hpp>
 #include <dlprim/json.hpp>
 #include <dlprim/utils/json_helpers.hpp>
-#include <dlprim/cpu/cpu_ops.hpp>
 #include <math.h>
 #include <my_cblas.hpp>
 
@@ -150,56 +149,6 @@ std::tuple<int,int,float,float> Interpolation::calc_bin_src_weight(int dst_intex
     return std::make_tuple(p0,p1,w0,w1);
 }
 
-template<typename OpHandle>
-void Interpolation::bilinear_fwd_bwd_cpu(Tensor &in,Tensor &out)
-{
-    Shape x_shape = in.shape();
-    Shape y_shape = out.shape();
-    float *x=in.data<float>();
-    float *y=out.data<float>();
-    int bc = x_shape[0] * x_shape[1];
-    int srcH = x_shape[2];
-    int srcW = x_shape[3];
-    int tgtH = y_shape[2];
-    int tgtW = y_shape[3];
-    {
-        float vs = calc_bin_scale(config_.scale_y,x_shape[2],y_shape[2]);
-        float hs = calc_bin_scale(config_.scale_x,x_shape[3],y_shape[3]);
-        std::vector<std::tuple<int,int,float,float>> src_r(tgtH), src_c(tgtW);
-        for(int r=0;r<tgtH;r++)
-            src_r[r] = calc_bin_src_weight(r,vs,srcH);
-        for(int c=0;c<tgtW;c++)
-            src_c[c] = calc_bin_src_weight(c,hs,srcW);
-        for(int i=0;i<bc;i++) {
-            for(int r=0;r<tgtH;r++) {
-                auto rdata = src_r[r];
-                int src_r0 = std::get<0>(rdata);
-                int src_r1 = std::get<1>(rdata);
-                float w_r0 = std::get<2>(rdata);
-                float w_r1 = std::get<3>(rdata);
-                for(int c=0;c<tgtW;c++) {
-                    auto cdata = src_c[c];
-                    int src_c0 = std::get<0>(cdata);
-                    int src_c1 = std::get<1>(cdata);
-                    float w_c0 = std::get<2>(cdata);
-                    float w_c1 = std::get<3>(cdata);
-                    OpHandle::handle(
-                                y[r * tgtW + c],
-                                x[src_r0 * srcW + src_c0],
-                                x[src_r0 * srcW + src_c1],
-                                x[src_r1 * srcW + src_c0],
-                                x[src_r1 * srcW + src_c1],
-                                w_r0,w_r1,w_c0,w_c1);
-                }
-            }
-            x+=srcW*srcH;
-            y+=tgtW*tgtH;
-        }
-    }
-}
-
-
-
 void Interpolation::forward(std::vector<Tensor> &input,std::vector<Tensor> &output, std::vector<Tensor> &,Tensor &,ExecutionContext const &e)
 {
     DLPRIM_CHECK(input.size()==1);
@@ -234,99 +183,5 @@ void Interpolation::backward(std::vector<TensorAndGradient> &input,
         core::interpolate2d_backward(input[0].diff,output[0].diff,config_.scale_y,config_.scale_x,config_.method,config_.align_corners,accum,e);
     }
 }
-
-
-void Interpolation::forward_cpu(Tensor &in,Tensor &out)
-{
-    Shape x_shape = in.shape();
-    Shape y_shape = out.shape();
-    float *x=in.data<float>();
-    float *y=out.data<float>();
-    int bc = x_shape[0] * x_shape[1];
-    int srcH = x_shape[2];
-    int srcW = x_shape[3];
-    int tgtH = y_shape[2];
-    int tgtW = y_shape[3];
-    switch(config_.method) {
-    case InterpolateType::nearest:
-    case InterpolateType::nearest_exact:
-        {
-            float vs = config_.scale_y > 0 ? 1/config_.scale_y : float(x_shape[2])/y_shape[2];
-            float hs = config_.scale_x > 0 ? 1/config_.scale_x : float(x_shape[3])/y_shape[3];
-            float offset = config_.method == InterpolateType::nearest ? 0.0f : 0.5f; 
-            std::vector<int> src_r(tgtH,0);
-            std::vector<int> src_c(tgtW,0);
-            for(int r=0;r<tgtH;r++)
-                src_r[r] = std::min(int((r + offset) * vs),srcH-1);
-            for(int c=0;c<tgtW;c++)
-                src_c[c] = std::min(int((c + offset) * hs),srcW-1);
-            for(int i=0;i<bc;i++) {
-                for(int r=0;r<tgtH;r++) {
-                    for(int c=0;c<tgtW;c++) {
-                        y[r * tgtW + c] = x[src_r[r] * srcW + src_c[c]];
-                    }
-                }
-                x+=srcW*srcH;
-                y+=tgtW*tgtH;
-            }
-        }
-        break;
-    default:
-        throw ValidationError("Unimplemented method");
-    }
-}
-
-void Interpolation::backward_cpu(Tensor &in,Tensor &out)
-{
-    Shape dx_shape = in.shape();
-    Shape dy_shape = out.shape();
-    float *dx=in.data<float>();
-    float *dy=out.data<float>();
-    int bc = dx_shape[0] * dx_shape[1];
-    int srcH = dx_shape[2];
-    int srcW = dx_shape[3];
-    int tgtH = dy_shape[2];
-    int tgtW = dy_shape[3];
-    switch(config_.method) {
-    case InterpolateType::nearest:
-    case InterpolateType::nearest_exact:
-        {
-            float vs = config_.scale_y > 0 ? config_.scale_y : float(dy_shape[2])/dx_shape[2];
-            float hs = config_.scale_x > 0 ? config_.scale_x : float(dy_shape[3])/dx_shape[3];
-            float offset = config_.method == InterpolateType::nearest ? 0.0f : 0.5f; 
-            std::vector<std::pair<int,int>> tgt_r(srcH,std::pair<int,int>(0,0));
-            std::vector<std::pair<int,int>> tgt_c(srcW,std::pair<int,int>(0,0));
-            for(int r=0;r<srcH;r++) {
-                int r0 = std::min(int(std::ceil(float(r  )*vs-offset)),tgtH);
-                int r1 = std::min(int(std::ceil(float(r+1)*vs-offset)),tgtH);
-                tgt_r[r]=std::make_pair(r0,r1);
-            }
-            for(int c=0;c<srcW;c++) {
-                int c0 = std::min(int(std::ceil(float(c  )*hs-offset)),tgtW);
-                int c1 = std::min(int(std::ceil(float(c+1)*hs-offset)),tgtW);
-                tgt_c[c]=std::make_pair(c0,c1);
-            }
-            for(int i=0;i<bc;i++) {
-                for(int r=0;r<srcH;r++) {
-                    for(int c=0;c<srcW;c++) {
-                        float grad = 0;
-                        for(int tr=tgt_r[r].first;tr<tgt_r[r].second;tr++) {
-                            for(int tc=tgt_c[c].first;tc<tgt_c[c].second;tc++) {
-                                grad += dy[tr*tgtW+tc];
-                            }
-                        }
-                        dx[r*srcW+c] += grad;
-                    }
-                }
-                dx+=srcW*srcH;
-                dy+=tgtW*tgtH;
-            }
-        }
-        break;
-    default:
-        throw ValidationError("Unimplemented method");
-    }
-}
-
 
 } // dlprim

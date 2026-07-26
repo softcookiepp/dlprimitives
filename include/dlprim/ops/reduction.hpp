@@ -73,8 +73,6 @@ namespace dlprim {
         struct L1Bwd;
         template<typename Op>
         void iterate(Op &op);
-        void forward_cpu(Tensor &input,Tensor &output);
-        void backward_cpu(Tensor &x,Tensor &dx,Tensor &y,Tensor &dy,float accum);
         
         void forward_gpu(Tensor &input,Tensor &output,Tensor &ws,ExecutionContext const &q);
         void backward_gpu(Tensor &x,Tensor &dx,Tensor &y,Tensor &dy,float accum,ExecutionContext const &q);

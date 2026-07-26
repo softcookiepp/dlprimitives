@@ -37,13 +37,8 @@ namespace dlprim {
                               Tensor &workspace,
                               ExecutionContext const &ctx);
     protected:
-        virtual void forward_cpu(Tensor &x,Tensor &y); 
-        virtual void backward_cpu(Tensor &x,Tensor &dx,Tensor &y,Tensor &dy,float beta);
-
         virtual void forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q) = 0;
         virtual void backward_gpu(Tensor &x,Tensor &dx,Tensor &y,Tensor &dy,float beta,ExecutionContext const &q) = 0;
-        virtual void forward_cpu_float(size_t n,float const *x,float *y) = 0;
-        virtual void backward_cpu_float(size_t n,float const *x,float *dx,float const *y,float const *dy,float beta) = 0;
     };
 
     struct ThresholdConfig {
@@ -59,8 +54,6 @@ namespace dlprim {
         {
         }
         virtual char const *operator_type() const { return "Threshold"; }
-        virtual void forward_cpu_float(size_t n,float const *x,float *y);
-        virtual void backward_cpu_float(size_t n,float const *x,float *dx,float const *y,float const *dy,float beta);
         virtual void forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q);
         virtual void backward_gpu(Tensor &x,Tensor &dx,Tensor &y,Tensor &dy,float beta,ExecutionContext const &q);
     private:
@@ -81,8 +74,6 @@ namespace dlprim {
         {
         }
         virtual char const *operator_type() const { return "Hardtanh"; }
-        virtual void forward_cpu_float(size_t n,float const *x,float *y);
-        virtual void backward_cpu_float(size_t n,float const *,float *,float const *,float const *,float beta);
         virtual void forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q);
         virtual void backward_gpu(Tensor &x,Tensor &dx,Tensor &y,Tensor &dy,float beta,ExecutionContext const &q);
     private:
@@ -100,8 +91,6 @@ namespace dlprim {
         {
         }
         virtual char const *operator_type() const { return "Abs"; }
-        virtual void forward_cpu_float(size_t n,float const *x,float *y);
-        virtual void backward_cpu_float(size_t n,float const *,float *,float const *,float const *,float beta);
         virtual void forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q);
         virtual void backward_gpu(Tensor &x,Tensor &dx,Tensor &y,Tensor &dy,float beta,ExecutionContext const &q);
     };

@@ -57,10 +57,6 @@ namespace dlprim {
 
 
 	protected:
-        void forward_cpu(Tensor &in,Tensor &out,Tensor &M,Tensor *bias);
-        void backward_filter_cpu(Tensor &dy,Tensor &x,Tensor &dM,float factor);
-        void backward_data_cpu(Tensor &dy,Tensor &dx,Tensor &M,float factor);
-
 
 		InnerProductConfig config_;
         DataType dtype_;

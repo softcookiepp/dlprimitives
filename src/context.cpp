@@ -15,10 +15,6 @@ namespace dlprim
 	tart::Instance Context::sInstance;
     Context::Context(ExecutionContext const &ec)
     {
-        if(!ec.queue_) {
-            type_ = cpu;
-            return;
-        }
 		tart::device_ptr dev = ec.queue_;
 		const tart::device_ptr& ctx = dev;
 
@@ -42,16 +38,12 @@ namespace dlprim
     
     Context::Context(std::string const &dev_id)
     {
-        if(dev_id == "cpu") {
-            type_ = cpu;
-            return;
-        }
         std::istringstream ss(dev_id);
         int p=-1,d=-1;
         char demim = 0;
         ss >>p >> demim >> d;
         if(!ss || demim != ':' || !ss.eof()) {
-            throw ValidationError("Invalid device identification expecting one of `cpu` or `paltform_no:device_no`");
+            throw ValidationError("Invalid device identification expecting `paltform_no:device_no`");
         }
         type_ = ocl;
         select_opencl_device(p,d);
@@ -60,8 +52,6 @@ namespace dlprim
     Context::Context(ContextType dt,int platform,int device) :
         type_(dt)
     {
-        if(dt == cpu)
-            return;
         select_opencl_device(platform,device);
     }
 

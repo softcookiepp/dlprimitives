@@ -30,8 +30,6 @@ namespace dlprim {
     protected:
         template<typename Op,typename DType>
         static void im2col(Shape const &in,Shape const &outs,DType *img_in,DType *mat_in,Convolution2DConfig const &config);
-        static void fwd_bwd_cpu(GemmOpMode mode,Tensor &in,Tensor &out,Tensor &W,Tensor *bias_tensor,void *ws,Convolution2DConfig const &config,float fwd_beta=0.0f);
-        static void scale_cpu(Tensor &t,float v);
     };
 
     class Convolution2D : public Operator, public Convolution2DBase {
@@ -76,13 +74,6 @@ namespace dlprim {
         void setup_algo(Shape const &in);
         int get_im2col_width();
         void forward_gpu(Tensor &in,Tensor &out,Tensor &M,Tensor *bias,ExecutionContext const &ctx);
-        void forward_cpu(Tensor &in,Tensor &out,Tensor &M,Tensor *bias,void *ws);
-
-        void backward_filter_cpu(Tensor &dy,Tensor &x,Tensor &dK,Tensor &ws,float factor);
-        void backward_data_cpu(Tensor &dy,Tensor &K,Tensor &dx,Tensor &ws,float factor);
-
-
-
                 
         Convolution2DConfig config_;
         DataType dtype_;
@@ -147,11 +138,6 @@ namespace dlprim {
         void setup_algo(Shape const &in);
         int get_im2col_width();
         void forward_gpu(Tensor &in,Tensor &out,Tensor &M,Tensor *bias,ExecutionContext const &ctx);
-        void forward_cpu(Tensor &in,Tensor &out,Tensor &M,Tensor *bias,void *ws);
-
-        void backward_filter_cpu(Tensor &dy,Tensor &x,Tensor &dK,Tensor &ws,float factor);
-        void backward_data_cpu(Tensor &dy,Tensor &K,Tensor &dx,Tensor &ws,float factor);
-
 
         TransposedConvolution2DConfig config_;
         // in/out channels switched

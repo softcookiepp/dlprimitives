@@ -279,38 +279,6 @@ namespace dlprim {
         }
     }
 
-    
-    void Reduction::forward_cpu(Tensor &tx,Tensor &ty)
-    {
-        float coeff = get_coeff();
-        float *x=tx.data<float>();
-        float *y=ty.data<float>();
-        memset(y,0,sizeof(float)*full_y_.total_size());
-        FWDData data{x,y};
-        switch(cfg_.method) {
-        case ReductionConfig::sum:
-        case ReductionConfig::mean:
-            { 
-                SumFwd op(data);
-                iterate(op);
-            }
-            break;
-        case ReductionConfig::sumsq:
-            {
-                Sum2Fwd op(data);
-                iterate(op);
-            }
-            break;
-        case ReductionConfig::abssum:
-            {
-                L1Fwd op(data);
-                iterate(op);
-            }
-        }
-        if(coeff != 1.0f)
-            cblas_sscal(full_y_.total_size(),coeff,y,1);
-    }
-
     float Reduction::get_coeff()
     {
         if(cfg_.method == ReductionConfig::mean)
@@ -370,40 +338,6 @@ namespace dlprim {
                         "y0 = (w1 == 0 ? 0 : (w1*x1)) + w0 * (x2 > 0.0 ? 1.0 : (x2 < 0.0 ? -1.0: 0.0)) * x0;",q);
             break;
         };
-    }
-
-    void Reduction::backward_cpu(Tensor &tx,Tensor &tdx,Tensor &ty,Tensor &tdy,float accum)
-    {
-        float *x=tx.data<float>();
-        float *dx=tdx.data<float>();
-        float *y=ty.data<float>();
-        float *dy = tdy.data<float>();
-        float coeff = get_coeff();
-        if(accum == 0)
-            memset(dx,0,sizeof(float)*tdx.shape().total_size());
-        else if(accum != 1)
-            cblas_sscal(tdx.shape().total_size(),accum,dx,1);
-        BWDData data{x,dx,y,dy,coeff};
-        switch(cfg_.method) {
-        case ReductionConfig::sum:
-        case ReductionConfig::mean:
-            { 
-                SumBwd op(data);
-                iterate(op);
-            }
-            break;
-        case ReductionConfig::sumsq:
-            {
-                Sum2Bwd op(data);
-                iterate(op);
-            }
-            break;
-        case ReductionConfig::abssum:
-            {
-                L1Bwd op(data);
-                iterate(op);
-            }
-        }
     }
 }
 

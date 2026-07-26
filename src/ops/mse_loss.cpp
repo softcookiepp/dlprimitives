@@ -68,30 +68,6 @@ void MSELoss::reshape(std::vector<Shape> const &in,
 	setup_gpu({TensorSpecs(in[0],dtype_),TensorSpecs(in[1],dtype_)},{TensorSpecs(dim,dtype_)},ws);
 }
 
-void MSELoss::forward_cpu(Tensor &ta,Tensor &tb,Tensor &ty)
-{
-    float *a = ta.data<float>();
-    float *b = tb.data<float>();
-    float *y = ty.data<float>();
-    size_t size = ta.shape().total_size();
-    if(cfg_.reduce == MSELossConfig::reduce_none) {
-        for(size_t i=0;i<size;i++) {
-            float diff = a[i] - b[i];
-            y[i] = diff*diff;
-        }
-    }
-    else {
-        float sum = 0.0f;
-        for(size_t i=0;i<size;i++) {
-            float diff = a[i] - b[i];
-            sum += diff*diff;
-        }
-        if(cfg_.reduce == MSELossConfig::reduce_mean)
-            sum *= 1.0f / size;
-        y[0]=sum;
-    }
-}
-
 void MSELoss::forward(std::vector<Tensor> &input,
                      std::vector<Tensor> &output,
                      std::vector<Tensor> &parameters,
@@ -104,28 +80,6 @@ void MSELoss::forward(std::vector<Tensor> &input,
     {
         float scale = cfg_.reduce == cfg_.reduce_mean ? 1.0f/a.shape().total_size() : 1.0f;
         fwd_->enqueue(input,output,workspace,{},{scale},{0},q);
-    }
-}
-
-void MSELoss::backward_cpu(Tensor &tdy,Tensor &ta,Tensor &tb,Tensor &tdx,float scale,float accum)
-{
-    float *a = ta.data<float>();
-    float *b = tb.data<float>();
-    float *dx = tdx.data<float>();
-    float *dy = tdy.data<float>();
-    size_t size = ta.shape().total_size();
-    if(accum == 0)
-        memset(dx,0,sizeof(float)*size);
-    if(cfg_.reduce == MSELossConfig::reduce_none) {
-        for(size_t i=0;i<size;i++) {
-            dx[i] = dx[i] * accum + 2 * scale * dy[i] * (a[i]-b[i]);
-        }
-    }
-    else {
-        float factor = scale * dy[0] * 2;
-        for(size_t i=0;i<size;i++) {
-            dx[i] = dx[i] * accum + factor * (a[i]-b[i]);
-        }
     }
 }
 

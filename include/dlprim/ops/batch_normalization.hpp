@@ -59,21 +59,9 @@ namespace dlprim {
 
 
     private:
-        void backward_cpu(std::vector<TensorAndGradient> &input,
-                          std::vector<TensorAndGradient> &output,
-                          std::vector<TensorAndGradient> &parameters,
-                          Tensor &workspace);
-	    void forward_cpu(std::vector<Tensor> &input,
-                             std::vector<Tensor> &output,
-                             std::vector<Tensor> &parameters,
-                             Tensor &workspace);
-        void cpu_backward_data(Tensor &x,Tensor &dx,Tensor &dy,float *mean,float *var,float *dy_sum,float *dyx_sum,float *gamma_in);
-        void cpu_forward_data(Tensor &x,Tensor &y,Tensor &scale,Tensor &offset);
         void get_batch_stats(Tensor &x,Tensor &mean,Tensor &var);
         void update_sums(int M,Tensor &cm,Tensor &cv,Tensor &sm,Tensor &sv);
         void compute_conv_parameters(Tensor &mean,Tensor &var,Tensor *at,Tensor *bt);
-        template<bool CalcDX>
-        void cpu_backward(Tensor &xt,Tensor *dxt,Tensor &dyt,Tensor &scale,Tensor &dscale,Tensor &dbias,float dx_factor);
         static int plane_size(Shape const &s);
         
         Tensor current_mean_,current_var_;

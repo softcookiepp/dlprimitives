@@ -53,15 +53,11 @@ namespace dlprim {
                               ExecutionContext const &ctx);
         
     private:
-        template<typename OpHandle>
-        void bilinear_fwd_bwd_cpu(Tensor &in,Tensor &out);
         float calc_bin_src(int p,float scale);
         float calc_bin_scale(float scale,int x_size,int y_size);
         std::tuple<int,int,float,float> calc_bin_src_weight(int dst_intex,float scale,int size);
         int calc_size(int input,double scale);
         Shape calc_size(Shape input);
-        void forward_cpu(Tensor &a,Tensor &output);
-        void backward_cpu(Tensor &dx,Tensor &dy);
         InterpolationConfig config_;
     };
 } // namespace

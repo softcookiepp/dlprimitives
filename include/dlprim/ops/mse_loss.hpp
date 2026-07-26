@@ -54,8 +54,6 @@ namespace dlprim {
 
     private:
         void setup_gpu(std::vector<TensorSpecs> in,std::vector<TensorSpecs> out,size_t &workspace);
-        void forward_cpu(Tensor &a,Tensor &b,Tensor &y);
-        void backward_cpu(Tensor &dy,Tensor &a,Tensor &b,Tensor &dx,float scale,float accum);
 
         MSELossConfig cfg_;
         DataType dtype_;

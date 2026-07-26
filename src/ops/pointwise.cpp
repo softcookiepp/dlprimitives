@@ -62,37 +62,12 @@ namespace dlprim {
             backward_gpu(input[0].data,input[0].diff,output[0].data,output[0].diff,accum,q);
         }
     }
-    void PointwiseBase::forward_cpu(Tensor &x,Tensor &y) 
-    {
-        size_t n = x.shape().total_size();
-        float *px = x.data<float>();
-        float *py = y.data<float>();
-        forward_cpu_float(n,px,py);
-    }
-    void PointwiseBase::backward_cpu(Tensor &x,Tensor &dx,Tensor &y,Tensor &dy,float beta)
-    {
-        size_t n = x.shape().total_size();
-        backward_cpu_float(n,x.data<float>(),dx.data<float>(),y.data<float>(),dy.data<float>(),beta);
-    }
 
     ThresholdConfig ThresholdConfig::from_json(json::value const &v)
     {
         ThresholdConfig r;
         r.threshold = v.get("threshold",r.threshold);
         return r;
-    }
-    void Threshold::forward_cpu_float(size_t n,float const *x,float *y)
-    {
-        float th = cfg_.threshold;
-        for(size_t i=0;i<n;i++)
-            y[i] = x[i] > th;
-    }
-    void Threshold::backward_cpu_float(size_t n,float const *,float *dx,float const *,float const *,float beta)
-    {
-        if(beta == 0)
-            memset(dx,0,n*sizeof(float));
-        else
-            cblas_sscal(n,beta,dx,1);
     }
     void Threshold::forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q)
     {
@@ -111,27 +86,6 @@ namespace dlprim {
         r.max_val = v.get("max_val",r.max_val);
         return r;
     }
-    void Hardtanh::forward_cpu_float(size_t n,float const *x,float *y)
-    {
-        float min_val = cfg_.min_val;
-        float max_val = cfg_.max_val;
-        for(size_t i=0;i<n;i++)
-            y[i] = std::max(min_val,std::min(max_val,x[i]));
-    }
-    void Hardtanh::backward_cpu_float(size_t n,float const *x,float *dx,float const *y,float const *dy,float beta)
-    {
-        float min_val = cfg_.min_val;
-        float max_val = cfg_.max_val;
-        if(beta == 0) {
-            for(size_t i=0;i<n;i++)
-                dx[i] = ((min_val <= x[i] && x[i] <= max_val) ? dy[i] : 0);
-        }
-        else {
-            for(size_t i=0;i<n;i++) {
-                dx[i] = dx[i] * beta + ((min_val <= x[i] && x[i] <= max_val) ? dy[i] : 0);
-            }
-        }
-    }
     void Hardtanh::forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q)
     {
         core::pointwise_operation({x},{y},{cfg_.min_val,cfg_.max_val},
@@ -144,24 +98,6 @@ namespace dlprim {
                                     q);
     }
 
-
-    void Abs::forward_cpu_float(size_t n,float const *x,float *y)
-    {
-        for(size_t i=0;i<n;i++)
-            y[i] = fabs(x[i]);
-    }
-    void Abs::backward_cpu_float(size_t n,float const *x,float *dx,float const *y,float const *dy,float beta)
-    {
-        if(beta == 0) {
-            for(size_t i=0;i<n;i++)
-                dx[i] =  x[i] >= 0 ? dy[i] : -dy[i];
-        }
-        else {
-            for(size_t i=0;i<n;i++) {
-                dx[i] = dx[i] * beta + (x[i] >= 0 ? dy[i] : -dy[i]);
-            }
-        }
-    }
     void Abs::forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q)
     {
         core::pointwise_operation({x},{y},{},

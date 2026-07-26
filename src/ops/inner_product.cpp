@@ -8,7 +8,6 @@
 #include <dlprim/ops/inner_product.hpp>
 #include <dlprim/ops/bwd_bias.hpp>
 #include <dlprim/ops/activation.hpp>
-#include <dlprim/cpu/cpu_ops.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/core/common.hpp>
 #include <dlprim/core/ip.hpp>
@@ -150,31 +149,6 @@ namespace dlprim {
             ip_->enqueue(in[0],M,bias,out[0],ectx);
     }
 
-    void InnerProduct::forward_cpu(Tensor &in,Tensor &out,Tensor &mat,Tensor *bias)
-    {
-        int batch = in.shape()[0];
-        float *a = in.data<float>();
-        float *b = out.data<float>();
-        float *M = mat.data<float>();
-        cblas_sgemm(CblasRowMajor,CblasNoTrans,CblasTrans,
-                    batch,config_.outputs,config_.inputs,
-                    1.0f,
-                    a,config_.inputs,
-                    M,config_.inputs,
-                    0.0f,
-                    b,config_.outputs);
-        if(config_.bias) {
-            DLPRIM_CHECK(bias);
-            float *bptr = bias->data<float>();
-            for(int i=0;i<batch;i++) {
-                cblas_saxpy(config_.outputs,1.0f,
-                                bptr,1,
-                                b + i * config_.outputs,1);
-            }
-        }
-        cpu::apply_activation(b,batch*config_.outputs,config_.activation);
-    }
-
     void InnerProduct::backward(std::vector<TensorAndGradient> &input,
                                 std::vector<TensorAndGradient> &output,
                                 std::vector<TensorAndGradient> &parameters,
@@ -213,33 +187,4 @@ namespace dlprim {
         }
 
     }
-
-    void InnerProduct::backward_filter_cpu(Tensor &dy,Tensor &x,Tensor &dM,float factor)
-    {
-        cblas_sgemm(CblasRowMajor,CblasTrans,CblasNoTrans,
-                    config_.outputs,config_.inputs,dy.shape()[0],
-                    1.0f,
-                    dy.data<float>(),
-                    config_.outputs,
-                    x.data<float>(),
-                    config_.inputs,
-                    factor,
-                    dM.data<float>(),
-                    dM.shape()[1]);
-    }
-    void InnerProduct::backward_data_cpu(Tensor &dy,Tensor &dx,Tensor &M,float factor)
-    {
-        cblas_sgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,
-                    dy.shape()[0],config_.inputs,config_.outputs,
-                    1.0f,
-                    dy.data<float>(),
-                    config_.outputs,
-                    M.data<float>(),
-                    M.shape()[1],
-                    factor,
-                    dx.data<float>(),
-                    config_.inputs);
-    }
-
-
 } // dlprim

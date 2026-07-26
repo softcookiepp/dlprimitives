@@ -54,36 +54,6 @@ void NLLLoss::reshape(std::vector<Shape> const &in,
     ws = 0;
 }
 
-template<typename Index>
-void NLLLoss::forwad_cpu(Tensor &tx,Tensor &tlbl,Tensor &ty)
-{
-    float *x = tx.data<float>();
-    Index const *lbl = tlbl.data<Index>();
-    float *y = ty.data<float>();
-    int batch = tx.shape()[0];
-    int chan = tx.shape()[1];
-    if(cfg_.reduce == NLLLossConfig::reduce_none) {
-        for(int b=0;b<batch;b++) {
-            int index = static_cast<int>(lbl[b]);
-            float yval = 0;
-            if(0<=index && index<chan)
-                yval = -x[b*chan+index];
-            *y++=yval;
-        }
-    }
-    else {
-        float sum = 0.0f;
-        for(int b=0;b<batch;b++) {
-            int index = static_cast<int>(lbl[b]);
-            if(0<= index && index < chan)
-                sum += -x[b*chan+index];
-        }
-        if(cfg_.reduce == NLLLossConfig::reduce_mean)
-            sum *= 1.0f / batch;
-        y[0]=sum;
-    }
-}
-
 void NLLLoss::forward(std::vector<Tensor> &input,
                      std::vector<Tensor> &output,
                      std::vector<Tensor> &parameters,
@@ -99,42 +69,6 @@ void NLLLoss::forward(std::vector<Tensor> &input,
                                 cfg_.reduce != NLLLossConfig::reduce_none,
                                 scale,
                                 q);
-    }
-}
-
-template<typename Index>
-void NLLLoss::backward_cpu(Tensor &tdx,Tensor &tlbl,Tensor &tdy,float accum)
-{
-    float *dx = tdx.data<float>();
-    Index const *lbl = tlbl.data<Index>();
-    float *dy = tdy.data<float>();
-    int batch = tdx.shape()[0];
-    int chan = tdx.shape()[1];
-    if(accum == 0)
-        memset(dx,0,sizeof(float)*batch*chan);
-    if(cfg_.reduce == NLLLossConfig::reduce_none) {
-        for(int b=0;b<batch;b++) {
-            int index = static_cast<int>(lbl[b]);
-            float dyval = *dy++;
-            for(int c=0;c<chan;c++) {
-                float dxval = (c==index) ? -dyval : 0.0f;
-                *dx = accum * *dx + dxval;
-                dx++;
-            }
-        }
-    }
-    else {
-        float dyval = *dy;
-        if(cfg_.reduce == NLLLossConfig::reduce_mean)
-            dyval /= batch;
-        for(int b=0;b<batch;b++) {
-            int index = static_cast<int>(lbl[b]);
-            for(int c=0;c<chan;c++) {
-                float dxval = (c==index) ? -dyval : 0.0f;
-                *dx = accum * *dx + dxval;
-                dx++;
-            }
-        }
     }
 }
 

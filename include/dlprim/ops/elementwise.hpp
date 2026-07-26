@@ -62,7 +62,6 @@ namespace dlprim {
         
     private:
    		void forward_gpu(Tensor &a,Tensor &b,Tensor &output,ExecutionContext const &ctx);
-        void forward_cpu(Tensor &a,Tensor &b,Tensor &output);
 
         template<int index>
         struct StridePos;
@@ -87,15 +86,6 @@ namespace dlprim {
         void loops_reduce_dim(Shape s,float *a,Shape as,float *b,Shape bs,float *r,Shape rs,F const &func,R const &reduce);
         template<int dim,typename F,typename R>
         void loops_reduce_dim(Shape s,float *a,Shape as,float *b,Shape bs,float *c,Shape cs,float *r,Shape rs,F const &func,R const &reduce);
-
-
-
-        
-        void backward_cpu(Tensor &a,Tensor &da,
-                          Tensor &b,Tensor &db,
-                          Tensor &c,Tensor &dc,
-                          bool l,bool r, 
-                          float ba,float bb);
 
         void backward_gpu(Tensor &a,Tensor &da,
                           Tensor &b,Tensor &db,

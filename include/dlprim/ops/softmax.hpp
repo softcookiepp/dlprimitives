@@ -62,8 +62,6 @@ namespace dlprim {
 
 
     private:
-        void forward_cpu(Tensor &input,Tensor &output);
-        void backward_cpu(Tensor &dx,Tensor &y,Tensor &dy,float accum);
         SoftmaxConfig cfg_;
         DataType dtype_;
     };
@@ -100,10 +98,6 @@ namespace dlprim {
                                 ExecutionContext const &e);
 
     private:
-        template<typename IndexType>
-        void forward_cpu_loss(Tensor &input,Tensor &label,Tensor &loss);
-        template<typename IndexType>
-        void backward_cpu_loss(Tensor &x,Tensor &dx,Tensor &label,Tensor &loss,float factor);
         void backward_gpu_loss(Tensor &input,Tensor &diff, Tensor &label,Tensor &output,float factor, ExecutionContext const &ctx);
         void forward_gpu_loss(Tensor &input,Tensor &label,Tensor &output,ExecutionContext const &ctx);
         void setup_kernel(int sm_range);

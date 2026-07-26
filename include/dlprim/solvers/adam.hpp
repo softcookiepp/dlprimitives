@@ -59,26 +59,6 @@ namespace dlprim {
                }
             }
         private:
-            void apply_cpu(Tensor &p_t,Tensor &g_t,Tensor &m_t,Tensor &v_t)
-            {
-                size_t size = p_t.shape().total_size();
-                float *p = p_t.data<float>();
-                float *g = g_t.data<float>();
-                float *m = m_t.data<float>();
-                float *v = v_t.data<float>();
-                for(size_t i=0;i<size;i++) {
-                    float grad = g[i] + weight_decay * p[i];
-                    float m_next = beta1 * m[i] + (1-beta1) * grad;
-                    float v_next = beta2 * v[i] + (1-beta2) * grad * grad;
-                    float m_top = m_next * inv_b1_;
-                    float v_top = v_next * inv_b2_;
-                    float p_next = p[i] - lr * m_top / (std::sqrt(v_top) + eps);
-
-                    m[i] = m_next;
-                    v[i] = v_next;
-                    p[i] = p_next;
-                }
-            }
             void apply_gpu(Tensor &p,Tensor &g,Tensor &m,Tensor &v,ExecutionContext const &e)
             {
                 core::pointwise_operation({p,g,m,v},

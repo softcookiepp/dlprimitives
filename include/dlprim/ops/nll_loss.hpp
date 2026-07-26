@@ -52,11 +52,6 @@ namespace dlprim {
                                 ExecutionContext const &e);
 
     private:
-        template<typename Index>
-        void forwad_cpu(Tensor &x,Tensor &lbl,Tensor &y);
-        template<typename Index>
-        void backward_cpu(Tensor &dx,Tensor &lbl,Tensor &dy,float accum);
-
         NLLLossConfig cfg_;
     };
 

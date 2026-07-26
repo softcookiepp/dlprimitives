@@ -16,7 +16,6 @@ namespace dlprim {
         void backward(Tensor &dy,Tensor &dw,Tensor &ws,float beta,ExecutionContext const &e);
         size_t workspace() const;
     private:
-        void backward_cpu(Tensor &dy,Tensor &dw,float beta);
         std::unique_ptr<core::BiasBackwardFilter> impl_;
     };
 }

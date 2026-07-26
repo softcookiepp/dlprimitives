@@ -290,7 +290,6 @@ namespace dlprim {
 		struct HostMem;
         std::shared_ptr<TensorSpecs> specs_;
         std::shared_ptr<HostMem> host_;
-        bool cpu_tensor_;
         uint32_t offset_;
 		tart::buffer_ptr buffer_;
 		// for deallocation

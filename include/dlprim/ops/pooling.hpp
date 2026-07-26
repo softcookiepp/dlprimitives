@@ -70,13 +70,6 @@ namespace dlprim {
    		void forward_gpu(Tensor &in,Tensor &output,ExecutionContext const &ctx);
    		void backward_gpu(Tensor &x,Tensor &dx,Tensor &dy,float factor,ExecutionContext const &ctx);
         
-        template<typename Dtype,typename ReduceOpts>
-        void forward_cpu(Tensor &in,Tensor &output,ReduceOpts rop);
-
-        void backward_cpu_max(Tensor &x,Tensor &dx,Tensor &dy,float factor);
-        template<typename ReduceOpts>
-        void backward_cpu_ave(Tensor &dx,Tensor &dy,float factor,ReduceOpts rop);
-        
         template<typename T>
         struct MaxRedcue;
         template<typename T>
@@ -140,8 +133,6 @@ namespace dlprim {
 
     private:
    		void forward_gpu(Tensor &input,Tensor &output,ExecutionContext const &ctx);
-        void forward_cpu(Tensor &input,Tensor &output);
-        void backward_cpu(Tensor &x,Tensor &dx,Tensor &dy,float factor);
         void backward_gpu(Tensor &x,Tensor &dx,Tensor &dy,float factor,ExecutionContext const &ctx);
         size_t setup_kernel(Shape const &sp);
 

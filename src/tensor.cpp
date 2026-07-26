@@ -31,7 +31,6 @@ namespace dlprim {
     Tensor::Tensor() :
         specs_(new TensorSpecs()),
         host_(new Tensor::HostMem()),
-        cpu_tensor_(true),
         offset_(0),
         capacity_(0),full_capacity_(0)
     {
@@ -43,7 +42,6 @@ namespace dlprim {
 			Shape const &s, DataType d, bool is_train) :
         specs_(new TensorSpecs(s,d,is_train)),
 		host_(new Tensor::HostMem()),
-        cpu_tensor_(false),
         offset_(offset),
         capacity_(s.total_size()*size_of_data_type(d)),
         full_capacity_(capacity_ + offset * size_of_data_type(d))
@@ -53,7 +51,6 @@ namespace dlprim {
     Tensor::Tensor(Context &ctx, Shape const &s,DataType d,bool is_train):
         specs_(new TensorSpecs(s,d,is_train)),
 		host_(new Tensor::HostMem()),
-        cpu_tensor_(false),
         offset_(0),
         capacity_(s.total_size()*size_of_data_type(d)),
         full_capacity_(capacity_)
@@ -80,31 +77,21 @@ namespace dlprim {
 
     void Tensor::to_device(ExecutionContext const &c,void *p,bool sync)
     {
-        if(cpu_tensor_)
-            memcpy(host_data(),p,memory_size());
-        else
-			buffer_->copyIn(p, memory_size(), offset_ * size_of_data_type(dtype()));
+		buffer_->copyIn(p, memory_size(), offset_ * size_of_data_type(dtype()));
     }
 
     void Tensor::to_device(ExecutionContext const &c,bool sync)
     {
-        if(cpu_tensor_)
-            return;
 		buffer_->copyIn(host_data(), memory_size(), offset_ * size_of_data_type(dtype()));
     }
     void Tensor::to_host(ExecutionContext const &c, void *p,bool sync)
     {
-        if(cpu_tensor_) 
-            memcpy(p,host_data(),memory_size());
-        else
         {
 			buffer_->copyOut(p, memory_size(), offset_ * size_of_data_type(dtype()));
 		}
     }
     void Tensor::to_host(ExecutionContext const &c,bool sync)
     {
-        if(cpu_tensor_)
-            return;
 		// all buffer copies in tart are sync, sorry :c
 		buffer_->copyOut(host_data(), memory_size(), offset_ * size_of_data_type(dtype()));
     }
@@ -116,12 +103,10 @@ namespace dlprim {
         DLPRIM_CHECK((offset_ * size_of_data_type(dtype()) + offset_bytes) % size_of_data_type(d) == 0);
         Tensor r;
         r.specs_.reset(new TensorSpecs(s,d,trainable));
-        r.cpu_tensor_ = cpu_tensor_;
         r.host_ = host_;
         r.buffer_ = buffer_;
         r.capacity_ = r.memory_size();
         r.full_capacity_ = full_capacity_;
-        r.cpu_tensor_ = cpu_tensor_;
         r.offset_ = (offset_ * size_of_data_type(dtype())  + offset_bytes) / size_of_data_type(d);
         return r;
     }

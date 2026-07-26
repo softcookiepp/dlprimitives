@@ -38,24 +38,6 @@ void set_to_constant(Tensor &t,double value,ExecutionContext const &e)
     }
 }
 
-
-template<typename DistConverter>
-void cpu_random_set(Tensor &t,RandomState::seed_type seed,RandomState::sequence_type seq,DistConverter cvt)
-{
-    DLPRIM_CHECK(t.dtype() == float_data);
-    float *ptr = t.data<float>();
-    size_t total = t.shape().total_size();
-    size_t rounds = (total + philox::result_items - 1) / philox::result_items;
-    for(size_t i=0;i<rounds;i++) {
-        auto result = philox::calculate_float(seed,seq + i);
-        cvt.convert(result);
-        for(int j=0;j<philox::result_items;j++) {
-            if(i*philox::result_items +j < total)
-                *ptr++ = result[j];
-        }
-    }
-}
-
 class UrandomConverter {
 public:
     UrandomConverter(float min,float max)
