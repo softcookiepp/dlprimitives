@@ -18,19 +18,13 @@ namespace dlprim
 		tart::device_ptr dev = ec.queue_;
 		const tart::device_ptr& ctx = dev;
 
-		// just use the device as a placeholder, then even
-		platform_ = dev;
         device_ = dev;
-        context_ = ctx;
-        // ??
     }
 
     Context::Context(
 		tart::device_ptr d
 		) : 
-		platform_(d),
-		device_(d),
-		context_(d)
+		device_(d)
     {
     }
     
@@ -41,41 +35,15 @@ namespace dlprim
         char demim = 0;
         ss >>p >> demim >> d;
         if(!ss || demim != ':' || !ss.eof()) {
-            throw ValidationError("Invalid device identification expecting `paltform_no:device_no`");
+            throw ValidationError("Invalid device identification expecting `platform_no:device_no`");
         }
         select_device(d);
     }
-
-    Context::Context(ContextType dt, int platform, int device)
+    
+    Context::Context(int device)
     {
         select_device(device);
     }
-
-    bool Context::check_device_extension(std::string const &name)
-    {
-        bool res;
-        auto p = ext_cache_.find(name);
-        if(p == ext_cache_.end()) {
-            res = device_extensions().find(name) != std::string::npos;
-            ext_cache_[name] = res;
-        }
-        else {
-            res = p->second;
-        }
-        return res;
-    }
-
-    int Context::estimated_core_count()
-    {
-		// not implemented in tart yet; will do later
-		return 0;
-    }
-
-    std::string const &Context::device_extensions()
-    {
-		return ext_;
-    }
-
 
     std::string Context::name() const
     {
@@ -88,7 +56,6 @@ namespace dlprim
 		if (d >= instance.getNumDevices() )
 			throw ValidationError("No such device : " + std::to_string(d));
 		device_ = instance.getDevice(d);
-		context_ = device_;
     }
 }
 

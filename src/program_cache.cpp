@@ -9,9 +9,6 @@
 #include <sstream>
 #include <chrono>
 #include <iostream>
-#ifdef WITH_SQLITE3
-#include "binary_cache.hpp"
-#endif
 
 
 //#define DEBUG_CACHE_TIMES 
@@ -122,7 +119,7 @@ tart::program_ptr Cache::build_program(Context  &ctx,std::string const &source,s
 
 std::string Cache::make_key(Context &ctx,std::string const &src,std::vector<Parameter> const &params)
 {
-	std::uintptr_t ctx_ptr = (std::uintptr_t)(ctx.context().get());
+	std::uintptr_t ctx_ptr = (std::uintptr_t)(ctx.device().get());
     std::ostringstream ss;
     ss << "prg:" << ctx_ptr <<  "@" << src <<  "/?";
     for(size_t i=0;i<params.size();i++) {

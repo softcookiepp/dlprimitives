@@ -675,7 +675,7 @@ int main(int argc,char **argv)
         test_shape();
 
         dp::Context ctx(argv[1]);
-        bool with_half = ctx.check_device_extension("cl_khr_fp16");
+        bool with_half = false;
         dp::ExecutionContext q = ctx.make_execution_context();
         std::cout << ctx.name() << std::endl;
         

@@ -74,7 +74,7 @@ int main(int argc,char **argv)
     dp::Context cpu_ctx;
     std::map<std::string,Tensor> diff_to_check;
     std::map<std::string,Tensor> param_to_check;
-    auto e=ctx.make_queue();
+    auto e=ctx.device();
     for(auto const &tdata : w.array()) {
         std::string name = tdata.get<std::string>("name");
         std::string type = tdata.get<std::string>("type");

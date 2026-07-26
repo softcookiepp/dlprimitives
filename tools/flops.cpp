@@ -825,12 +825,12 @@ FlopsStats get_flops(std::string device, double scale)
     FlopsStats stats = FlopsStats();
     int N=1024*int(1024*scale);
     dp::Context ctx(device);
-    auto q = ctx.make_queue();
+    auto q = ctx.device();
     std::cout << "Testing on " << ctx.name() << std::endl;
     dp::Tensor t(ctx,dp::Shape(N));
     long long int mem_size = int(1024*scale)*1024ll*256;
     dp::Tensor halfG(ctx,dp::Shape(mem_size/4));
-    int float16 = ctx.check_device_extension("cl_khr_fp16");
+    int float16 = false;
     std::vector<float> peaks(1+float16);
     double max_gb = 0;
     for(int half =0;half < 1 + float16;half++) {

@@ -32,13 +32,7 @@ int main(int argc,char **argv)
         dp::ExecutionContext q2 = ctx2.make_execution_context();
 		
         {
-#if VULKAN_API
-			TEST(ctx.platform() == ctx2.platform());
             TEST(ctx.device() == ctx2.device());
-#else
-            TEST(ctx.platform()() == ctx2.platform()());
-            TEST(ctx.device()() == ctx2.device()());
-#endif
         }
     
 

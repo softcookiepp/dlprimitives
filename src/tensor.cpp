@@ -57,8 +57,8 @@ namespace dlprim {
     {
         size_t size = memory_size();
         DLPRIM_CHECK(size > 0);
-		buffer_ = ctx.context()->allocateBuffer(size);
-		dev_ = ctx.context();
+		buffer_ = ctx.device()->allocateBuffer(size);
+		dev_ = ctx.device();
 		own_buffer_ = true;
     }
 

@@ -285,10 +285,9 @@ public:
     ///
     Context(std::string const &dev_id);
     ///
-    /// Create context from numerical platform and device number, of it is CPU context,
-    /// platform and device are ignored
+    /// Create context from device number
     ///
-    Context(ContextType dt = ocl,int platform = 0,int device = 0);
+    Context(int device = 0);
     ///
     /// Create the object from OpenCL context, platform and device..
     ///
@@ -316,11 +315,6 @@ public:
 	// get tart instance
 	static tart::Instance& getInstance() { return sInstance; }
     
-    /// Get OpenCL platform object
-	tart::device_ptr platform()
-    {
-		return device_;
-    }
     /// Get OpenCL device object
 	tart::device_ptr
 		device()
@@ -328,44 +322,16 @@ public:
         return device_;
     }
 
-    /// Check if specific device extension is present
-    bool check_device_extension(std::string const &name);
-    
-    /// get all device extensions as a string
-    std::string const &device_extensions();
-
-    ///
-    /// Get estimated number of cores. Note since it is not something defined for OpenCL in general
-    /// it returns number of cuda cores for NVidia devices and similar values for AMD and Intel GPU
-    /// devices. For Nvidia it is 128 * cu, for AMD it is 64 * cu and for Intel it is 8 * cu where
-    /// cu is number of compute units reported by `CL_DEVICE_MAX_COMPUTE_UNITS` query 
-    /// 
-    int estimated_core_count();
-
-    /// Get OpenCL context object
-	tart::device_ptr &context()
-    {
-        return context_;
-    }
-    /// Creates a new Command queue for the context with optional properties
-	tart::device_ptr make_queue(uint32_t props=0)
-    {
-		return device_;
-    }
-
     /// Generate ExecutionContext (queue + events)
     ExecutionContext make_execution_context(uint32_t props=0)
     {
-		return ExecutionContext(make_queue(props));
+		return ExecutionContext(device_);
     }
 
 private:
     void select_device(int d);
-	tart::device_ptr platform_;
     tart::device_ptr device_;
-    tart::device_ptr context_;
     std::map<std::string,bool> ext_cache_;
-    std::string ext_;
 };
 
 

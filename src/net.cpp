@@ -782,14 +782,14 @@ namespace dlprim {
 
     void Net::copy_parameters_to_device()
     {
-        tart::device_ptr q = ctx_.make_queue();
+        tart::device_ptr q = ctx_.device();
         for(auto &pr : parameters_) {
             pr.second.to_device(q);
         }
     }
     void Net::copy_parameters_to_host()
     {
-        tart::device_ptr q = ctx_.make_queue();
+        tart::device_ptr q = ctx_.device();
         for(auto &pr : parameters_) {
             pr.second.to_host(q);
         }

@@ -396,7 +396,7 @@ namespace core {
             int h = config.shape[2];
             int w = config.shape[3];
             int winograd_work_items = (config_.channels_in / 32) * (config_.channels_out / 32) * 256;
-            reduce_k_ = winograd_work_items < ctx.estimated_core_count();
+            reduce_k_ = false; //winograd_work_items < ctx.estimated_core_count();
             int off = 1;
             int toff = 1;
 			int local_mem_size = ctx.device()->getMetadata().physicalDeviceProperties.limits.maxComputeSharedMemorySize;

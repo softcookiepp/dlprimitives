@@ -99,11 +99,7 @@ int main(int argc,char **argv)
     int batch = data.shape()[0];
     std::vector<int> labels(batch);
     int n;
-#if VULKAN_API
-	tart::device_ptr queue = ctx.make_queue(0);
-#else
-    cl::CommandQueue queue=ctx.make_queue(enable_profiling ? CL_QUEUE_PROFILING_ENABLE : 0);
-#endif
+	tart::device_ptr queue = ctx.device();
     std::shared_ptr<dp::TimingData> timing;
     dp::ExecutionContext q(queue);
     if(enable_profiling) {

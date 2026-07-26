@@ -63,6 +63,7 @@ namespace gpu {
 				tile_size_k_ = 64;
 				off_ = 0;
 			}
+#if 0
             if(!batch_gemm_) {
                 int cores = ctx.estimated_core_count();
                 if(cores >= 256 && M * N / (block_size_m_ * block_size_n_) < 4 * cores && K > M*16 && K > N*16) {
@@ -70,6 +71,7 @@ namespace gpu {
                     set_scale(ctx,activation);
                 }
             }
+#endif
         }
     protected:
         static int round_up_div(int x,int y)

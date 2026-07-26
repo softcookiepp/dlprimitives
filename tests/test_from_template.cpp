@@ -96,11 +96,7 @@ void copy_tensors(std::vector<dp::Tensor> &tensors,dp::json::value const &v)
 void copy_tensors(std::vector<dp::Tensor> &out,std::vector<dp::Tensor> &inp,dp::Context &ctx)
 {
     TESTEQ(out.size(),inp.size());
-#if VULKAN_API
-    tart::device_ptr q = ctx.make_queue();
-#else
-    cl::CommandQueue q = ctx.make_queue();
-#endif
+    tart::device_ptr q = ctx.device();
         
     for(size_t i=0;i<out.size();i++) {
         TESTEQ(out[i].shape(),inp[i].shape());
@@ -233,7 +229,7 @@ int main(int argc,char **argv)
         dp::Context ctx(argv[1]);
         dp::ExecutionContext e;
         {
-			tart::device_ptr q = ctx.make_queue();
+			tart::device_ptr q = ctx.device();
             e = dp::ExecutionContext(q);
         }
         
