@@ -246,46 +246,10 @@ public:
     }
 
 
-    ///
-    /// Create context that waits for event if needed - use only if you know that more kernels are followed
-    ///
-    ExecutionContext first_context() const
-    {
-        if(queue_ == nullptr)
-            return ExecutionContext();
-		const std::vector<tart::event_ptr> eventsConst(events_);
-		return ExecutionContext(queue(), events_);
-    }
-
-    ///
-    /// Create context does not wait or signals use only if you know that more kernels run before and after 
-    ///
-    ExecutionContext middle_context() const
-    {
-        if(queue_ == nullptr)
-            return ExecutionContext();
-        return ExecutionContext(queue());
-    }
-    ///
-    /// Create context that signals for completion event if needed - use only if you know that more kernels run before
-    ///
-    ExecutionContext last_context() const
-    {
-        if(queue_ == nullptr)
-            return ExecutionContext();
-        return ExecutionContext(queue(),event_);
-    }
-
 private:
     ExecutionContext generate_series_context_impl(size_t id, size_t total) const
     {
-        if(total <= 1)
-            return *this;
-        if(id == 0)
-            return first_context();
-        if(id + 1 >= total)
-            return last_context();
-        return middle_context();
+		return ExecutionContext(queue(), event_);
     }
 
 
@@ -324,7 +288,7 @@ public:
     /// Create context from numerical platform and device number, of it is CPU context,
     /// platform and device are ignored
     ///
-    Context(ContextType dt = cpu,int platform = 0,int device = 0);
+    Context(ContextType dt = ocl,int platform = 0,int device = 0);
     ///
     /// Create the object from OpenCL context, platform and device..
     ///
@@ -396,11 +360,10 @@ public:
     }
 
 private:
-    void select_opencl_device(int p,int d);
+    void select_device(int d);
 	tart::device_ptr platform_;
     tart::device_ptr device_;
     tart::device_ptr context_;
-    ContextType type_;;
     std::map<std::string,bool> ext_cache_;
     std::string ext_;
 };

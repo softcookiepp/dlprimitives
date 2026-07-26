@@ -233,11 +233,7 @@ int main(int argc,char **argv)
         dp::Context ctx(argv[1]);
         dp::ExecutionContext e;
         {
-#if VULKAN_API
 			tart::device_ptr q = ctx.make_queue();
-#else
-            cl::CommandQueue q = ctx.make_queue();
-#endif
             e = dp::ExecutionContext(q);
         }
         

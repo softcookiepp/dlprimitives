@@ -658,7 +658,7 @@ namespace dlprim {
 		}
 		if(activation_) {
 			std::vector<Tensor> dummy;
-			activation_->forward(out,out,dummy,ws,ectx.last_context());
+			activation_->forward(out,out,dummy,ws,ectx);
 		}
 	}
 	void TransposedConvolution2D::backward(

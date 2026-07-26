@@ -23,7 +23,6 @@ namespace dlprim
         device_ = dev;
         context_ = ctx;
         // ??
-        type_ = Context::ocl;
     }
 
     Context::Context(
@@ -31,8 +30,7 @@ namespace dlprim
 		) : 
 		platform_(d),
 		device_(d),
-		context_(d),
-        type_(Context::ocl)
+		context_(d)
     {
     }
     
@@ -45,14 +43,12 @@ namespace dlprim
         if(!ss || demim != ':' || !ss.eof()) {
             throw ValidationError("Invalid device identification expecting `paltform_no:device_no`");
         }
-        type_ = ocl;
-        select_opencl_device(p,d);
+        select_device(d);
     }
 
-    Context::Context(ContextType dt,int platform,int device) :
-        type_(dt)
+    Context::Context(ContextType dt, int platform, int device)
     {
-        select_opencl_device(platform,device);
+        select_device(device);
     }
 
     bool Context::check_device_extension(std::string const &name)
@@ -86,7 +82,7 @@ namespace dlprim
 		return device_->getMetadata().name();
     }
 
-    void Context::select_opencl_device(int p,int d)
+    void Context::select_device(int d)
     {
 		tart::Instance& instance = sInstance;
 		if (d >= instance.getNumDevices() )

@@ -118,11 +118,7 @@ int main(int argc,char **argv)
             solver.reset(new dp::solvers::Adam(ctx));
         if(enable_sgd) 
             solver.reset(new dp::solvers::SGD(ctx));
-#if VULKAN_API
         dp::ExecutionContext q=ctx.make_execution_context(0);
-#else
-        dp::ExecutionContext q=ctx.make_execution_context((enable_profiling && !force_cpu_times)? CL_QUEUE_PROFILING_ENABLE : 0);
-#endif
         std::shared_ptr<dp::TimingData> timing;
         if(enable_profiling) {
             timing.reset(new dp::TimingData);
@@ -205,11 +201,7 @@ int main(int argc,char **argv)
                 if(force_cpu_times) {
                     for(unsigned i=0;i<timing->sections().size();i++) {
                         int s = i;
-#if VULKAN_API
                         std::stack<std::string> sections;
-#else
-                        std::stack<char const *> sections;
-#endif
                         while(s!=-1) {
                             auto &sec = timing->sections().at(s);
                             sections.push(sec.name);
