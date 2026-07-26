@@ -271,15 +271,8 @@ private:
 class Context {
 	static tart::Instance sInstance;
 public:
-    /// Device used with the context, CPU or OpenCL device.
-    enum ContextType {
-        cpu = 0, ///< CPU no OpenCL platform/device/context are used
-        ocl = 1, ///< Use OpenCL device, it also may be CPU device.
-    };
-
-
     ///
-    /// Create new context from textual ID. It can be "cpu" or "P:D"
+    /// Create new context from textual ID. It can be "P:D"
     /// were P is integer representing platform and D is device number on this platform
     /// starting from 0, for example "0:1" is second device on 1st platform.
     ///
