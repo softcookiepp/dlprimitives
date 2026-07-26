@@ -11,6 +11,13 @@
 
 #include <iostream>
 
+enum class RandomType
+{
+	eUniform = 1,
+	eBernoulli = 2,
+	eNormal = 3
+};
+
 namespace dlprim {
 namespace core {
     Scale::Scale(Context &ctx,DataType dt)
@@ -59,11 +66,7 @@ namespace core {
         Context ctx(e);
         DLPRIM_CHECK(t.dtype() == float_data);
 		tart::program_ptr
-        prog = gpu::Cache::instance().get_program(ctx,"random",
-                                        "IS_UNIFORM",int(dist==rnd_uniform),
-                                        "IS_NORMAL",int(dist==rnd_normal),
-                                        "IS_BERNOULLI",int(dist==rnd_bernoulli)
-                                        );
+        prog = gpu::Cache::instance().get_program(ctx,"random");
 		tart::kernel_ptr k = prog->getKernel("fill");
 		uint64_t total = t.shape().total_size();
         int p=0;
@@ -84,7 +87,7 @@ namespace core {
 			targetLocalSizeX -= 1;
 		}
         const uint32_t adjustedGlobalSizeX = globalSizeX / targetLocalSizeX;
-        k->enqueue({adjustedGlobalSizeX, 1, 1}, {targetLocalSizeX, 1, 1});
+        k->enqueue({adjustedGlobalSizeX, 1, 1}, {targetLocalSizeX, 1, 1, (uint32_t)dist});
     }
 
 } // core

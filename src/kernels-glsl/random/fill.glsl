@@ -4,6 +4,13 @@
 #include "../common/defs.glsl"
 #include "../common/workgroup.glsl"
 
+#define RANDOM_TYPE_UNIFORM 0
+#define RANDOM_TYPE_NORMAL 1
+#define RANDOM_TYPE_BERNOULLI 2
+
+layout(constant_id = 3) const uint RANDOM_TYPE = 1;
+
+
 uint mulhi(uint a,uint b)
 {
     uint64_t v = uint64_t(a);
@@ -79,14 +86,12 @@ vec4 calculate_float(state s)
     return f;
 }
 
-#if IS_NORMAL == 1
 vec2 normal_pair(vec2 v)
 {
     float scale = sqrt(-2.0f*log(1.0f - v[0]));
     float angle = (2.0f*3.1415926535f)*v[1];
     return vec2(scale*cos(angle), scale*sin(angle));
 }
-#endif
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) writeonly buffer p_buf { float p[]; };
@@ -114,22 +119,27 @@ void main()
     uint64_t seq = init_seq + uint64_t(pos);
     state s = make_initial_state(seed, seq);
     vec4 r = calculate_float(s);
-#if IS_UNIFORM == 1
-    r = r * vec4(v2-v1) + vec4(v1);
-#endif
-#if IS_BERNOULLI == 1
-    r[0] = r[0] < v1 ? 1:0;
-    r[1] = r[1] < v1 ? 1:0;
-    r[2] = r[2] < v1 ? 1:0;
-    r[3] = r[3] < v1 ? 1:0;
-#endif    
-#if IS_NORMAL == 1
-    r.xy = normal_pair(r.xy);
-    r.zw = normal_pair(r.zw);
-    r = r*vec4(v2) + vec4(v1);
-#endif    
+
+	// specialization constants will eliminate flow control paths entirely
+	if (RANDOM_TYPE == RANDOM_TYPE_UNIFORM)
+	{
+		r = r * vec4(v2-v1) + vec4(v1);
+	}
+	else if(RANDOM_TYPE == RANDOM_TYPE_NORMAL)
+	{
+		r.xy = normal_pair(r.xy);
+		r.zw = normal_pair(r.zw);
+		r = r*vec4(v2) + vec4(v1);
+	}
+	else if(RANDOM_TYPE == RANDOM_TYPE_BERNOULLI)
+	{
+		r[0] = r[0] < v1 ? 1:0;
+		r[1] = r[1] < v1 ? 1:0;
+		r[2] = r[2] < v1 ? 1:0;
+		r[3] = r[3] < v1 ? 1:0;
+	}
     uint index = pos * 4;
-#if 0 // there is no vstore in GLSL, afaik
+#if USE_BDA // there is no vstore in GLSL, afaik. However, if BDA is used, it will be possible to pointer cast
     if(index < total) {
         vstore4(r,0,p + index);
     }
