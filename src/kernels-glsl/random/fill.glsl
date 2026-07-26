@@ -94,7 +94,7 @@ vec2 normal_pair(vec2 v)
 }
 
 #if USE_BDA == 0
-	layout(binding = 0, std430) writeonly buffer p_buf { float p[]; };
+	layout(binding = 0, std430) writeonly buffer p_buf { dtype p[]; };
 #endif
 
 layout(push_constant, std430) uniform fill
@@ -112,6 +112,8 @@ layout(push_constant, std430) uniform fill
 
 void main()
 {
+	// Compute as float, then cast to desired dtype.
+	// If necessary, this will be changed later
     uint pos = get_global_id(0);
     if(pos * 4 >= total)
         return;
@@ -146,9 +148,9 @@ void main()
     else
 #endif
     {
-        if(index + 0 < total) p[index + 0 + p_]=r[0];
-        if(index + 1 < total) p[index + 1 + p_]=r[1];
-        if(index + 2 < total) p[index + 2 + p_]=r[2];
-        if(index + 3 < total) p[index + 3 + p_]=r[3];
+        if(index + 0 < total) p[index + 0 + p_] = dtype(r[0]);
+        if(index + 1 < total) p[index + 1 + p_] = dtype(r[1]);
+        if(index + 2 < total) p[index + 2 + p_] = dtype(r[2]);
+        if(index + 3 < total) p[index + 3 + p_] = dtype(r[3]);
     }
 }
