@@ -10,7 +10,6 @@
 #include <dlprim/core/activation.hpp>
 #include <dlprim/json.hpp>
 #include <dlprim/utils/json_helpers.hpp>
-#include <dlprim/cpu/cpu_ops.hpp>
 #include <math.h>
 #include <my_cblas.hpp>
 
@@ -80,27 +79,6 @@ void Activation::backward(std::vector<TensorAndGradient> &input,
     {
         core::activation_backward(input[0].diff,output[0].diff,output[0].data,config_.activation,accum,e);
     }
-}
-
-
-void Activation::forward_cpu(Tensor &in,Tensor &out)
-{
-    size_t size = in.shape().total_size();
-    float *a=in.data<float>();
-    float *b=out.data<float>();
-    if(a!=b) {
-        memmove(b,a,size*sizeof(float));
-    }
-    cpu::apply_activation(b,size,config_.activation);
-}
-
-void Activation::backward_cpu(Tensor &y,Tensor &dy,Tensor &dx,float beta)
-{
-    size_t size = y.shape().total_size();
-    float *p_y =y.data<float>();
-    float *p_dy=dy.data<float>();
-    float *p_dx=dx.data<float>();
-    cpu::apply_activation_diff(size,p_y,p_dy,p_dx,beta,config_.activation);
 }
 
 

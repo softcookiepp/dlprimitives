@@ -41,8 +41,8 @@ void MSELoss::setup(std::vector<TensorSpecs> const &in,
     out = { TensorSpecs(dim, in[0].dtype()) };
     parameters.clear();
     workspace = 0;
-    if(ctx_.is_opencl_context())
-        setup_gpu(in,out,workspace);
+
+	setup_gpu(in,out,workspace);
 }
 
 void MSELoss::setup_gpu(std::vector<TensorSpecs> in,std::vector<TensorSpecs> out,size_t &workspace)
@@ -65,8 +65,7 @@ void MSELoss::reshape(std::vector<Shape> const &in,
     Shape dim = cfg_.reduce == MSELossConfig::reduce_none ? in[0] : Shape(1);
     out = { dim };
     ws = 0;
-    if(ctx_.is_opencl_context())
-        setup_gpu({TensorSpecs(in[0],dtype_),TensorSpecs(in[1],dtype_)},{TensorSpecs(dim,dtype_)},ws);
+	setup_gpu({TensorSpecs(in[0],dtype_),TensorSpecs(in[1],dtype_)},{TensorSpecs(dim,dtype_)},ws);
 }
 
 void MSELoss::forward_cpu(Tensor &ta,Tensor &tb,Tensor &ty)
@@ -102,12 +101,9 @@ void MSELoss::forward(std::vector<Tensor> &input,
     Tensor a=input.at(0);
     Tensor b=input.at(1);
     Tensor y=output.at(0);
-    if(ctx_.is_opencl_context()) {
+    {
         float scale = cfg_.reduce == cfg_.reduce_mean ? 1.0f/a.shape().total_size() : 1.0f;
         fwd_->enqueue(input,output,workspace,{},{scale},{0},q);
-    }
-    else {
-        forward_cpu(a,b,y);
     }
 }
 
@@ -149,7 +145,7 @@ void MSELoss::backward(  std::vector<TensorAndGradient> &input,
     float accum_0 = input[0].accumulate_gradient;
     float accum_1 = input[0].accumulate_gradient;
     float scale = cfg_.reduce == cfg_.reduce_mean ? 1.0f/da.shape().total_size() : 1.0f;
-    if(ctx_.is_opencl_context()) {
+    {
         if(left && right) {
             core::pointwise_operation_broadcast({dy,a,b,da,db},{da,db},{scale,accum_0,accum_1},
                                       R"xxx(
@@ -171,12 +167,6 @@ void MSELoss::backward(  std::vector<TensorAndGradient> &input,
                                       "y0 = w1 != 0? y0 + typeof_y0(w1) * typeof_y0(x3) : y0;"
                                       ,e);
         }
-    }
-    else {
-        if(left)
-            backward_cpu(dy,a,b,da,scale,accum_0); 
-        if(right)
-            backward_cpu(dy,a,b,db,-scale,accum_1); 
     }
 }
 

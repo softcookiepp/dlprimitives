@@ -364,20 +364,15 @@ int main(int argc,char **argv)
                     initialize_tensors(in_tensors,rnd);
                     ref_op->forward(in_tensors,ref_tensors,ref_params,ref_ws_tensor,cpu_e);
                 }
-                if(ctx.is_opencl_context()) {
+                {
                     for(dp::Tensor &tensor : in_tensors)
                         tensor.to_device(e,false);
                 }
                 op->forward(in_tensors,out_tensors,params,res_ws_tensor,e);
-                if(ctx.is_opencl_context()) {
+                {
                     for(dp::Tensor &tensor : out_tensors)
                         tensor.to_host(e,false);
-                    if(ctx.is_opencl_context())    
-#if VULKAN_API
-                        e.queue()->sync();
-#else
-                        e.queue().finish();
-#endif
+					e.queue()->sync();
                 }
                 double eps = cases[i].get<double>("eps",1e-5);
                 compare_tensors(out_tensors,ref_tensors,eps);
@@ -405,7 +400,7 @@ int main(int argc,char **argv)
                     }
                     int accums = cases[i].get<bool>("double_check",true) ? 2 : 1;
                     for(int accum = 0;accum<accums;accum++) {
-                        if(ctx.is_opencl_context()) {
+                        {
                             for(dp::Tensor &tensor : out_diffs)
                                 tensor.to_device(e,false);
                         }
@@ -415,18 +410,13 @@ int main(int argc,char **argv)
                             auto c = join_grad(params,param_diffs,accum * 0.5f);
                             op->backward(a,b,c,res_ws_tensor,e);
                         }
-                        if(ctx.is_opencl_context()) {
+                        {
 
                             for(dp::Tensor &tensor : in_diffs)
                                 tensor.to_host(e,false);
                             for(dp::Tensor &tensor : param_diffs)
                                 tensor.to_host(e,false);
-                            if(ctx.is_opencl_context())    
-#if VULKAN_API
-								e.queue()->sync();
-#else
-								e.queue().finish();
-#endif
+							e.queue()->sync();
                         }
                         std::vector<int> params_grad,params_nograd;
                         for(auto p : param_specs) {

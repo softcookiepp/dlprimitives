@@ -38,7 +38,7 @@ namespace dlprim {
         out.clear();
         out.push_back(TensorSpecs(outs[0],in[0].dtype()));
         parameters.clear();
-        if(ctx_.is_opencl_context()) {
+        {
             copy_.reset(new core::SliceCopy(ctx_,dtype_));
         }
     }
@@ -63,25 +63,6 @@ namespace dlprim {
         r[cfg_.dim] = total_dim;
         out.assign({r});
         ws = 0;
-    }
-    template<typename Cp>
-    void ConcatSliceBase::copy_cpu(size_t &offset,int dim,Tensor &in,Tensor &out,Cp copy)
-    {
-        Shape target = out.shape().split_and_merge_over_axis(dim);
-        Shape cur = in.shape().split_and_merge_over_axis(dim);
-        DLPRIM_CHECK(cur[0]==target[0]);
-        DLPRIM_CHECK(cur[2]==target[2]);
-        DLPRIM_CHECK(cur[1]+offset <= target[1]);
-        for(size_t d0 = 0; d0 < cur[0]; d0++) {
-            for(size_t d1=0;d1 < cur[1];d1++) {
-                size_t src_offset = d1 * cur[2] + d0 * (cur[2]*cur[1]);
-                size_t tgt_offset = (d1 + offset) * target[2] + d0 * (target[2]*target[1]);
-                float *src = in.data<float>()  + src_offset;
-                float *tgt = out.data<float>() + tgt_offset;
-                copy(tgt,src,cur[2]);
-            }
-        }
-        offset += cur[1];
     }
     
     struct AddBlock {
@@ -184,7 +165,7 @@ namespace dlprim {
                 offset += input[i].data.shape()[cfg_.dim];
                 continue;
             }
-            if(ctx_.is_opencl_context()) {
+            {
                 size_t slice = input[i].diff.shape()[cfg_.dim];
                 copy_->tensor_slice_copy(cfg_.dim,slice,
                                          input[i].diff,0,
@@ -192,20 +173,6 @@ namespace dlprim {
                                          input[i].accumulate_gradient,
                                          q.generate_series_context(count++,total));
                 offset += slice;
-            }
-            else {
-                if(copy_one) {
-                    if(input[i].accumulate_gradient == 0)
-                        copy_cpu(offset,cfg_.dim,input[i].diff,output[0].diff,BwdCopyOne());
-                    else
-                        copy_cpu(offset,cfg_.dim,input[i].diff,output[0].diff,BwdCopyOneFactor(input[i].accumulate_gradient));
-                }
-                else {
-                    if(input[i].accumulate_gradient == 0)
-                        copy_cpu(offset,cfg_.dim,input[i].diff,output[0].diff,BwdCopyBlock());
-                    else
-                        copy_cpu(offset,cfg_.dim,input[i].diff,output[0].diff,BwdCopyBlockFactor(input[i].accumulate_gradient));
-                }
             }
         }
         DLPRIM_CHECK(offset == output[0].diff.shape()[cfg_.dim]);
@@ -245,7 +212,7 @@ namespace dlprim {
         out.assign({TensorSpecs(new_shape,dtype_)});
 
         parameters.clear();
-        if(ctx_.is_opencl_context()) {
+        {
             copy_.reset(new core::SliceCopy(ctx_,dtype_));
             scale_.reset(new core::Scale(ctx_,dtype_));
         }
@@ -290,7 +257,7 @@ namespace dlprim {
         if(!input[0].requires_gradient)
             return;
 
-        if(ctx_.is_opencl_context()) {
+        {
             int total = (input[0].accumulate_gradient != 1.0) + 1;
             int index = 0;
             if(input[0].accumulate_gradient != 1.0)
@@ -302,22 +269,6 @@ namespace dlprim {
                                      output[0].diff,0,
                                      1.0f,
                                      q.generate_series_context(index++,total));
-        }
-        else {
-            Tensor &in = input[0].diff;
-            float acc = input[0].accumulate_gradient;
-            if(acc == 0)
-                memset(in.host_data(),0,in.memory_size());
-            else if(acc != 1.0)
-                cblas_sscal(in.shape().total_size(),acc,in.data<float>(),1);
-
-            size_t offset = cfg_.begin;
-            if(copy_one) {
-                copy_cpu(offset,cfg_.dim,output[0].diff,in,AddOne());
-            }
-            else {
-                copy_cpu(offset,cfg_.dim,output[0].diff,in,AddBlock());
-            }
         }
     }
 

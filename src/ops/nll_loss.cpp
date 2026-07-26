@@ -93,20 +93,12 @@ void NLLLoss::forward(std::vector<Tensor> &input,
     Tensor x=input.at(0);
     Tensor lbl=input.at(1);
     Tensor y=output.at(0);
-    if(ctx_.is_opencl_context()) {
+    {
         float scale = cfg_.reduce == cfg_.reduce_mean ? 1.0f/x.shape()[0] : 1.0f;
         core::nll_loss_forward(x,lbl,y,
                                 cfg_.reduce != NLLLossConfig::reduce_none,
                                 scale,
                                 q);
-    }
-    else {
-        switch(lbl.dtype()) {
-        case float_data: forwad_cpu<float>(x,lbl,y); break;
-        case int32_data: forwad_cpu<int>(x,lbl,y); break;
-        default:
-            throw NotImplementedError("NLLLoss label must be either int or float");
-        }
     }
 }
 
@@ -158,21 +150,13 @@ void NLLLoss::backward(  std::vector<TensorAndGradient> &input,
     Tensor lbl = input.at(1).data;
     Tensor dy = output.at(0).diff;
     float accum = input[0].accumulate_gradient;
-    if(ctx_.is_opencl_context()) {
+    {
         float scale = cfg_.reduce == cfg_.reduce_mean ? 1.0f/dx.shape()[0] : 1.0f;
         core::nll_loss_backward(dx,lbl,dy,
                             cfg_.reduce != NLLLossConfig::reduce_none,
                             scale,
                             accum,
                             e);
-    }
-    else {
-        switch(lbl.dtype()) {
-        case float_data: backward_cpu<float>(dx,lbl,dy,accum); break;
-        case int32_data: backward_cpu<int>(dx,lbl,dy,accum); break;
-        default:
-            throw NotImplementedError("NLLLoss label must be either int or float");
-        }
     }
 }
 

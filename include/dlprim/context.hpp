@@ -349,20 +349,6 @@ public:
     ///
     std::string name() const;
 
-    /// return context type either cpu or ocl
-    ContextType context_type() const;
-
-    /// Returns true if the context was created as CPU context 
-    bool is_cpu_context() const
-    {
-        return type_ == cpu;
-    }
-    /// Returns true if the context was created as OpenCL context
-    bool is_opencl_context() const
-    {
-        return type_ == ocl;
-    }
-
 	// get tart instance
 	static tart::Instance& getInstance() { return sInstance; }
     
@@ -406,10 +392,7 @@ public:
     /// Generate ExecutionContext (queue + events)
     ExecutionContext make_execution_context(uint32_t props=0)
     {
-        if(is_cpu_context())
-            return ExecutionContext();
-        else
-            return ExecutionContext(make_queue(props));
+		return ExecutionContext(make_queue(props));
     }
 
 private:

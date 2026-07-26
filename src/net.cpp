@@ -845,7 +845,7 @@ namespace dlprim {
                 connections_[i].parameters,
                 workspace_,
                 ec);
-            if(sync && ctx_.is_opencl_context())
+            if(sync)
                 e.queue()->sync();
         }
     }
@@ -864,7 +864,7 @@ namespace dlprim {
                 connections_[i].param_grad,
                 workspace_,
                 ec);
-            if(sync && ctx_.is_opencl_context()) {
+            if(sync) {
                 e.queue()->sync();
             }
 
