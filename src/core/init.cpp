@@ -64,7 +64,7 @@ namespace core {
     void fill_random(Tensor &t, uint64_t philox_seed, uint64_t philox_seq,RandomDistribution dist,float p1,float p2,ExecutionContext const &e)
     {
         Context ctx(e);
-        //DLPRIM_CHECK(t.dtype() == float_data);
+        DLPRIM_CHECK(t.dtype() == float_data);
 		tart::program_ptr prog = gpu::Cache::instance().get_program(
 			ctx, "random", "dtype", data_type_to_opencl_type(t.dtype()));
 		tart::kernel_ptr k = prog->getKernel("fill");
