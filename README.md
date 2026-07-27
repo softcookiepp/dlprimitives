@@ -4,7 +4,7 @@ It is not intended to be merged with the original DLPrimitives library, and will
 
 ## To-do
 - Port convolution layer kernels to Vulkan GLSL or write new ones entirely
-- Add compatibility with more data types for certain operators (random, GEMM, etc.)
+- Add compatibility with more data types for certain operators that are currently only compatible with float32 (random, GEMM, etc.)
 - Implement better caching
 - Modify kernels to use specialization constants instead of preprocessor defines when possible
 - Probably some other stuff I am forgetting now
