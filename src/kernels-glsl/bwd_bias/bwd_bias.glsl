@@ -3,17 +3,9 @@
 #include "../common/reduce.glsl"
 #include "../common/workgroup.glsl"
 
-#ifndef WG_SIZE
-#define WG_SIZE 256
-#endif
-
-#ifndef ITEMS_PER_WI
-#define ITEMS_PER_WI 1
-#endif
-
-#ifndef SIZE_2D
-#define SIZE_2D 1
-#endif
+#define WG_SIZE localSizeX
+layout(constant_id = 3) const uint ITEMS_PER_WI = 1;
+layout(constant_id = 4) const uint SIZE_2D = 1;
 
 
 //layout(local_size_x = WG_SIZE, local_size_y = 1, local_size_z = 1) in;
@@ -36,7 +28,7 @@ layout(push_constant, std430) uniform bwd_bias
 	uint dx_offset; int dx_stride; float beta;
 };
 
-REDUCE_PREPARE(WG_SIZE,dtype);
+REDUCE_PREPARE(WG_SIZE, dtype);
 
 void main()
 {
@@ -52,7 +44,7 @@ void main()
 
     dtype val = 0;
     uint batch_scale = features * SIZE_2D;
-    #pragma unroll
+
     for(uint i=0;i<ITEMS_PER_WI;i++) {
         uint index = position + i;
         if(index >= over)

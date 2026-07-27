@@ -181,11 +181,7 @@ namespace core {
                 items_per_wi_ = (total_size + wg_ - 1) / wg_;
 
             }
-			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"bwd_bias",
-                    "WG_SIZE",wg_,
-                    "ITEMS_PER_WI",items_per_wi_,
-                    "SIZE_2D",rows_columns_
-                    );
+			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx, "bwd_bias");
             kernel_ = prog->getKernel("bwd_bias");
 
         }
@@ -214,8 +210,12 @@ namespace core {
                 auto ec1 = e.generate_series_context(0,2);
                 auto ec2 = e.generate_series_context(1,2);
                 g.resize(3, 1);
-                l.resize(3, 1);
-                kernel_->enqueue(g, l);
+                std::vector<uint32_t> spec = {
+					wg_, 1, 1 // local size
+					items_per_wi_, // ITEMS_PER_WI
+					rows_columns_ // SIZE_2D
+				};
+                kernel_->enqueue(g, spec);
                 p=0;
                 kernel2_->setArg(p++,features_);
                 kernel2_->setArg(p++,size2_);
