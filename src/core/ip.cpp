@@ -163,10 +163,7 @@ namespace core {
                     wg2_ = 64;
                 items_per_wi2_ = (size2_ + wg2_ - 1) / wg2_;
 				tart::program_ptr
-				prog = gpu::Cache::instance().get_program(ctx,"bwd_bias",
-                        "WG_SIZE",wg2_,
-                        "ITEMS_PER_WI",items_per_wi2_,
-                        "SIZE_2D",size2_);
+				prog = gpu::Cache::instance().get_program(ctx,"bwd_bias");
 				kernel2_ = prog->getKernel("bwd_bias");
             }
             else {
