@@ -79,6 +79,7 @@ namespace core {
 							   Tensor &source,size_t source_offset,
 							   float target_scale,ExecutionContext const &e);
 	private:
+		tart::device_ref mDevice;
 		tart::kernel_ptr kernel_;
 		DataType dtype_;
 	};

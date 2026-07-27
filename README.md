@@ -8,6 +8,7 @@ It is not intended to be merged with the original DLPrimitives library, and will
 - Implement better caching and/or make static per-device references to each kernel (profiling showed that using the current kernel cache has significant performance impact)
 - Modify kernels to use specialization constants instead of preprocessor defines when possible
 - Implement work-per-thread model that CLBlast has, as some kernels try to invoke more workgroups than a device will allow
+- Fix subgroup under-utilization by some kernels (many have workgroup size set to 1, 1, 1 by default)
 - Probably some other stuff I am forgetting now
 
 ## Building

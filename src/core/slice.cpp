@@ -12,6 +12,7 @@ namespace dlprim {
 namespace core {
     SliceCopy::SliceCopy(Context &ctx,DataType dtype) :dtype_(dtype)
     {
+		mDevice = ctx.device();
 		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"copy",
                                 "dtype",data_type_to_opencl_type(dtype_)
                                 );
@@ -44,7 +45,10 @@ namespace core {
         target.set_arg(kernel_,p);
         source.set_arg(kernel_,p);
         bind_as_dtype(kernel_,p,scale,dtype_);
-		kernel_->enqueue({s[2], slice, s[0]}, {});
+        
+        std::vector<uint32_t> totalInvocations({s[2], slice, s[0]});
+        auto glPair = mDevice.lock()->chooseGlobalAndLocalSize(totalInvocations);
+		kernel_->enqueue(glPair.first, glPair.second);
     }
 }
 }
