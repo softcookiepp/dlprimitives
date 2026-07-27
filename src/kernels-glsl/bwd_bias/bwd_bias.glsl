@@ -1,6 +1,7 @@
 #version 450
 #include "../common/defs.glsl"
 #include "../common/reduce.glsl"
+#include "../common/workgroup.glsl"
 
 #ifndef WG_SIZE
 #define WG_SIZE 256
@@ -15,7 +16,7 @@
 #endif
 
 
-layout(local_size_x = WG_SIZE, local_size_y = 1, local_size_z = 1) in;
+//layout(local_size_x = WG_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) buffer dy_buf { dtype dy[]; };

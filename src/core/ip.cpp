@@ -214,7 +214,8 @@ namespace core {
                 auto ec1 = e.generate_series_context(0,2);
                 auto ec2 = e.generate_series_context(1,2);
                 g.resize(3, 1);
-                kernel_->enqueue(g, {});
+                l.resize(3, 1);
+                kernel_->enqueue(g, l);
                 p=0;
                 kernel2_->setArg(p++,features_);
                 kernel2_->setArg(p++,size2_);
