@@ -193,7 +193,7 @@ namespace core {
             DLPRIM_CHECK(features_ == int(dw.shape()[0]));
             int total_size = dy.shape()[0] * rows_columns_;
             std::vector<uint32_t> spec = {
-				wg_, 1, 1 // local size
+				wg_, 1, 1, // local size
 				items_per_wi_, // ITEMS_PER_WI
 				rows_columns_ // SIZE_2D
 			};
