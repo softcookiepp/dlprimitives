@@ -46,11 +46,7 @@
 #define WG_SIZE 8
 #endif
 
-#if POOL_MODE == 0 && EXPORT_INDEX == 1
-#define INDEX_MAX_SRC 1
-#else
-#define INDEX_MAX_SRC 0
-#endif
+#define INDEX_MAX_SRC (POOL_MODE == 0 && EXPORT_INDEX == 1)
 
 layout(local_size_x = WG_SIZE, local_size_y = WG_SIZE, local_size_z = 1) in;
 

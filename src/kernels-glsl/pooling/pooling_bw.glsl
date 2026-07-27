@@ -38,23 +38,10 @@
 #define COUNT_INCLUDE_PAD 0
 #endif
 
-#if POOL_MODE == 0
-	#define START_VAL -(DTYPE_MAX)
-	#define REDUCE(a,b) max((a),(b))
-	#define NORMALIZE_FULL(x) (x)
-	#define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) (x)
-#elif POOL_MODE == 1
-	#define START_VAL 0.0f
-	#define REDUCE(a,b) ((a) + (b))
-	#define NORMALIZE_FULL(x) ((x) * (1.0f / (POOL_H * POOL_W)))
-	#if COUNT_INCLUDE_PAD == 0
-		#define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) ((x) * (1.0f /((dr)*(dc))))
-	#else
-		#define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) ((x) * (1.0f /((vdr)*(vdc))))
-	#endif
-#else
-	#error "Invalid mode"
-#endif
+#define START_VAL (POOL_MODE == 0 ? -DTYPE_MAX : dtype(0.0f))
+#define REDUCE(a,b) (POOL_MODE == 0 ? max((a),(b)) : ((a) + (b)))
+#define NORMALIZE_FULL(x) (POOL_MODE == 0 ? (x) : ((x) * (1.0f / (POOL_H * POOL_W))))
+#define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) (POOL_MODE == 0 ? (x) : (COUNT_INCLUDE_PAD == 0 ? ((x) * (1.0f /((dr)*(dc)))) : ((x) * (1.0f /((vdr)*(vdc))))) )
 
 #ifndef WG_SIZE
 	#define WG_SIZE 8

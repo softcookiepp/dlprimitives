@@ -16,6 +16,9 @@ namespace core {
     public:
         size_t workspace() { return 0; }
         Pooling2DFWBDImpl(Context &ctx,bool avg,int k[2],int p[2],int s[2],bool inc_pad,DataType dt) :
+			mK({k[0], k[1]}),
+			mPoolSize({p[0], p[1]}),
+			mStrideSize({s[0], s[1]}),
             scal_(ctx,dt),
             avg_(avg)
         {
@@ -98,6 +101,11 @@ namespace core {
 			bwd_kernel_->enqueue(gr, {});
         }
     private:
+		std::vector<uint32_t> mK;
+		std::vector<uint32_t> mPoolSize;
+		std::vector<uint32_t> mStrideSize;
+		
+    
         Scale scal_;
         bool avg_;
         int wg_size_;
