@@ -195,6 +195,11 @@ namespace core {
         {
             DLPRIM_CHECK(features_ == int(dw.shape()[0]));
             int total_size = dy.shape()[0] * rows_columns_;
+            std::vector<uint32_t> spec = {
+				wg_, 1, 1 // local size
+				items_per_wi_, // ITEMS_PER_WI
+				rows_columns_ // SIZE_2D
+			};
             if(two_stage_reduction_) {
                 Tensor float_ws = ws.workspace_as_type(dt_);
 				std::vector<uint32_t> l({wg_, 1});
@@ -210,11 +215,6 @@ namespace core {
                 auto ec1 = e.generate_series_context(0,2);
                 auto ec2 = e.generate_series_context(1,2);
                 g.resize(3, 1);
-                std::vector<uint32_t> spec = {
-					wg_, 1, 1 // local size
-					items_per_wi_, // ITEMS_PER_WI
-					rows_columns_ // SIZE_2D
-				};
                 kernel_->enqueue(g, spec);
                 p=0;
                 kernel2_->setArg(p++,features_);
@@ -223,6 +223,12 @@ namespace core {
                 dw.set_arg(kernel2_, p); 
                 kernel2_->setArg(p++, 1);
                 kernel2_->setArg(p++, beta);
+                
+                std::vector<uint32_t> spec2 = {
+					wg2_, 1, 1,
+					items_per_wi2_,
+					size2_
+				};
                 kernel2_->enqueue({1, features_}, {});
             }
             else {
@@ -240,7 +246,7 @@ namespace core {
                 kernel_->setArg(p++,1);
                 kernel_->setArg(p++,beta);
                 g.resize(3, 1);
-                kernel_->enqueue(g, {});
+                kernel_->enqueue(g, spec);
             }
         }
     private:
