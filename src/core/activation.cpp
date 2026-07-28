@@ -13,8 +13,7 @@ namespace core {
     void activation_forward(Tensor &x,Tensor &y,StandardActivations activation, ExecutionContext const &ec)
     {
         Context ctx(ec);
-		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"activation",
-                                                    "ACTIVATION",int(activation));
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"activation");
         tart::kernel_ptr k = prog->getKernel("activation");
         int p=0;
 		uint32_t size = x.shape().total_size();
@@ -26,13 +25,14 @@ namespace core {
 		for (size_t i = 0; i < gr.size(); i += 1)
 			gr[i] = gr[i] / wg[i];
 		gr.resize(3, 1);
+		wg.resize(4, 1);
+		wg[3] = static_cast<uint32_t>(activation);
 		k->enqueue(gr, wg);
     }
     void activation_backward(Tensor &dx,Tensor &dy,Tensor &y,StandardActivations activation,float beta,ExecutionContext const &ec)
     {
         Context ctx(ec);
-		tart::program_ptr const &prog = gpu::Cache::instance().get_program(ctx,"activation",
-                                                    "ACTIVATION",int(activation));
+		tart::program_ptr const &prog = gpu::Cache::instance().get_program(ctx,"activation");
         tart::kernel_ptr k = prog->getKernel("activation_diff");
         
         int p=0;
@@ -47,6 +47,8 @@ namespace core {
         std::vector<uint32_t> gr=gpu::round_range(size,wg);
         gr[0] = gr[0]/wg[0];
         gr.resize(3, 1);
+        wg.resize(4, 1);
+        wg[3] = static_cast<uint32_t>(activation);
         k->enqueue(gr, wg);
     }
 

@@ -164,6 +164,8 @@ namespace gpu {
         tart::kernel_ptr scal_;
         tart::kernel_ptr act_;
         bool zorder_ = false;
+        
+        StandardActivations mActivation;
     };
 
     class StandardSGEMM : public GEMM, public StandardSGEMMBase {
