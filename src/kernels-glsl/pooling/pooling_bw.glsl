@@ -7,54 +7,16 @@
 #define itype uint
 #endif
 
-#if 0
-	#ifndef POOL_MODE
-	#define POOL_MODE 0
-	#endif
-
-	#ifndef POOL_H
-	#define POOL_H 1
-	#endif
-	#ifndef POOL_W
-	#define POOL_W 1
-	#endif
-
-	#ifndef STRIDE_H 
-	#define STRIDE_H 1
-	#endif
-
-	#ifndef STRIDE_W
-	#define STRIDE_W 1
-	#endif
-
-	#ifndef PAD_H 
-	#define PAD_H 0
-	#endif
-
-	#ifndef PAD_W
-	#define PAD_W 0
-	#endif
-
-	#ifndef COUNT_INCLUDE_PAD
-	#define COUNT_INCLUDE_PAD 0
-	#endif
-
-	#ifndef WG_SIZE
-		#define WG_SIZE 8
-	#endif
-	layout(local_size_x = WG_SIZE, local_size_y = WG_SIZE, local_size_z = 1) in;
-#else
-	layout(local_size_x_id = 0, local_size_y_id = 0, local_size_z = 1) in;
-	layout(constant_id = 0) const uint WG_SIZE = 8;
-	layout(constant_id = 1) const uint POOL_H = 1;
-	layout(constant_id = 2) const uint POOL_W = 1;
-	layout(constant_id = 3) const uint STRIDE_H = 1;
-	layout(constant_id = 4) const uint STRIDE_W = 1;
-	layout(constant_id = 5) const uint PAD_H = 0;
-	layout(constant_id = 6) const uint PAD_W = 0;
-	layout(constant_id = 7) const uint POOL_MODE = 0;
-	layout(constant_id = 8) const uint COUNT_INCLUDE_PAD = 0;
-#endif
+layout(local_size_x_id = 0, local_size_y_id = 0, local_size_z = 1) in;
+layout(constant_id = 0) const uint WG_SIZE = 8;
+layout(constant_id = 1) const uint POOL_H = 1;
+layout(constant_id = 2) const uint POOL_W = 1;
+layout(constant_id = 3) const uint STRIDE_H = 1;
+layout(constant_id = 4) const uint STRIDE_W = 1;
+layout(constant_id = 5) const uint PAD_H = 0;
+layout(constant_id = 6) const uint PAD_W = 0;
+layout(constant_id = 7) const uint POOL_MODE = 0;
+layout(constant_id = 8) const uint COUNT_INCLUDE_PAD = 0;
 
 #define START_VAL (POOL_MODE == 0 ? -DTYPE_MAX : dtype(0.0f))
 #define REDUCE(a,b) (POOL_MODE == 0 ? max((a),(b)) : ((a) + (b)))
