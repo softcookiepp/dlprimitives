@@ -54,14 +54,26 @@ layout(local_size_x = WG_SIZE, local_size_y = WG_SIZE, local_size_z = 1) in;
 	#define INDEX_MAX_SRC 0
 #endif
 
-#if POOL_W <= STRIDE_W && POOL_H <= STRIDE_H
-	#define save_dx(idx, ptr, value) ptr[idx] = value
+#if 0
+	#if POOL_W <= STRIDE_W && POOL_H <= STRIDE_H
+		#define save_dx(idx, ptr, value) ptr[idx] = value
+	#else
+		#define save_dx(idx, ptr, value) atomic_addf((idx), ptr, value)
+	#endif
 #else
-	#define save_dx(idx, ptr, value) atomic_addf((idx), ptr, value)
+	#define save_dx(idx, ptr, ptr_atomic, value) \
+	{ \
+		if (POOL_W <= STRIDE_W && POOL_H <= STRIDE_H) \
+			ptr[idx] = value; \
+		else \
+			atomic_addf((idx), ptr_atomic, value); \
+	}
+	
 #endif
 
 
 // its stupid that there wouldn't just be separate kernels for this. but whatever
+// also I am 90% sure this is not even used...
 #if INDEX_MAX_SRC
 
 #if USE_BDA == 0
@@ -124,10 +136,15 @@ void main()
 #if USE_BDA == 0
 	layout(binding = 0, std430) readonly buffer src_buf { dtype src[]; };
 	layout(binding = 1, std430) readonly buffer tgt_buf { dtype tgt[]; };
-	#if POOL_W <= STRIDE_W && POOL_H <= STRIDE_H
-		layout(binding = 2, std430) buffer dx_buf { dtype dx[]; };
+	#if 0
+		#if POOL_W <= STRIDE_W && POOL_H <= STRIDE_H
+			layout(binding = 2, std430) buffer dx_buf { dtype dx[]; };
+		#else
+			layout(binding = 2, std430) buffer dx_buf { atomic_dtype dx[]; };
+		#endif
 	#else
-		layout(binding = 2, std430) buffer dx_buf { atomic_dtype dx[]; };
+		layout(binding = 2, std430) buffer dx_buf { dtype dx[]; };
+		layout(binding = 3, std430) buffer dx_atomic_buf { atomic_dtype dx_atomic[]; };
 	#endif
 #endif
 
@@ -202,18 +219,27 @@ void main()
 	}
 	
 	dtype dy = tgt[out_r * out_W + out_c + tgt_];
-
-	save_dx(uint(index) + dx_, dx, dy);
+	
+	#if 0
+		save_dx(uint(index) + dx_, dx, dy);
+	#else
+		save_dx(uint(index) + dx_, dx, dx_atomic, dy);
+	#endif
 }
 
 #elif POOL_MODE == 1
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) readonly buffer tgt_buf { dtype tgt[]; };
-	#if POOL_W <= STRIDE_W && POOL_H <= STRIDE_H
-		layout(binding = 1, std430) buffer dx_buf { dtype dx[]; };
+	#if 0
+		#if POOL_W <= STRIDE_W && POOL_H <= STRIDE_H
+			layout(binding = 1, std430) buffer dx_buf { dtype dx[]; };
+		#else
+			layout(binding = 1, std430) buffer dx_buf { atomic_dtype dx[]; };
+		#endif
 	#else
-		layout(binding = 1, std430) buffer dx_buf { atomic_dtype dx[]; };
+		layout(binding = 1, std430) buffer dx_buf { dtype dx[]; };
+		layout(binding = 1, std430) buffer dx_atomic_buf { atomic_dtype dx_atomic[]; };
 	#endif
 #endif
 
@@ -273,7 +299,13 @@ void main()
 			// #pragma unroll
 			for(uint c=col0;c<col1;c++) {
 				if(r >= 0 && r<inp_H && c>=0 && c<inp_W)
-					save_dx(( + r*inp_W + c) + dx_, dx, dy_norm);
+				{
+					#if 0
+						save_dx(( + r*inp_W + c) + dx_, dx, dy_norm);
+					#else
+						save_dx(( + r*inp_W + c) + dx_, dx, dx_atomic, dy_norm);
+					#endif
+				}
 			}
 		}
 	}

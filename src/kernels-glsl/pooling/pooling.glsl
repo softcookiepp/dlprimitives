@@ -46,7 +46,7 @@
 #define WG_SIZE 8
 #endif
 
-#define INDEX_MAX_SRC (POOL_MODE == 0 && EXPORT_INDEX == 1)
+#define INDEX_MAX_SRC (EXPORT_INDEX == 1)
 
 layout(local_size_x = WG_SIZE, local_size_y = WG_SIZE, local_size_z = 1) in;
 
@@ -100,8 +100,8 @@ void main()
 
     dtype val = START_VAL;
     #if INDEX_MAX_SRC == 1
-    itype index = -1;
-    uint indx_ = indx_offset + bc * out_H * out_W;
+		itype index = -1;
+		uint indx_ = indx_offset + bc * out_H * out_W;
     #endif
     
     if(row0 >= 0 && col0 >= 0 && row1 <= inp_H && col1 <= inp_W) {
@@ -109,21 +109,23 @@ void main()
         // #pragma unroll  
         for(uint dr=0;dr<POOL_H;dr++) {
             // #pragma unroll
-            for(uint dc = 0;dc < POOL_W; dc++) {
+            for(uint dc = 0;dc < POOL_W; dc++)
+            {
                 #if INDEX_MAX_SRC == 1
-                dtype tmp = src[dr * inp_W + dc + src_];
-                if(tmp > val) {
-                    index = (row0 + dr) * inp_W + col0 + dc;
-                    val = tmp;
-                }
+					dtype tmp = src[dr * inp_W + dc + src_];
+					if(tmp > val) {
+						index = (row0 + dr) * inp_W + col0 + dc;
+						val = tmp;
+					}
                 #else
-                val = REDUCE(val, src[dr * inp_W + dc + src_]);
+					val = REDUCE(val, src[dr * inp_W + dc + src_]);
                 #endif
             }
         }
         val = NORMALIZE_FULL(val); 
     }
-    else {
+    else
+    {
         // #pragma unroll
         for(uint r=row0;r<row1;r++) {
             // #pragma unroll
@@ -148,5 +150,5 @@ void main()
     tgt[out_r * out_W + out_c + tgt_] = val;
     #if INDEX_MAX_SRC == 1
 		indx[out_r * out_W + out_c + indx_] = index;
-    #endif
+	#endif
 }
