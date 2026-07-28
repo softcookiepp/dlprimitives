@@ -167,10 +167,15 @@ namespace core {
 			kernel_bwd_->setArg(p++,int(in_shape[0]*in_shape[1]));
             kernel_bwd_->setArg(p++,sm_range_);
             kernel_bwd_->setArg(p++,float(1.0f / (in_shape[2]*in_shape[3])));
-            if(!avg_) {
-                DLPRIM_CHECK(x!=nullptr);
+            if(x != nullptr)
+            {
                 x->set_arg(kernel_bwd_,p);
             }
+            else
+            {
+				// use dx as a placeholder hehe
+				dx.set_arg(kernel_bwd_,p);
+			}
             dx.set_arg(kernel_bwd_,p);
             dy.set_arg(kernel_bwd_,p);
             kernel_bwd_->setArg(p++,factor);

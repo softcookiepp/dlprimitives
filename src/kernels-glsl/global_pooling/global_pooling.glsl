@@ -36,43 +36,43 @@ REDUCE_PREPARE(WG_SIZE,dtype);
 
 void main()
 {
-    uint inp_offset_ = data_offset;
-    uint outp_offset_ = out_offset;
-    
-    uint b = get_global_id(0);
+	uint inp_offset_ = data_offset;
+	uint outp_offset_ = out_offset;
+	
+	uint b = get_global_id(0);
 
-    if(b >= items)
-        return;
+	if(b >= items)
+		return;
 
-    uint c = get_global_id(1) * ITEMS_PER_WI;
+	uint c = get_global_id(1) * ITEMS_PER_WI;
 
-    inp_offset_ += b * over;
-    outp_offset_ += b;
-    
-    //REDUCE_PREPARE(WG_SIZE,dtype);
+	inp_offset_ += b * over;
+	outp_offset_ += b;
 
-#if POOL_MODE == 0
+	if (POOL_MODE == 0)
+	{
+		dtype val = -DTYPE_MAX;
+		for(uint i=0;i<ITEMS_PER_WI;i++) {
+			if(c+i < over) {
+				val = max(val,inp[c + i + inp_offset_]);
+			}
+		}
+		
+		my_work_group_reduce_max(val, WG_SIZE);
+	}
+	else
+	{
+		dtype val = 0;
+		for(uint i=0;i<ITEMS_PER_WI;i++) {
+			if(c+i < over) {
+				val += inp[c+i + inp_offset_];
+			}
+		}
+		
+		my_work_group_reduce_add(val);
+		val = val * scale;
+	}
 
-    dtype val = -DTYPE_MAX;
-    for(uint i=0;i<ITEMS_PER_WI;i++) {
-        if(c+i < over) {
-            val = max(val,inp[c + i + inp_offset_]);
-        }
-    }
-    
-    my_work_group_reduce_max(val, WG_SIZE);
-#else
-    dtype val = 0;
-    for(uint i=0;i<ITEMS_PER_WI;i++) {
-        if(c+i < over) {
-            val += inp[c+i + inp_offset_];
-        }
-    }
-    
-    my_work_group_reduce_add(val);
-    val = val * scale;
-#endif
-
-    if(get_local_id(1) == 0)
-        outp[outp_offset_] = val;
+	if(get_local_id(1) == 0)
+		outp[outp_offset_] = val;
 }

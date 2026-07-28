@@ -13,25 +13,18 @@
 layout(local_size_x = 1, local_size_y = WG_SIZE, local_size_z = 1) in;
 
 #if USE_BDA == 0
-	#if POOL_MODE == 0
-		layout(binding = 0, std430) readonly buffer x_buf { dtype x[]; };
-		layout(binding = 1, std430) buffer dx_buf { dtype dx[]; };
-		layout(binding = 2, std430) readonly buffer outp_buf { dtype outp[]; };
-	#else
-		layout(binding = 0, std430) buffer dx_buf { dtype dx[]; };
-		layout(binding = 1, std430) readonly buffer outp_buf { dtype outp[]; };
-	#endif
+	layout(binding = 0, std430) readonly buffer x_buf { dtype x[]; };
+	layout(binding = 1, std430) buffer dx_buf { dtype dx[]; };
+	layout(binding = 2, std430) readonly buffer outp_buf { dtype outp[]; };
 #endif
 
 layout(push_constant, std430) uniform global_pooling_bwd
 {
 	uint items; uint over; float scale;
-	#if POOL_MODE == 0
 #if USE_BDA
-		__global const dtype *x; // readonly
+	__global const dtype *x; // readonly
 #endif
-		uint  x_offset;
-	#endif
+	uint  x_offset;
 #if USE_BDA
 	__global dtype *dx; // read + write
 #endif
