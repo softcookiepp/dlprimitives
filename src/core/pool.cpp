@@ -86,8 +86,13 @@ namespace core {
 			bwd_kernel_->setArg(p++,in_w);
 			bwd_kernel_->setArg(p++,out_h);
 			bwd_kernel_->setArg(p++,out_w);
-			if(!avg_) {
-				DLPRIM_CHECK(x!=nullptr);
+			if(x == nullptr)
+			{
+				// use placeholder
+				dy.set_arg(bwd_kernel_,p);
+			}
+			else
+			{
 				x->set_arg(bwd_kernel_,p);
 			}
 			dy.set_arg(bwd_kernel_,p);

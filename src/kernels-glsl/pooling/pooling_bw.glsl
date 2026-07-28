@@ -206,28 +206,58 @@ void main()
 
 #elif POOL_MODE == 1
 
-#if USE_BDA == 0
-	layout(binding = 0, std430) readonly buffer tgt_buf { dtype tgt[]; };
-	layout(binding = 1, std430) buffer dx_buf { dtype dx[]; };
-	layout(binding = 2, std430) buffer dx_atomic_buf { atomic_dtype dx_atomic[]; };
-#endif
+#if 0
+	#if USE_BDA == 0
+		layout(binding = 0, std430) readonly buffer tgt_buf { dtype tgt[]; };
+		layout(binding = 1, std430) buffer dx_buf { dtype dx[]; };
+		layout(binding = 2, std430) buffer dx_atomic_buf { atomic_dtype dx_atomic[]; };
+	#endif
 
-layout(push_constant, std430) uniform pooling_bw
-{
-	uint BC;
-	uint inp_H;
-	uint inp_W;
-	uint out_H;
-	uint out_W;
-	#if USE_BDA
-		__global const dtype *tgt;
+	layout(push_constant, std430) uniform pooling_bw
+	{
+		uint BC;
+		uint inp_H;
+		uint inp_W;
+		uint out_H;
+		uint out_W;
+		#if USE_BDA
+			__global const dtype *tgt;
+		#endif
+		uint tgt_offset;
+		#if USE_BDA
+			__global dtype *dx;
+		#endif
+		uint dx_offset;
+	};
+#else
+	#if USE_BDA == 0
+		layout(binding = 0, std430) readonly buffer src_buf { dtype src[]; };
+		layout(binding = 1, std430) readonly buffer tgt_buf { dtype tgt[]; };
+		layout(binding = 2, std430) buffer dx_buf { dtype dx[]; };
+		layout(binding = 3, std430) buffer dx_atomic_buf { atomic_dtype dx_atomic[]; };
 	#endif
-	uint tgt_offset;
-	#if USE_BDA
-		__global dtype *dx;
-	#endif
-	uint dx_offset;
-};
+
+	layout(push_constant, std430) uniform pooling_bw
+	{
+		uint BC;
+		uint inp_H;
+		uint inp_W;
+		uint out_H;
+		uint out_W;
+		#if USE_BDA
+			__global const dtype *src;
+		#endif
+		uint src_offset;
+		#if USE_BDA
+			__global const dtype *tgt;
+		#endif
+		uint tgt_offset;
+		#if USE_BDA
+			__global dtype *dx;
+		#endif
+		uint dx_offset;
+	};
+#endif
 
 void main()
 {
@@ -253,7 +283,7 @@ void main()
 		for(uint dr=0;dr<POOL_H;dr++) {
 			UNROLL(POOL_W)
 			for(uint dc = 0;dc < POOL_W; dc++) {
-				save_dx((dr * inp_W + dc) + dx_, dx, dy_norm);
+				save_dx((dr * inp_W + dc) + dx_, dx, dx_atomic, dy_norm);
 			}
 		}
 	}
