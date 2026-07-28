@@ -1,6 +1,10 @@
 #version 450
 
 #include "../common/defs.glsl"
+#include "../common/activation.glsl"
+
+PREPARE_ACTIVATION(0)
+
 
 #ifndef TILE_SIZE_M
 #define TILE_SIZE_M 128

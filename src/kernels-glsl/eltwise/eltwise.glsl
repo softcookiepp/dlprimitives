@@ -9,6 +9,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include "../common/defs.glsl"
 #include "../common/workgroup.glsl"
+#include "../common/activation.glsl"
+
+PREPARE_ACTIVATION(3)
 
 #ifndef ELTOP
 #define ELTOP 0

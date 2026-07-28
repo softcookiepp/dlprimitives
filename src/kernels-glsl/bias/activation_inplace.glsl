@@ -1,6 +1,9 @@
 #version 450
 #include "../common/defs.glsl"
 #include "../common/workgroup.glsl"
+#include "../common/activation.glsl"
+
+PREPARE_ACTIVATION(3)
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) buffer data_buf { dtype data[]; };

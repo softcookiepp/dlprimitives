@@ -7,8 +7,11 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 #include "../common/defs.glsl"
+#include "../common/activation.glsl"
 #include "defs.glsl"
 //#include "../common/atomic.glsl"
+
+PREPARE_ACTIVATION(0)
 
 #define DIM_R 0
 #define DIM_C 1
