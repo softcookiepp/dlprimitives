@@ -48,7 +48,10 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 	{
 		// any programs that don't require a dtype
 		mPoolingProgram = gpu::Cache::instance().get_program(ctx, "pooling");
-		//mGlobalPoolingProgram = gpu::Cache::instance().get_program(ctx, "global_pooling");
+		
+		// Ok, so the changes I made to global pooling actually break something.
+		// This will require more investigation...
+		mGlobalPoolingProgram = gpu::Cache::instance().get_program(ctx, "global_pooling");
 	}
 	else if (dtypes.size() == 1)
 	{

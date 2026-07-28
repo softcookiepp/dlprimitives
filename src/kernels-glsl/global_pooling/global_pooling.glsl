@@ -2,7 +2,7 @@
 #include "../common/defs.glsl"
 #include "../common/reduce.glsl"
 
-layout(local_size_x = 1, local_size_y_id = 0 = WG_SIZE, local_size_z = 1) in;
+layout(local_size_x = 1, local_size_y_id = 0, local_size_z = 1) in;
 layout(constant_id = 0) const uint WG_SIZE = 256;
 layout(constant_id = 1) const uint ITEMS_PER_WI = 1;
 layout(constant_id = 2) const uint POOL_MODE = 1;
@@ -64,7 +64,7 @@ void main()
 			}
 		}
 		
-		my_work_group_reduce_add(val);
+		my_work_group_reduce_add(val, WG_SIZE);
 		val = val * scale;
 	}
 
