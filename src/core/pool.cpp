@@ -128,11 +128,11 @@ namespace core {
             else 
                 wg_size_ = 256;
             items_per_wi_ = (sm_range + wg_size_ - 1) / wg_size_;
-			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"global_pooling",
-                    "POOL_MODE",int(avg),
-                    "WG_SIZE",wg_size_,
-                    "ENABLE_BWD",1,
-                    "ITEMS_PER_WI",items_per_wi_
+			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"global_pooling"
+                    //"POOL_MODE",int(avg),
+                    //"WG_SIZE",wg_size_,
+                    //"ENABLE_BWD",1,
+                    //"ITEMS_PER_WI",items_per_wi_
                     );
             kernel_ = prog->getKernel("global_pooling");
             kernel_bwd_ = prog->getKernel("global_pooling_bwd");
@@ -156,7 +156,7 @@ namespace core {
             std::vector<uint32_t> gr({in_shape[0]*in_shape[1], nd_range_/wg_size_});
             //std::vector<uint32_t> wg({1, wg_size_});
             gr.resize(3, 1);
-            kernel_->enqueue(gr, {});
+            kernel_->enqueue(gr, {wg_size_, items_per_wi_, static_cast<uint32_t>(avg_)});
         }
         void backward(Tensor *x,Tensor &dx,Tensor &dy, float factor,ExecutionContext const &ctx)
         {
@@ -181,7 +181,7 @@ namespace core {
             kernel_bwd_->setArg(p++,factor);
 
 			//std::vector<uint32_t> wg(1, wg_size_);
-			kernel_bwd_->enqueue({in_shape[0]*in_shape[1], nd_range_/wg_size_}, {});
+			kernel_bwd_->enqueue({in_shape[0]*in_shape[1], nd_range_/wg_size_}, {wg_size_, items_per_wi_, static_cast<uint32_t>(avg_)});
         }
     private:
         tart::kernel_ptr kernel_;

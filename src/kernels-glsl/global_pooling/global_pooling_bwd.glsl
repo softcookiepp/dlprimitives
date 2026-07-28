@@ -2,15 +2,10 @@
 #include "../common/defs.glsl"
 #include "../common/reduce.glsl"
 
-#ifndef WG_SIZE
-#define WG_SIZE 256
-#endif
-
-#ifndef ITEMS_PER_WI
-#define ITEMS_PER_WI 1
-#endif
-
-layout(local_size_x = 1, local_size_y = WG_SIZE, local_size_z = 1) in;
+layout(local_size_x = 1, local_size_y_id = 0 = WG_SIZE, local_size_z = 1) in;
+layout(constant_id = 0) const uint WG_SIZE = 256;
+layout(constant_id = 1) const uint ITEMS_PER_WI = 1;
+layout(constant_id = 2) const uint POOL_MODE = 1;
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) readonly buffer x_buf { dtype x[]; };
@@ -73,9 +68,6 @@ void main()
 				}
 			}
 		}
-
-		// __local uint reduce_indx[WG_SIZE];
-		// __local dtype reduce_vals[WG_SIZE];
 
 		uint lid = my_get_local_wg_id();
 		reduce_indx[lid] = index;
