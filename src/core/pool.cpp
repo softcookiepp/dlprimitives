@@ -26,11 +26,7 @@ namespace core {
 		{
 			DLPRIM_CHECK(dt == float_data);
 			wg_size_ = 8;
-			#if 0
-				tart::program_ptr prog = gpu::Cache::instance().get_program(ctx, "pooling");
-			#else
-				tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(ctx.device());
-			#endif
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(ctx.device());
 			kernel_ = prog->getKernel("pooling");
 			bwd_kernel_ = prog->getKernel("pooling_bw");
 		}
@@ -155,7 +151,7 @@ namespace core {
 			else 
 				wg_size_ = 256;
 			items_per_wi_ = (sm_range + wg_size_ - 1) / wg_size_;
-			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"global_pooling");
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().global_pooling(ctx.device());
 			kernel_ = prog->getKernel("global_pooling");
 			kernel_bwd_ = prog->getKernel("global_pooling_bwd");
 			sm_range_ = sm_range;

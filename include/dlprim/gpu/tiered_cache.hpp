@@ -25,6 +25,7 @@ class AllPrograms
 	tart::device_ref mDevice;
 	
 	tart::program_ptr mPoolingProgram = nullptr;
+	tart::program_ptr mGlobalPoolingProgram = nullptr;
 	
 public:
 	AllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes);
@@ -50,6 +51,7 @@ public:
 	static PerDeviceProgramCache& instance();
 	
 	inline const tart::program_ptr& pooling(const tart::device_ptr& device) { return getAllPrograms(device, {}).mPoolingProgram; }
+	inline const tart::program_ptr& global_pooling(const tart::device_ptr& device) { return getAllPrograms(device, {}).mGlobalPoolingProgram; }
 };
 
 } // namespace gpu
