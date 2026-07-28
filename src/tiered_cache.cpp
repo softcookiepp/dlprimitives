@@ -6,22 +6,53 @@ namespace dlprim
 
 namespace gpu
 {
-
-AllPrograms& PerDeviceProgramCache::getAllPrograms(const tart::device_ptr& device)
+	
+PerDeviceProgramCache& PerDeviceProgramCache::instance()
 {
-	std::uintptr_t key = (std::uintptr_t)device.get();
-	if (mAllProgramsPerDevice.find(key) == mAllProgramsPerDevice.end()
-	{
-		// create new AllPrograms
-		mAllProgramsPerDevice[key] = std::make_unique<AllPrograms>(device);
-	}
-	return mAllProgramsPerDevice[key];
+	static PerDeviceProgramCache cache;
+	return cache;
 }
 
-AllPrograms::AllPrograms(const tart::device_ptr& device) :
+AllPrograms& PerDeviceProgramCache::getAllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes)
+{
+	std::uintptr_t key = (std::uintptr_t)device.get();
+	if (mProgramsPerDtypes.find(key) == mProgramsPerDtypes.end() )
+	{
+		// create new AllPrograms
+		mProgramsPerDtypes[key] = std::make_unique<ProgramsPerDtypes>(device);
+	}
+	return mProgramsPerDtypes[key]->getAllPrograms(dtypes);
+}
+
+ProgramsPerDtypes::ProgramsPerDtypes(const tart::device_ptr& device) :
+	mDevice(device)
+{
+}
+
+AllPrograms& ProgramsPerDtypes::getAllPrograms(const std::vector<DataType>& dtypes)
+{
+	if (mAllPrograms.find(dtypes) == mAllPrograms.end())
+	{
+		mAllPrograms[dtypes] = std::make_unique<AllPrograms>(mDevice.lock(), dtypes);
+	}
+	return *mAllPrograms[dtypes];
+}
+
+AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes) :
 	mDevice(device)
 {
 	// Once this is created, initialize as many as possible from just the data
+	Context ctx(device);
+	
+	if (dtypes.size() == 0)
+	{
+		// any programs that don't require a dtype
+		mPoolingProgram = gpu::Cache::instance().get_program(ctx, "pooling");
+	}
+	else if (dtypes.size() == 1)
+	{
+		
+	}
 }
 
 } // namespace gpu

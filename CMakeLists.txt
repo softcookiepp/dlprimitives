@@ -214,6 +214,7 @@ set(DLPRIM_CORE_SRC
         #src/naive.cpp
         src/im2col.cpp
         src/softmax.cpp
+        src/tiered_cache.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp)
 
 set(DLPRIM_SRC 

@@ -8,6 +8,7 @@
 #include <dlprim/core/pool.hpp>
 #include <dlprim/core/common.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
 #include <iostream>
 namespace dlprim {
 namespace core {
@@ -25,7 +26,11 @@ namespace core {
 		{
 			DLPRIM_CHECK(dt == float_data);
 			wg_size_ = 8;
-			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx, "pooling");
+			#if 0
+				tart::program_ptr prog = gpu::Cache::instance().get_program(ctx, "pooling");
+			#else
+				tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(ctx.device());
+			#endif
 			kernel_ = prog->getKernel("pooling");
 			bwd_kernel_ = prog->getKernel("pooling_bw");
 		}

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace dlprim
 {
@@ -17,18 +18,38 @@ public:
 	
 };
 
+class PerDeviceProgramCache;
+
 class AllPrograms
 {
 	tart::device_ref mDevice;
+	
+	tart::program_ptr mPoolingProgram = nullptr;
+	
 public:
-	AllPrograms(const tart::device_ptr& device);
+	AllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes);
+	
+	friend class PerDeviceProgramCache;
+};
+
+class ProgramsPerDtypes
+{
+	tart::device_ref mDevice;
+	std::map<std::vector<DataType>, std::unique_ptr<AllPrograms>> mAllPrograms;
+public:
+	ProgramsPerDtypes(const tart::device_ptr& device);
+	AllPrograms& getAllPrograms(const std::vector<DataType>& dtypes);
 };
 
 class PerDeviceProgramCache
 {
-	std::map<std::uintptr_t, std::unique_ptr<AllPrograms>> mAllProgramsPerDevice;
+	std::map<std::uintptr_t, std::unique_ptr<ProgramsPerDtypes>> mProgramsPerDtypes;
 public:
-	AllPrograms& getAllPrograms(const tart::device_ptr& device);
+	AllPrograms& getAllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes);
+	
+	static PerDeviceProgramCache& instance();
+	
+	inline const tart::program_ptr& pooling(const tart::device_ptr& device) { return getAllPrograms(device, {}).mPoolingProgram; }
 };
 
 } // namespace gpu
