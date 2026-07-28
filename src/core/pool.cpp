@@ -16,24 +16,16 @@ namespace core {
 	public:
 		size_t workspace() { return 0; }
 		Pooling2DFWBDImpl(Context &ctx,bool avg,int k[2],int p[2],int s[2],bool inc_pad,DataType dt) :
-			mK({k[0], k[1]}),
-			mPoolSize({p[0], p[1]}),
+			mPoolSize({k[0], k[1]}),
 			mStrideSize({s[0], s[1]}),
-			scal_(ctx,dt),
-			avg_(avg)
+			mPadSize({p[0], p[1]}),
+			mPoolMode(static_cast<uint32_t>(avg)),
+			mIncludePad(inc_pad),
+			scal_(ctx,dt)
 		{
 			DLPRIM_CHECK(dt == float_data);
 			wg_size_ = 8;
-			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"pooling",
-										"WG_SIZE",wg_size_,
-										"POOL_H",k[0],
-										"POOL_W",k[1],
-										"STRIDE_H",s[0],
-										"STRIDE_W",s[1],
-										"PAD_H",p[0],
-										"PAD_W",p[1],
-										"POOL_MODE",int(avg),
-										"COUNT_INCLUDE_PAD",int(inc_pad));
+			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx, "pooling");
 			kernel_ = prog->getKernel("pooling");
 			bwd_kernel_ = prog->getKernel("pooling_bw");
 		}
@@ -62,7 +54,18 @@ namespace core {
 			gr[0] = gr[0]/wg[0];
 			gr[1] = gr[1]/wg[1];
 			gr.resize(3, 1);
-			kernel_->enqueue(gr, {});
+			kernel_->enqueue(gr, {
+					wg_size_,
+					mPoolSize[0],
+					mPoolSize[1],
+					mStrideSize[0],
+					mStrideSize[1],
+					mPadSize[0],
+					mPadSize[1],
+					mPoolMode,
+					mIncludePad
+				}
+			);
 		}
 
 		void backward(Tensor *x,Tensor &dx,Tensor &dy,float factor,ExecutionContext const &ex)
@@ -105,16 +108,28 @@ namespace core {
 			for (size_t i = 0; i < wg.size(); i += 1)
 				gr[i] = gr[i]/wg[i];
 			gr.resize(3, 1);
-			bwd_kernel_->enqueue(gr, {});
+			bwd_kernel_->enqueue(gr, {
+					wg_size_,
+					mPoolSize[0],
+					mPoolSize[1],
+					mStrideSize[0],
+					mStrideSize[1],
+					mPadSize[0],
+					mPadSize[1],
+					mPoolMode,
+					mIncludePad
+				}
+			);
 		}
 	private:
-		std::vector<uint32_t> mK;
+		// spec constant parameters
 		std::vector<uint32_t> mPoolSize;
 		std::vector<uint32_t> mStrideSize;
-		
+		std::vector<uint32_t> mPadSize;
+		uint32_t mPoolMode;
+		uint32_t mIncludePad;
 	
 		Scale scal_;
-		bool avg_;
 		int wg_size_;
 		tart::kernel_ptr kernel_;
 		tart::kernel_ptr bwd_kernel_;

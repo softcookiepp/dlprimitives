@@ -2,39 +2,58 @@
 
 #include "../common/defs.glsl"
 
-#ifndef itype
-#define itype int
-#endif
+#if 0
+	#ifndef itype
+	#define itype int
+	#endif
 
-#ifndef POOL_MODE
-#define POOL_MODE 0
-#endif
+	#ifndef POOL_MODE
+	#define POOL_MODE 0
+	#endif
 
-#ifndef POOL_H
-#define POOL_H 1
-#endif
-#ifndef POOL_W
-#define POOL_W 1
-#endif
+	#ifndef POOL_H
+	#define POOL_H 1
+	#endif
+	#ifndef POOL_W
+	#define POOL_W 1
+	#endif
 
-#ifndef STRIDE_H 
-#define STRIDE_H 1
-#endif
+	#ifndef STRIDE_H 
+	#define STRIDE_H 1
+	#endif
 
-#ifndef STRIDE_W
-#define STRIDE_W 1
-#endif
+	#ifndef STRIDE_W
+	#define STRIDE_W 1
+	#endif
 
-#ifndef PAD_H 
-#define PAD_H 0
-#endif
+	#ifndef PAD_H 
+	#define PAD_H 0
+	#endif
 
-#ifndef PAD_W
-#define PAD_W 0
-#endif
+	#ifndef PAD_W
+	#define PAD_W 0
+	#endif
 
-#ifndef COUNT_INCLUDE_PAD
-#define COUNT_INCLUDE_PAD 0
+	#ifndef COUNT_INCLUDE_PAD
+	#define COUNT_INCLUDE_PAD 0
+	#endif
+
+	#ifndef WG_SIZE
+	#define WG_SIZE 8
+	#endif
+
+	layout(local_size_x = WG_SIZE, local_size_y = WG_SIZE, local_size_z = 1) in;
+#else
+	layout(local_size_x_id = 0, local_size_y_id = 0, local_size_z = 1) in;
+	layout(constant_id = 0) const uint WG_SIZE = 8;
+	layout(constant_id = 1) const uint POOL_H = 1;
+	layout(constant_id = 2) const uint POOL_W = 1;
+	layout(constant_id = 3) const uint STRIDE_H = 1;
+	layout(constant_id = 4) const uint STRIDE_W = 1;
+	layout(constant_id = 5) const uint PAD_H = 0;
+	layout(constant_id = 6) const uint PAD_W = 0;
+	layout(constant_id = 7) const uint POOL_MODE = 0;
+	layout(constant_id = 8) const uint COUNT_INCLUDE_PAD = 0;
 #endif
 
 #define START_VAL (POOL_MODE == 0 ? -DTYPE_MAX : dtype(0.0f))
@@ -42,13 +61,13 @@
 #define NORMALIZE_FULL(x) (POOL_MODE == 0 ? (x) : ((x) * (1.0f / (POOL_H * POOL_W))))
 #define NORMALIZE_PARTIAL(x,dr,dc,vdr,vdc) (POOL_MODE == 0 ? (x) : (COUNT_INCLUDE_PAD == 0 ? ((x) * (1.0f /((dr)*(dc)))) : ((x) * (1.0f /((vdr)*(vdc))))) )
 
-#ifndef WG_SIZE
-#define WG_SIZE 8
+#if EXPORT_INDEX == 1
+	#define INDEX_MAX_SRC 1
+#else
+	#define INDEX_MAX_SRC 0
 #endif
 
-#define INDEX_MAX_SRC (EXPORT_INDEX == 1)
 
-layout(local_size_x = WG_SIZE, local_size_y = WG_SIZE, local_size_z = 1) in;
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) readonly buffer src_buf { dtype src[]; };
@@ -132,12 +151,12 @@ void main()
             for(uint c=col0;c<col1;c++) {
                 dtype loaded_val = (r >= 0 && r<inp_H && c>=0 && c<inp_W) ? src[r*inp_W + c + src_] : START_VAL;
                 #if INDEX_MAX_SRC == 1
-                if(loaded_val > val) {
-                    index = r*inp_W + c;
-                    val = loaded_val;
-                }
+					if(loaded_val > val) {
+						index = r*inp_W + c;
+						val = loaded_val;
+					}
                 #else
-                val = REDUCE(val,loaded_val);
+					val = REDUCE(val,loaded_val);
                 #endif
             }
         }
