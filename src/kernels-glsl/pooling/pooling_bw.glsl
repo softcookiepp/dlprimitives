@@ -151,28 +151,57 @@ void main()
 		uint dx_offset;
 	};
 	
-	#if 0
-	
-		#if POOL_MODE == 0 // max pooling
-
-		void main()
+	void main()
+	{
+		uint out_r = get_global_id(0);
+		uint out_c = get_global_id(1);
+		uint bc = get_global_id(2);
+		if(bc >= BC || out_r >= out_H || out_c >= out_W)
+			return;
+		
+		uint row0 = out_r * STRIDE_H - PAD_H;
+		uint col0 = out_c * STRIDE_W - PAD_W;
+		uint row1 = row0 + POOL_H;
+		uint col1 = col0 + POOL_W;
+		
+		uint tgt_ = tgt_offset + bc * out_H * out_W;
+		uint src_ = src_offset + bc * inp_H * inp_W;
+		uint dx_  = dx_offset  + bc * inp_H * inp_W;
+		
+		if (POOL_MODE == 1) // average pooling
 		{
-			uint out_r = get_global_id(0);
-			uint out_c = get_global_id(1);
-			uint bc = get_global_id(2);
-
-			if(bc >= BC || out_r >= out_H || out_c >= out_W)
-				return;
-
-			uint row0 = out_r * STRIDE_H - PAD_H;
-			uint col0 = out_c * STRIDE_W - PAD_W;
-			uint row1 = row0 + POOL_H;
-			uint col1 = col0 + POOL_W;
-
-			uint tgt_ = tgt_offset + bc * out_H * out_W;
-			uint src_ = src_offset + bc * inp_H * inp_W;
-			uint dx_  = dx_offset  + bc * inp_H * inp_W;
-
+			dtype dy = tgt[out_r * out_W + out_c + tgt_];
+			if(row0 >= 0 && col0 >= 0 && row1 <= inp_H && col1 <= inp_W) {
+				dtype dy_norm = NORMALIZE_FULL(dy);
+				dx_ += (row0 * inp_W + col0);
+				UNROLL(POOL_H)
+				for(uint dr=0;dr<POOL_H;dr++) {
+					UNROLL(POOL_W)
+					for(uint dc = 0;dc < POOL_W; dc++) {
+						save_dx((dr * inp_W + dc) + dx_, dx, dx_atomic, dy_norm);
+					}
+				}
+			}
+			else {
+				dtype dy_norm = NORMALIZE_PARTIAL(dy, min(row1,inp_H)-max(row0,0),
+													  min(col1,inp_W) - max(col0,0),
+													  min(row1,inp_H + PAD_H) - max(-PAD_H,row0),
+													  min(col1,inp_W + PAD_W) - max(-PAD_W,col0)
+													);
+				// #pragma unroll
+				for(uint r=row0;r<row1;r++) {
+					// #pragma unroll
+					for(uint c=col0;c<col1;c++) {
+						if(r >= 0 && r<inp_H && c>=0 && c<inp_W)
+						{
+							save_dx(( + r*inp_W + c) + dx_, dx, dx_atomic, dy_norm);
+						}
+					}
+				}
+			}
+		}
+		else // max pooling
+		{
 			dtype val = START_VAL;
 			itype index = -1;
 			
@@ -207,144 +236,5 @@ void main()
 			dtype dy = tgt[out_r * out_W + out_c + tgt_];
 			save_dx(uint(index) + dx_, dx, dx_atomic, dy);
 		}
-
-		#elif POOL_MODE == 1
-
-		void main()
-		{
-			uint out_r = get_global_id(0);
-			uint out_c = get_global_id(1);
-			uint bc = get_global_id(2);
-			if(bc >= BC || out_r >= out_H || out_c >= out_W)
-				return;
-
-			uint row0 = out_r * STRIDE_H - PAD_H;
-			uint col0 = out_c * STRIDE_W - PAD_W;
-			uint row1 = row0 + POOL_H;
-			uint col1 = col0 + POOL_W;
-
-			uint tgt_ = tgt_offset + bc * out_H * out_W;
-			uint dx_  = dx_offset  + bc * inp_H * inp_W;
-
-			dtype dy = tgt[out_r * out_W + out_c + tgt_];
-			if(row0 >= 0 && col0 >= 0 && row1 <= inp_H && col1 <= inp_W) {
-				dtype dy_norm = NORMALIZE_FULL(dy);
-				dx_ += (row0 * inp_W + col0);
-				UNROLL(POOL_H)
-				for(uint dr=0;dr<POOL_H;dr++) {
-					UNROLL(POOL_W)
-					for(uint dc = 0;dc < POOL_W; dc++) {
-						save_dx((dr * inp_W + dc) + dx_, dx, dx_atomic, dy_norm);
-					}
-				}
-			}
-			else {
-				dtype dy_norm = NORMALIZE_PARTIAL(dy, min(row1,inp_H)-max(row0,0),
-													  min(col1,inp_W) - max(col0,0),
-													  min(row1,inp_H + PAD_H) - max(-PAD_H,row0),
-													  min(col1,inp_W + PAD_W) - max(-PAD_W,col0)
-													);
-				// #pragma unroll
-				for(uint r=row0;r<row1;r++) {
-					// #pragma unroll
-					for(uint c=col0;c<col1;c++) {
-						if(r >= 0 && r<inp_H && c>=0 && c<inp_W)
-						{
-							save_dx(( + r*inp_W + c) + dx_, dx, dx_atomic, dy_norm);
-						}
-					}
-				}
-			}
-		}
-		#endif
-	#else
-		
-		void main()
-		{
-			uint out_r = get_global_id(0);
-			uint out_c = get_global_id(1);
-			uint bc = get_global_id(2);
-			if(bc >= BC || out_r >= out_H || out_c >= out_W)
-				return;
-			
-			uint row0 = out_r * STRIDE_H - PAD_H;
-			uint col0 = out_c * STRIDE_W - PAD_W;
-			uint row1 = row0 + POOL_H;
-			uint col1 = col0 + POOL_W;
-			
-			uint tgt_ = tgt_offset + bc * out_H * out_W;
-			uint src_ = src_offset + bc * inp_H * inp_W;
-			uint dx_  = dx_offset  + bc * inp_H * inp_W;
-			
-			if (POOL_MODE == 1) // average pooling
-			{
-				dtype dy = tgt[out_r * out_W + out_c + tgt_];
-				if(row0 >= 0 && col0 >= 0 && row1 <= inp_H && col1 <= inp_W) {
-					dtype dy_norm = NORMALIZE_FULL(dy);
-					dx_ += (row0 * inp_W + col0);
-					UNROLL(POOL_H)
-					for(uint dr=0;dr<POOL_H;dr++) {
-						UNROLL(POOL_W)
-						for(uint dc = 0;dc < POOL_W; dc++) {
-							save_dx((dr * inp_W + dc) + dx_, dx, dx_atomic, dy_norm);
-						}
-					}
-				}
-				else {
-					dtype dy_norm = NORMALIZE_PARTIAL(dy, min(row1,inp_H)-max(row0,0),
-														  min(col1,inp_W) - max(col0,0),
-														  min(row1,inp_H + PAD_H) - max(-PAD_H,row0),
-														  min(col1,inp_W + PAD_W) - max(-PAD_W,col0)
-														);
-					// #pragma unroll
-					for(uint r=row0;r<row1;r++) {
-						// #pragma unroll
-						for(uint c=col0;c<col1;c++) {
-							if(r >= 0 && r<inp_H && c>=0 && c<inp_W)
-							{
-								save_dx(( + r*inp_W + c) + dx_, dx, dx_atomic, dy_norm);
-							}
-						}
-					}
-				}
-			}
-			else // max pooling
-			{
-				dtype val = START_VAL;
-				itype index = -1;
-				
-				if(row0 >= 0 && col0 >= 0 && row1 <= inp_H && col1 <= inp_W) {
-					src_ += row0 * inp_W + col0;
-					UNROLL(POOL_H)
-					for(uint dr=0;dr<POOL_H;dr++) {
-						UNROLL(POOL_W)
-						for(uint dc = 0;dc < POOL_W; dc++) {
-							dtype tmp = src[dr * inp_W + dc + src_];
-							if(tmp > val) {
-								index = itype((row0 + dr) * inp_W + col0 + dc);
-								val = tmp;
-							}
-						}
-					}
-				}
-				else {
-					// #pragma unroll
-					for(uint r=row0;r<row1;r++) {
-						// #pragma unroll
-						for(uint c=col0;c<col1;c++) {
-							dtype loaded_val = (r >= 0 && r<inp_H && c>=0 && c<inp_W) ? src[r*inp_W + c + src_] : START_VAL;
-							if(loaded_val > val) {
-								index = itype(r*inp_W + c);
-								val = loaded_val;
-							}
-						}
-					}
-				}
-				
-				dtype dy = tgt[out_r * out_W + out_c + tgt_];
-				save_dx(uint(index) + dx_, dx, dx_atomic, dy);
-			}
-		}
-	
-	#endif
+	}
 #endif
