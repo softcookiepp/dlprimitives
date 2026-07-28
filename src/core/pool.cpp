@@ -94,6 +94,7 @@ namespace core {
 			// one for regular, one for atomic. The path taken will depend on spec constants
 			dx.set_arg(bwd_kernel_,p);
 			bwd_kernel_->setArg(p++, dx.device_buffer());
+			throw std::runtime_error("this should trip something");
 
 			std::vector<uint32_t> wg({wg_size_,wg_size_,1});
 			std::vector<uint32_t> gr = gpu::round_range(out_h,out_w,bc,wg);
