@@ -7,6 +7,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/ops/axpby.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
 #include <iostream>
 #include <my_cblas.hpp>
 
@@ -15,7 +16,7 @@ namespace dlprim {
 AXPBY::AXPBY(Context &ctx,DataType dt) : ctx_(ctx)
 {
     DLPRIM_CHECK(dt == float_data);
-    tart::program_ptr prog = gpu::Cache::instance().get_program(ctx_,"axpby");
+    tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().axpby(ctx.device());
     kernel_ = prog->getKernel("axpby");
 }
 AXPBY::~AXPBY()

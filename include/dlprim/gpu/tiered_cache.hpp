@@ -25,6 +25,7 @@ class AllPrograms
 	tart::device_ref mDevice;
 	
 	tart::program_ptr mActivationProgram = nullptr;
+	tart::program_ptr mAxpbyProgram = nullptr;
 	
 	tart::program_ptr mPoolingProgram = nullptr;
 	tart::program_ptr mGlobalPoolingProgram = nullptr;
@@ -53,6 +54,7 @@ public:
 	static PerDeviceProgramCache& instance();
 	
 	inline const tart::program_ptr& activation(const tart::device_ptr& device) { return getAllPrograms(device, {}).mActivationProgram; }
+	inline const tart::program_ptr& axpby(const tart::device_ptr& device) { return getAllPrograms(device, {}).mAxpbyProgram; }
 	
 	inline const tart::program_ptr& pooling(const tart::device_ptr& device) { return getAllPrograms(device, {}).mPoolingProgram; }
 	inline const tart::program_ptr& global_pooling(const tart::device_ptr& device) { return getAllPrograms(device, {}).mGlobalPoolingProgram; }

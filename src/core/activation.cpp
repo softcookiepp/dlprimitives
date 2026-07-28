@@ -34,7 +34,7 @@ namespace core {
     void activation_backward(Tensor &dx,Tensor &dy,Tensor &y,StandardActivations activation,float beta,ExecutionContext const &ec)
     {
         Context ctx(ec);
-		tart::program_ptr const &prog = gpu::Cache::instance().get_program(ctx,"activation");
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().activation(ctx.device());
         tart::kernel_ptr k = prog->getKernel("activation_diff");
         
         int p=0;

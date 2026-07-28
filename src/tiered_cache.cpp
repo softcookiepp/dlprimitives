@@ -49,6 +49,7 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		// any programs that don't require a dtype.
 		// Some of them just haven't been made compatible with anything other than floats, in which case they will be moved to the next section later
 		mActivationProgram = gpu::Cache::instance().get_program(ctx,"activation");
+		mAxpbyProgram = gpu::Cache::instance().get_program(ctx,"axpby");
 		
 		mPoolingProgram = gpu::Cache::instance().get_program(ctx, "pooling");
 		mGlobalPoolingProgram = gpu::Cache::instance().get_program(ctx, "global_pooling");
