@@ -9,7 +9,7 @@
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/gpu/tiered_cache.hpp>
 #include <iostream>
-#include <my_cblas.hpp>
+#include <clblast_vk.h>
 
 namespace dlprim {
 

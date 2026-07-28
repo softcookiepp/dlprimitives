@@ -8,7 +8,7 @@
 #include <dlprim/core/common.hpp>
 #include <dlprim/core/pointwise.hpp>
 #include <dlprim/gpu/program_cache.hpp>
-
+#include <clblast_vk.h>
 #include <iostream>
 
 enum class RandomType
@@ -28,28 +28,33 @@ namespace core {
     }
     void Scale::enqueue(float s,Tensor &t,ExecutionContext const &ec)
     {
-        int p = 0;
-        size_t size = t.shape().total_size();
-        int wg;
-        if(size >= 1024)
-            wg = 256;
-        else
-            wg = 64;
-		k_->setArg(p++, uint32_t(size));
-        k_->setArg(p++, s);
-        t.set_arg(k_,p);
-		std::vector<uint32_t> l({wg, 1, 1});
-        std::vector<uint32_t> g = gpu::round_range(size,l);
-        g[0] = g[0]/l[0];
-        g.resize(3, 1);
-        k_->enqueue(g, l);
+		Context ctx(ec);
+		#if 1
+			clblast::Scal<float>(t.shape().total_size(), s, t.device_buffer(), t.device_offset(), 1, ctx.device());
+		#else
+			int p = 0;
+			size_t size = t.shape().total_size();
+			int wg;
+			if(size >= 1024)
+				wg = 256;
+			else
+				wg = 64;
+			k_->setArg(p++, uint32_t(size));
+			k_->setArg(p++, s);
+			t.set_arg(k_,p);
+			std::vector<uint32_t> l({wg, 1, 1});
+			std::vector<uint32_t> g = gpu::round_range(size,l);
+			g[0] = g[0]/l[0];
+			g.resize(3, 1);
+			k_->enqueue(g, l);
+        #endif
     }
     
     void scale_tensor(float s,Tensor &t,ExecutionContext const &ec)
     {
         Context ctx(ec);
-        Scale sc(ctx,t.dtype());
-        sc.enqueue(s,t,ec);
+		Scale sc(ctx,t.dtype());
+		sc.enqueue(s,t,ec);
     }
 
     ///
