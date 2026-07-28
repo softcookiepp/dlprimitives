@@ -43,10 +43,12 @@ void main()
 
 	inp_offset_ += b * over;
 	outp_offset_ += b;
-
+	
+	dtype val;
+	
 	if (POOL_MODE == 0)
 	{
-		dtype val = -DTYPE_MAX;
+		val = -DTYPE_MAX;
 		for(uint i=0;i<ITEMS_PER_WI;i++) {
 			if(c+i < over) {
 				val = max(val,inp[c + i + inp_offset_]);
@@ -57,7 +59,7 @@ void main()
 	}
 	else
 	{
-		dtype val = 0;
+		val = 0;
 		for(uint i=0;i<ITEMS_PER_WI;i++) {
 			if(c+i < over) {
 				val += inp[c+i + inp_offset_];
