@@ -9,7 +9,7 @@ layout(constant_id = 2) const uint POOL_MODE = 1;
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) readonly buffer inp_buf { dtype inp[]; };
-	layout(binding = 0, std430) writeonly buffer outp_buf { dtype outp[]; };
+	layout(binding = 1, std430) writeonly buffer outp_buf { dtype outp[]; };
 #endif
 
 layout(push_constant, std430) uniform global_pooling
