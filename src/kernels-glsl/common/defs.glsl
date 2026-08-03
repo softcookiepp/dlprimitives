@@ -63,6 +63,9 @@
 		#define dtype_to_atomic(v) floatBitsToUint(v)
 		#define atomic_to_dtype(v) uintBitsToFloat(v)
 	#endif
+	
+	#define INFINITY uintBitsToFloat(0x7F800000)
+	#define NAN uintBitsToFloat(0x7FC00000)
 #else
 	#error "dtype constants not implemented"
 #endif
@@ -87,7 +90,30 @@
 	#endif
 #endif
 
+// stubs to keep the compiler happy; they in fact do nothing, however
+int64_t exp(int64_t x) { return int64_t(0); }
+uint64_t exp(uint64_t x) { return uint64_t(0); }
+int exp(int x) { return int(0); }
+uint exp(uint x) { return uint(0); }
 
+double exp(double x) { precise float y = float(x); y = exp(y); return double(y); }
+
+dtype erf(dtype x)
+{
+	// adapted from: https://www.johndcook.com/blog/python_erf/
+	dtype a1 =  dtype(0.254829592);
+	dtype a2 = dtype(-0.284496736);
+	dtype a3 =  dtype(1.421413741);
+	dtype a4 = dtype(-1.453152027);
+	dtype a5 =  dtype(1.061405429);
+	dtype p  =  dtype(0.3275911);
+	
+	precise dtype sign = x > dtype(0.0) ? dtype(1.0) : dtype(-1.0);
+	x = dtype(abs(x));
+	dtype t = dtype( dtype(1.0)/(dtype(1.0) + p*x) );
+	precise dtype y = dtype( (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp( (-x)*x) );
+	return sign*y;
+}
 
 // borrowed from pytorch
 #define CUDA_KERNEL_LOOP_TYPE(i, n, index_type) \
