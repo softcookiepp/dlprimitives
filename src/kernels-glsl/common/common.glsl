@@ -7,11 +7,6 @@
 #ifndef dtype
 	// Parameters set by the tuner or by the database. Here they are given a basic default value in case
 	// this file is used outside of the CLBlast library.
-	#if dtype == float
-		#define PRECISION 32
-	#elif dtype == double
-		#define PRECISION 64
-	#endif
 	#ifndef PRECISION
 		#define PRECISION 32			// Data-types: half, single or double precision, complex or regular
 	#endif
@@ -308,10 +303,6 @@
 	#else
 		#define COMPLEX_CONJUGATE(value) 
 	#endif
-#else
-	#if dtype == double
-		GL_EXT_shader_explicit_arithmetic_types_float64
-	#endif
 #endif
 // =================================================================================================
 
@@ -397,10 +388,7 @@ uint64_t exp(uint64_t x) { return uint64_t(0); }
 int exp(int x) { return int(0); }
 uint exp(uint x) { return uint(0); }
 
-double exp()
-{
-	
-}
+double exp(double x) { precise float y = float(x); y = exp(y); return double(y); }
 
 dtype erf(dtype x)
 {
