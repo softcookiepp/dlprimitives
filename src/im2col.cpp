@@ -1,5 +1,6 @@
 #include <dlprim/gpu/im2col.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
 
 namespace dlprim
 {
@@ -28,7 +29,7 @@ void im2col(const ExecutionContext& e,
 	const DataType dtype)
 {
 	Context ctx(e);
-	tart::program_ptr prg = Cache::instance().get_program(ctx, "im2col_torch", "dtype", data_type_to_opencl_type(dtype));
+	tart::program_ptr prg = PerDeviceProgramCache::instance().im2col(ctx.device(), dtype);
 	tart::kernel_ptr im2colKernel = prg->getKernel("im2col");
 	
 	const uint32_t num_kernels = channels * height_col * width_col;
@@ -90,8 +91,8 @@ void col2im(
 	
 	// get the kernel
 	Context ctx(e);
-	tart::program_ptr prg = Cache::instance().get_program(ctx, "col2im_torch", "dtype", data_type_to_opencl_type(dtype),
-		"accT", data_type_to_opencl_type(accT) );
+	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(ctx.device(), dtype);
+	//tart::program_ptr prg = Cache::instance().get_program(ctx, "col2im_torch", "dtype", data_type_to_opencl_type(dtype) );
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im");
 
 	size_t p = 0;
@@ -148,7 +149,8 @@ void col2im_batched(
 	
 	// get the kernel
 	Context ctx(e);
-	tart::program_ptr prg = Cache::instance().get_program(ctx, "col2im_torch", "dtype", data_type_to_opencl_type(dtype));
+	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(ctx.device(), dtype);
+	//tart::program_ptr prg = Cache::instance().get_program(ctx, "col2im_torch", "dtype", data_type_to_opencl_type(dtype));
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im_batched");
 	
 	size_t p = 0;
