@@ -27,6 +27,8 @@ class AllPrograms
 	tart::program_ptr mActivationProgram = nullptr;
 	tart::program_ptr mAxpbyProgram = nullptr;
 	
+	tart::program_ptr mCopyProgram = nullptr;
+	
 	tart::program_ptr mCol2imProgram = nullptr;
 	tart::program_ptr mIm2colProgram = nullptr;
 	
@@ -58,6 +60,8 @@ public:
 	
 	inline const tart::program_ptr& activation(const tart::device_ptr& device) { return getAllPrograms(device, {}).mActivationProgram; }
 	inline const tart::program_ptr& axpby(const tart::device_ptr& device) { return getAllPrograms(device, {}).mAxpbyProgram; }
+	
+	inline const tart::program_ptr& copy(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mCopyProgram; }
 	
 	inline const tart::program_ptr& col2im(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mCol2imProgram; }
 	inline const tart::program_ptr& im2col(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mIm2colProgram; }

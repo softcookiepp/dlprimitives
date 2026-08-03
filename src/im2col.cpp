@@ -92,7 +92,6 @@ void col2im(
 	// get the kernel
 	Context ctx(e);
 	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(ctx.device(), dtype);
-	//tart::program_ptr prg = Cache::instance().get_program(ctx, "col2im_torch", "dtype", data_type_to_opencl_type(dtype) );
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im");
 
 	size_t p = 0;
@@ -150,7 +149,6 @@ void col2im_batched(
 	// get the kernel
 	Context ctx(e);
 	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(ctx.device(), dtype);
-	//tart::program_ptr prg = Cache::instance().get_program(ctx, "col2im_torch", "dtype", data_type_to_opencl_type(dtype));
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im_batched");
 	
 	size_t p = 0;
