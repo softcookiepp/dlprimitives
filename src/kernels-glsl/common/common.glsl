@@ -349,14 +349,16 @@
 	#define USE_STAGGERED_INDICES 0
 #endif
 
-#ifndef CL_ALIASES
-#define CL_ALIASES
-#define get_global_id(dim) gl_GlobalInvocationID[dim]
-#define get_local_id(dim) gl_LocalInvocationID[dim]
-#define get_group_id(dim) gl_WorkGroupID[dim]
-#define get_global_size(idx) gl_NumWorkGroups[idx] * gl_WorkGroupSize[idx]
-#define get_local_size(idx) gl_WorkGroupSize[idx]
-#define get_num_groups(dim) gl_NumWorkGroups[dim]
+#if 0
+	#ifndef CL_ALIASES
+	#define CL_ALIASES
+	#define get_global_id(dim) gl_GlobalInvocationID[dim]
+	#define get_local_id(dim) gl_LocalInvocationID[dim]
+	#define get_group_id(dim) gl_WorkGroupID[dim]
+	#define get_global_size(idx) gl_NumWorkGroups[idx] * gl_WorkGroupSize[idx]
+	#define get_local_size(idx) gl_WorkGroupSize[idx]
+	#define get_num_groups(dim) gl_NumWorkGroups[dim]
+	#endif
 #endif
 
 // Staggered/shuffled group indices to avoid partition camping (AMD GPUs). Formula's are taken from:
