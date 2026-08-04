@@ -83,6 +83,8 @@ tart::program_ptr Cache::build_program(Context  &ctx,std::string const &source,s
 			optSS << "-D" << params[i].name <<"=" <<params[i].value;
 			// std::cout << "OPTION: " << optSS.str() << "\n";
             options.push_back(optSS.str());
+            if (params[i].name == "dtype" && params[i].value == "")
+				throw std::runtime_error("dtype cannot be empty");
         }
     }
     tart::DeviceMetadata meta = ctx.device()->getMetadata();

@@ -44,7 +44,7 @@ namespace core {
     void fill_tensor(Tensor &t,double value,ExecutionContext const &e)
     {
         Context ctx(e);
-        pointwise_operation({},{t},{value},"y0=dtype(w0);",e);
+        pointwise_operation({},{t},{value},"y0 = dtype(w0);",e);
     }
 
     void fill_random(Tensor &t, uint64_t philox_seed, uint64_t philox_seq,RandomDistribution dist,float p1,float p2,ExecutionContext const &e)
