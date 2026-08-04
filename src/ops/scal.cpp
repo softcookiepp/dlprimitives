@@ -15,7 +15,6 @@ namespace dlprim {
     {
         DLPRIM_CHECK(dt==float_data);
         tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().scal(ctx.device(), dt);
-        //tart::program_ptr prog = gpu::Cache::instance().get_program(ctx, "scal");
         k_ = prog->getKernel("sscal");
     }
     Scal::~Scal(){}
