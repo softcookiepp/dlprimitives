@@ -4,16 +4,25 @@
 #endif
 
 // constant thingies
-#define FLT_MAX 3.402823466e+38
-#define FLT_MIN 1.175494351e-38
-#define DBL_MAX 1.7976931348623158e+308
-#define DBL_MIN 2.2250738585072014e-308
+#define HLF_MIN stype(6.103515625e-05)
+#define HLF_MAX stype(65504)
+#define FLT_MAX stype(3.402823466e+38)
+#define FLT_MIN stype(1.175494351e-38)
+#define DBL_MAX stype(1.7976931348623158e+308)
+#define DBL_MIN stype(2.2250738585072014e-308)
 
-// whether or not to use float32 atomics.
+// whether or not to use float atomics.
+#ifndef ATOMIC_FLOAT16
+	#define ATOMIC_FLOAT16 0
+#endif
 #ifndef ATOMIC_FLOAT32
 	#define ATOMIC_FLOAT32 0
+#endif
+#ifndef ATOMIC_FLOAT64
 	#define ATOMIC_FLOAT64 0
 #endif
+
+
 #if ATOMIC_FLOAT32
 	#extension GL_EXT_shader_atomic_float : require
 #endif
@@ -51,7 +60,18 @@
 	#define dtype float
 #endif
 
-#if dtype == float
+#if dtype == float16_t
+	#define stype float16_t
+	#define sizeof_dtype 2
+	#define PRECISION 32
+	#define dtype2 f16vec2
+	#define dtype4 f16vec4
+	#define DTYPE_MAX HLF_MAX
+	#define DTYPE_MIN HLF_MIN
+	#if ATOMIC_FLOAT16
+		#error "not implemented"
+	#endif
+#elif dtype == float
 	#define stype float
 	#define sizeof_dtype 4
 	#define PRECISION 32
