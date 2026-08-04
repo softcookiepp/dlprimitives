@@ -8,6 +8,7 @@
 #include <dlprim/core/common.hpp>
 #include <dlprim/core/pointwise.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
 #include <clblast_vk.h>
 #include <iostream>
 
@@ -51,8 +52,9 @@ namespace core {
     {
         Context ctx(e);
         //DLPRIM_CHECK(t.dtype() == float_data);
-		tart::program_ptr prog = gpu::Cache::instance().get_program(
-			ctx, "random", "dtype", data_type_to_tart_dtype(t.dtype()).glsl());
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().random(ctx.device(), t.dtype());
+		//tart::program_ptr prog = gpu::Cache::instance().get_program(
+		//	ctx, "random", "dtype", data_type_to_tart_dtype(t.dtype()).glsl());
 		tart::kernel_ptr k = prog->getKernel("fill");
 		uint64_t total = t.shape().total_size();
         int p=0;
