@@ -56,10 +56,11 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 	}
 	else if (dtypes.size() == 1)
 	{
-		mCopyProgram = gpu::Cache::instance().get_program(ctx, "copy", "dtype", data_type_to_opencl_type(dtypes[0]));
+		tart::DType dt = data_type_to_tart_dtype(dtypes[0]);
+		mCopyProgram = gpu::Cache::instance().get_program(ctx, "copy", "dtype", dt.glsl());
 				
-		mCol2imProgram = Cache::instance().get_program(ctx, "col2im_torch", "dtype", data_type_to_opencl_type(dtypes[0]));
-		mIm2colProgram = Cache::instance().get_program(ctx, "im2col_torch", "dtype", data_type_to_opencl_type(dtypes[0]));
+		mCol2imProgram = Cache::instance().get_program(ctx, "col2im_torch", "dtype", dt.glsl());
+		mIm2colProgram = Cache::instance().get_program(ctx, "im2col_torch", "dtype", dt.glsl());
 	}
 }
 

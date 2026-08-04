@@ -28,7 +28,7 @@ namespace core {
         case  uint32_data:  k->setArg(p++, uint32_t(value)); break;
         case  uint8_data:   k->setArg(p++, uint8_t(value)); break;
         default:
-            throw  NotImplementedError("Unsupported bind as type:" + data_type_to_opencl_type(dt));
+            throw  NotImplementedError("Unsupported bind as type:" + data_type_to_tart_dtype(dt).glsl());
         }
     }
 
@@ -99,9 +99,9 @@ namespace core {
                 code_fixed << "\\\n";
             else
                 code_fixed << code[i];
-		
+		tart::DType refT = data_type_to_tart_dtype(ref_type);
         tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"pointwise",
-                                                                           "dtype",data_type_to_opencl_type(ref_type),
+                                                                           "dtype", refT.glsl(),
                                                                            "#BUFFER_DEFS", bufferDefs.str(),
                                                                            "#PARAMS",params.str(),
                                                                            "#LOADS",loads.str(),
@@ -256,7 +256,7 @@ namespace core {
 		std::stringstream typeDefs;
         std::ostringstream params,loads,saves;
         for(size_t i=0;i<xs.size();i++) {
-            std::string type = data_type_to_opencl_type(xs[i].dtype());
+            std::string type = data_type_to_tart_dtype(xs[i].dtype()).glsl();
             params << "uint px" << i << "_offset; Shape strides" << i << "; ";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
 				<< i << "_buf { " << type << " px" << i << "[]; }; ";
@@ -265,7 +265,7 @@ namespace core {
             typeDefs << "#define typeof_x" << i << " " << type << "\n";
         }
         for(size_t i=0;i<ys.size();i++) {
-            std::string type = data_type_to_opencl_type(ys[i].dtype());
+            std::string type = data_type_to_tart_dtype(ys[i].dtype()).glsl();
             params << "uint py" << i << "_offset; ";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
 				<< i << "_buf { " << type << " py" << i << "[]; }; ";
@@ -274,7 +274,7 @@ namespace core {
             saves<<"py"<<i<<"[get_direct_offset(index,limit,py"<<i<<"_offset)]=y"<<i<<";\n";
             typeDefs << "#define typeof_y" << i << " " << type << "\n";
         }
-        typeDefs << "#define target_type " << data_type_to_opencl_type(target_type) << "\n";
+        typeDefs << "#define target_type " << data_type_to_tart_dtype(target_type).glsl() << "\n";
 
         for(size_t i=0;i<ws.size();i++) {
             std::string type = data_type_to_opencl_param_type(dts[i]);
@@ -501,7 +501,7 @@ namespace core {
             std::stringstream REDUCE_INIT_SHARED;
             size_t bindIndex = 0;
             for(size_t i=0;i<xs.size();i++) {
-                std::string type = data_type_to_opencl_type(xs[i].dtype());
+                std::string type = data_type_to_tart_dtype(xs[i].dtype()).glsl();
                 std::string suffix = "(" + type + "," + std::to_string(i) + ") ";
                 std::string suffix_buf = "(" + type + "," + std::to_string(i) + ", " + std::to_string(bindIndex) + ") ";
                 TYPE_DEFS << "#define typeof_x" << i << " " << type << "\n";
@@ -514,7 +514,7 @@ namespace core {
             }
 
             for(size_t i=0;i<ys.size();i++) {
-                std::string type = data_type_to_opencl_type(ys[i].dtype());
+                std::string type = data_type_to_tart_dtype(ys[i].dtype()).glsl();
                 std::string ptype = data_type_to_opencl_param_type(ys[i].dtype());
                 std::string suffix_out = "(" + type + "," + ptype + "," + std::to_string(i) + ") ";
                 std::string suffix_out_buf = "(" + type + "," + ptype + "," + std::to_string(i) + ", " + std::to_string(bindIndex) + ") ";

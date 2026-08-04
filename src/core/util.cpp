@@ -25,8 +25,8 @@ namespace core {
         Context ctx(q);
         bool use_io_type = dtype_src == dtype_dst;
 		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"copy_strided",
-                                "dtype_src",data_type_to_opencl_type(dtype_src,use_io_type),
-                                "dtype_tgt",data_type_to_opencl_type(dtype_dst,use_io_type) );
+                                "dtype_src",data_type_to_tart_dtype(dtype_src,use_io_type).glsl(),
+                                "dtype_tgt",data_type_to_tart_dtype(dtype_dst,use_io_type).glsl() );
         std::vector<uint32_t> range;
         switch(dims)
         {

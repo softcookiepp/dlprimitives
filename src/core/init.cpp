@@ -52,7 +52,7 @@ namespace core {
         Context ctx(e);
         //DLPRIM_CHECK(t.dtype() == float_data);
 		tart::program_ptr prog = gpu::Cache::instance().get_program(
-			ctx, "random", "dtype", data_type_to_opencl_type(t.dtype()));
+			ctx, "random", "dtype", data_type_to_tart_dtype(t.dtype()).glsl());
 		tart::kernel_ptr k = prog->getKernel("fill");
 		uint64_t total = t.shape().total_size();
         int p=0;

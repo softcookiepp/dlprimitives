@@ -15,7 +15,6 @@ namespace core {
     {
 		mDevice = ctx.device();
 		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy(ctx.device(), dtype_);
-		//tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"copy", "dtype",data_type_to_opencl_type(dtype_));
         kernel_ = prog->getKernel("copy");
     }
     SliceCopy::~SliceCopy()

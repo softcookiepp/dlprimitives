@@ -171,7 +171,7 @@ public:
                 
 
                 printf("  %8s %-15s %-15s %-15s ",
-                            dp::data_type_to_opencl_type(dtype).c_str(),
+                            dp::data_type_to_tart_dtype(dtype).glsl().c_str(),
                             to_string(A).c_str(),
                             to_string(B).c_str(),
                             to_string(C).c_str());
@@ -191,7 +191,7 @@ public:
                             );
                 fflush(stdout);
                 fprintf(report_,"%s,%s,%s,%10s,",
-                            dp::data_type_to_opencl_type(dtype).c_str(),
+                            dp::data_type_to_tart_dtype(dtype).glsl().c_str(),
                             to_string(A).c_str(),
                             to_string(B).c_str(),
                             to_string(C).c_str());

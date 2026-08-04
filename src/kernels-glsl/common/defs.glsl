@@ -129,8 +129,10 @@
 #endif
 
 // stubs to keep the compiler happy; they in fact do nothing, however
-int64_t exp(int64_t x) { return int64_t(0); }
-uint64_t exp(uint64_t x) { return uint64_t(0); }
+#if 0
+	int64_t exp(int64_t x) { return int64_t(0); }
+	uint64_t exp(uint64_t x) { return uint64_t(0); }
+#endif
 int exp(int x) { return int(0); }
 uint exp(uint x) { return uint(0); }
 
