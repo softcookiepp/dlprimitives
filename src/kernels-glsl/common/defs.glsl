@@ -12,9 +12,13 @@
 // whether or not to use float32 atomics.
 #ifndef ATOMIC_FLOAT32
 	#define ATOMIC_FLOAT32 0
+	#define ATOMIC_FLOAT64 0
 #endif
 #if ATOMIC_FLOAT32
 	#extension GL_EXT_shader_atomic_float : require
+#endif
+#if ATOMIC_FLOAT64
+	#error "not implemented"
 #endif
 
 // this is not implemented yet, if it ever will be
@@ -48,6 +52,7 @@
 #endif
 
 #if dtype == float
+	#define stype float
 	#define sizeof_dtype 4
 	#define PRECISION 32
 	#define dtype2 vec2
@@ -63,12 +68,22 @@
 		#define dtype_to_atomic(v) floatBitsToUint(v)
 		#define atomic_to_dtype(v) uintBitsToFloat(v)
 	#endif
-	
-	#define INFINITY uintBitsToFloat(0x7F800000)
-	#define NAN uintBitsToFloat(0x7FC00000)
-#else
-	#error "dtype constants not implemented"
+#elif dtype == double
+	#define stype double
+	#define sizeof_dtype 8
+	#define PRECISION 64
+	#define dtype2 dvec2
+	#define dtype4 dvec4
+	#define DTYPE_MAX DBL_MAX
+	#define DTYPE_MIN DBL_MIN
+	#if ATOMIC_FLOAT64
+		#error "not implemented"
+	#endif
 #endif
+
+#define INFINITY stype(uintBitsToFloat(0x7F800000))
+#define NAN stype(uintBitsToFloat(0x7FC00000))
+#define PI stype(double(3.14159265358979323846))
 
 #define cmp_gt(a, b) (dtype(a) > dtype(b) )
 
