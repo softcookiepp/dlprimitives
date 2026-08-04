@@ -63,6 +63,7 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		mIm2colProgram = Cache::instance().get_program(ctx, "im2col_torch", "dtype", dt.glsl());
 		
 		mRandomProgram = Cache::instance().get_program(ctx, "random", "dtype", dt.glsl());
+		mScalProgram = Cache::instance().get_program(ctx, "random", "dtype", dt.glsl());
 	}
 }
 

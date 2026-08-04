@@ -37,6 +37,8 @@ class AllPrograms
 	
 	tart::program_ptr mRandomProgram = nullptr;
 	
+	tart::program_ptr mScalProgram = nullptr;
+	
 public:
 	AllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes);
 	
@@ -72,6 +74,7 @@ public:
 	inline const tart::program_ptr& global_pooling(const tart::device_ptr& device) { return getAllPrograms(device, {}).mGlobalPoolingProgram; }
 	
 	inline const tart::program_ptr& random(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mRandomProgram; }
+	inline const tart::program_ptr& scal(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mScalProgram; }
 };
 
 } // namespace gpu

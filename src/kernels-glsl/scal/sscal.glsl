@@ -4,15 +4,15 @@
 #include "../common/workgroup.glsl"
 
 #if USE_BDA == 0
-	layout(binding = 0, std430) buffer p_buf { float p[]; };
+	layout(binding = 0, std430) buffer p_buf { dtype p[]; };
 #endif
 
 layout(push_constant, std430) uniform sscal
 {
 	uint size;
-	float scale;
+	dtype scale;
 #if USE_BDA
-	__global float *p;
+	__global dtype *p;
 #endif
 	uint p_off;
 };

@@ -7,13 +7,15 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/ops/scal.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
 #include <dlprim/tensor.hpp>
 #include <my_cblas.hpp>
 namespace dlprim {
     Scal::Scal(Context &ctx,DataType dt) : ctx_(ctx)
     {
         DLPRIM_CHECK(dt==float_data);
-        tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"scal");
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().scal(ctx.device(), dt);
+        //tart::program_ptr prog = gpu::Cache::instance().get_program(ctx, "scal");
         k_ = prog->getKernel("sscal");
     }
     Scal::~Scal(){}
