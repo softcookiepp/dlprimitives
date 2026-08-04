@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include "tart.hpp"
 
 #if defined(__WIN32) || defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__)
 #   define  DLPRIM_WINDOWS
@@ -230,6 +231,30 @@ namespace dlprim {
         }
         throw NotImplementedError("Unsupported data type");
     }
+    
+    inline tart::DType data_type_to_tart_dtype(DataType dt,bool io_type=false,bool kernel_param = false)
+    {
+		switch(dt) {
+        case double_data: return tart::dtypes::float64;
+        case int64_data: return tart::dtypes::int64;
+        case uint64_data: return tart::dtypes::uint64;
+
+        case float_data: return tart::dtypes::float32;
+        case int32_data: return tart::dtypes::int32;
+        case uint32_data: return tart::dtypes::uint32;
+
+        case half_data: return (kernel_param ? tart::dtypes::float32 : tart::dtypes::float16);
+        case bfloat16_data: return (io_type ? tart::dtypes::uint16 : tart::dtypes::float32 );
+        case int16_data: return tart::dtypes::int16;
+        case uint16_data: return tart::dtypes::uint16;
+
+        case int8_data: return tart::dtypes::int8;
+        case uint8_data: return tart::dtypes::uint8;
+        default:
+            throw NotImplementedError("Unsupported data type");
+        }
+	}
+    
     inline std::string data_type_to_opencl_type(DataType dt,bool io_type=false,bool kernel_param = false)
     {
 		switch(dt) {

@@ -60,18 +60,21 @@
 	#define dtype float
 #endif
 
-#if dtype == float16_t
-	#define stype float16_t
-	#define sizeof_dtype 2
-	#define PRECISION 32
-	#define dtype2 f16vec2
-	#define dtype4 f16vec4
-	#define DTYPE_MAX HLF_MAX
-	#define DTYPE_MIN HLF_MIN
-	#if ATOMIC_FLOAT16
-		#error "not implemented"
+#if 0
+	#if dtype == float16_t
+		#define stype float16_t
+		#define sizeof_dtype 2
+		#define PRECISION 32
+		#define dtype2 f16vec2
+		#define dtype4 f16vec4
+		#define DTYPE_MAX HLF_MAX
+		#define DTYPE_MIN HLF_MIN
+		#if ATOMIC_FLOAT16
+			#error "not implemented"
+		#endif
 	#endif
-#elif dtype == float
+#endif
+#if dtype == float
 	#define stype float
 	#define sizeof_dtype 4
 	#define PRECISION 32
