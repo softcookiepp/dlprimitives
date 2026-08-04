@@ -159,6 +159,7 @@ namespace dlprim {
             return uint64_data;
         throw ValidationError("Unknown data type " + s);
     }
+    
     inline std::string data_type_to_string(DataType dt)
     {
         switch(dt) {
@@ -189,50 +190,53 @@ namespace dlprim {
 
     inline std::string data_type_to_opencl_numeric_limit(DataType dt,DataTypeLimit lmt)
     {
-        if(is_floating_point_data_type(dt)) {
-            std::string prefix;
-            switch(dt) {
-            case float_data: 
-            case bfloat16_data:
-                prefix="FLT"; 
-                break;
-            case double_data : prefix="DBL"; break;
-            case half_data: prefix="HALF"; break;
-            default:
-                throw ValidationError("Unsupported type");
-            }
-            switch(lmt) {
-            case dt_min_val: return "(-" + prefix + "_MAX)";
-            case dt_max_val: return prefix + "_MAX";
-            };
-        }
-        else {
-            bool unsig = (dt & (3 << 3)) == (3<<3);
-            std::string prefix;
-            switch(dt) {
-            case int64_data:  prefix = "LONG"; break;
-            case uint64_data: prefix = "ULONG"; break;
+		#if 0
+		#else
+			if(is_floating_point_data_type(dt)) {
+				std::string prefix;
+				switch(dt) {
+				case float_data: 
+				case bfloat16_data:
+					prefix="FLT"; 
+					break;
+				case double_data : prefix="DBL"; break;
+				case half_data: prefix="HALF"; break;
+				default:
+					throw ValidationError("Unsupported type");
+				}
+				switch(lmt) {
+				case dt_min_val: return "(-" + prefix + "_MAX)";
+				case dt_max_val: return prefix + "_MAX";
+				};
+			}
+			else {
+				bool unsig = (dt & (3 << 3)) == (3<<3);
+				std::string prefix;
+				switch(dt) {
+				case int64_data:  prefix = "LONG"; break;
+				case uint64_data: prefix = "ULONG"; break;
 
-            case int32_data:  prefix = "INT"; break;
-            case uint32_data: prefix = "UINT"; break;
+				case int32_data:  prefix = "INT"; break;
+				case uint32_data: prefix = "UINT"; break;
 
-            case int16_data:  prefix = "SHRT"; break;
-            case uint16_data: prefix = "USHRT"; break;
+				case int16_data:  prefix = "SHRT"; break;
+				case uint16_data: prefix = "USHRT"; break;
 
-            case int8_data:   prefix = "CHAR"; break;
-            case uint8_data:  prefix = "UCHAR"; break;
-            default:
-                throw NotImplementedError("Unsupported data type");
-            }
-            switch(lmt) {
-            case dt_min_val: return unsig ? "0" : prefix + "_MIN";
-            case dt_max_val: return prefix + "_MAX";
-            };
-        }
-        throw NotImplementedError("Unsupported data type");
+				case int8_data:   prefix = "CHAR"; break;
+				case uint8_data:  prefix = "UCHAR"; break;
+				default:
+					throw NotImplementedError("Unsupported data type");
+				}
+				switch(lmt) {
+				case dt_min_val: return unsig ? "0" : prefix + "_MIN";
+				case dt_max_val: return prefix + "_MAX";
+				};
+			}
+			throw NotImplementedError("Unsupported data type");
+		#endif
     }
     
-    inline tart::DType data_type_to_tart_dtype(DataType dt,bool io_type=false,bool kernel_param = false)
+    inline tart::DType data_type_to_tart_dtype(DataType dt, bool io_type = false, bool kernel_param = false)
     {
 		switch(dt) {
         case double_data: return tart::dtypes::float64;
@@ -257,25 +261,30 @@ namespace dlprim {
     
     inline std::string data_type_to_opencl_type(DataType dt,bool io_type=false,bool kernel_param = false)
     {
-		switch(dt) {
-        case double_data: return "double";
-        case int64_data: return "int64_t";
-        case uint64_data: return "uint64_t";
+		#if 1
+			tart::DType dtype = data_type_to_tart_dtype(dt, io_type, kernel_param);
+			return dtype.glsl();
+		#else
+			switch(dt) {
+			case double_data: return "double";
+			case int64_data: return "int64_t";
+			case uint64_data: return "uint64_t";
 
-        case float_data: return "float";
-        case int32_data: return "int";
-        case uint32_data: return "uint";
+			case float_data: return "float";
+			case int32_data: return "int";
+			case uint32_data: return "uint";
 
-        case half_data: return (kernel_param ? "float" : "float16_t");
-        case bfloat16_data: return (io_type ? "uint16_t" : "float" );
-        case int16_data: return "int16_t";
-        case uint16_data: return "uint16_t";
+			case half_data: return (kernel_param ? "float" : "float16_t");
+			case bfloat16_data: return (io_type ? "uint16_t" : "float" );
+			case int16_data: return "int16_t";
+			case uint16_data: return "uint16_t";
 
-        case int8_data: return "int8_t";
-        case uint8_data: return "uint8_t";
-        default:
-            throw NotImplementedError("Unsupported data type");
-        }
+			case int8_data: return "int8_t";
+			case uint8_data: return "uint8_t";
+			default:
+				throw NotImplementedError("Unsupported data type");
+			}
+        #endif
     }
     inline std::string data_type_to_opencl_param_type(DataType dt)
     {
