@@ -1,6 +1,7 @@
 #include <dlprim/core/interpolate.hpp>
 #include <dlprim/core/common.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
 #include <iostream>
 
 namespace dlprim { namespace core {
@@ -43,7 +44,8 @@ namespace dlprim { namespace core {
         }
         
         Context ctx(e);
-		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"interpolate_2d");
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().interpolate2d(ctx.device());
+		//tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"interpolate_2d");
         tart::kernel_ptr k = prog->getKernel(bilinear ? "bilinear" : "nearest_fwd");
         int bc = x_shape[0]*x_shape[1];
         int p=0;
