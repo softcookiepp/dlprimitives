@@ -153,11 +153,7 @@ namespace core {
 			else 
 				wg_size_ = 256;
 			items_per_wi_ = (sm_range + wg_size_ - 1) / wg_size_;
-			#if 1
-				tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().global_pooling(ctx.device(), dt);
-			#else
-				tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"global_pooling");
-			#endif
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().global_pooling(ctx.device(), dt);
 			kernel_ = prog->getKernel("global_pooling");
 			kernel_bwd_ = prog->getKernel("global_pooling_bwd");
 			sm_range_ = sm_range;
