@@ -11,8 +11,6 @@
 #define BACKWARD 0
 #endif
 
-// this might get confusing.
-// #if SECOND_REDUCE_SIZE > 1
 layout(local_size_x = SECOND_REDUCE_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 #if USE_BDA == 0
@@ -67,8 +65,6 @@ void main()
     uint f = get_global_id(1);
     if(f >= channels)
         return;
-    
-    // REDUCE_PREPARE_X2(SECOND_REDUCE_SIZE,float);
 
     uint read_pos = f + get_local_id(0) * channels;
     vec2 sum;

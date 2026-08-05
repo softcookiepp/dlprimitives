@@ -6,6 +6,14 @@
 #define SECOND_REDUCE_SIZE 1
 #endif
 
+#ifndef REQUIRES_REDUCE
+	#if SECOND_REDUCE_SIZE > 1
+		#define REQUIRES_REDUCE 1
+	#else
+		#define REQUIRES_REDUCE 0
+	#endif
+#endif
+
 #ifndef BACKWARD
 #define BACKWARD 1
 #endif
@@ -20,7 +28,7 @@ layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
 		layout(binding = 2, std430) buffer dyx_sum_buf { float dyx_sum[]; };
 		layout(binding = 3, std430) buffer dy_sum_buf { float dy_sum[]; };
 	#else
-		#if SECOND_REDUCE_SIZE == 1
+		#if REQUIRES_REDUCE == 0
 			layout(binding = 1, std430) buffer x_mean_buf { float x_mean[]; };
 			layout(binding = 2, std430) buffer x_var_buf { float x_var[]; };
 		#else
@@ -53,7 +61,7 @@ layout(push_constant, std430) uniform compute
 	#endif
 	uint dy_sum_offset;
 #else
-	#if SECOND_REDUCE_SIZE == 1
+	#if REQUIRES_REDUCE == 0
 		#if USE_BDA
 			__global float *x_mean;
 		#endif
@@ -80,26 +88,6 @@ void main()
     uint feature = get_global_id(1);
     if(feature >= channels)
         return;
-
-    // x   += x_offset;
-#if BACKWARD == 1
-    // dy   += dy_offset;
-    // dy_sum += dy_sum_offset;
-    // dyx_sum += dyx_sum_offset;
-#else
-  #if SECOND_REDUCE_SIZE == 1
-    //x_mean += x_mean_offset;
-    //x_var  += x_var_offset;
-  #else
-    //x_sum += x_sum_offset;
-    //x2_sum += x2_sum_offset;
-  #endif
-#endif    
-    
-    // x  += feature * HW;
-#if BACKWARD == 1
-    // dy += feature * HW;
-#endif    
 
     uint items = batch * HW;
     const uint wg_size2 = WG_SIZE * SECOND_REDUCE_SIZE;
@@ -138,9 +126,6 @@ void main()
         }
     }
 
-	// moved outside main function body
-    // REDUCE_PREPARE_X2(WG_SIZE,float);
-
     vec2 sums = vec2(sum1, sum2);
 
     my_work_group_reduce_add_x2(sums, WG_SIZE);
@@ -149,7 +134,7 @@ void main()
 
     if(get_local_id(0) == 0)
     {
-        #if SECOND_REDUCE_SIZE == 1
+        #if REQUIRES_REDUCE == 0
             uint pos = feature;
         #else
             uint pos = feature + channels * get_group_id(0);
@@ -158,7 +143,7 @@ void main()
 			dyx_sum[pos + dyx_sum_offset] = sum1;
             dy_sum[pos + dy_sum_offset] = sum2;
         #else
-            #if SECOND_REDUCE_SIZE == 1
+            #if REQUIRES_REDUCE == 0
 				float mean_val  = sum1 / (batch * HW);
 				float mean2_val = sum2 / (batch * HW);
 				x_mean[pos + x_mean_offset] = mean_val;

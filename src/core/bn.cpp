@@ -48,13 +48,11 @@ namespace core {
 			tart::program_ptr
             fwd_sums = gpu::Cache::instance().get_program(ctx,
                         "bn_sums",
-                        //"WG_SIZE",wg_,
                         "SECOND_REDUCE_SIZE",second_reduce_);
 
 			tart::program_ptr
             bwd_sums = gpu::Cache::instance().get_program(ctx,
                         "bn_sums",
-                        //"WG_SIZE",wg_,
                         "SECOND_REDUCE_SIZE",second_reduce_);
 			tart::program_ptr
             utils = gpu::Cache::instance().get_program(ctx,"bn_utils");
