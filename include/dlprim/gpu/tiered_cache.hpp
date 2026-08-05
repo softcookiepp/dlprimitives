@@ -54,6 +54,8 @@ class AllPrograms
 	
 	tart::program_ptr mScalProgram = nullptr;
 	
+	tart::program_ptr mSpatialSoftmaxProgram = nullptr;
+	
 public:
 	AllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes);
 	
@@ -105,6 +107,8 @@ public:
 	
 	inline const tart::program_ptr& random(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mRandomProgram; }
 	inline const tart::program_ptr& scal(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mScalProgram; }
+	
+	inline const tart::program_ptr& spatial_softmax(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mSpatialSoftmaxProgram; }
 };
 
 } // namespace gpu
