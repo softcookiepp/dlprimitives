@@ -156,7 +156,6 @@ namespace core {
     void nll_loss_forward(Tensor &x,Tensor &lbl,Tensor &y,bool reduce,float scale,ExecutionContext const &e)
     {
         DLPRIM_CHECK(x.shape().size() == 2);
-        DLPRIM_CHECK(x.dtype() == float_data);
         DLPRIM_CHECK(y.shape()==(reduce ? Shape(1) : Shape(x.shape()[0])));
         DLPRIM_CHECK(y.dtype() == x.dtype());
         int sm_range=x.shape()[0];
@@ -170,23 +169,26 @@ namespace core {
             wg_size = 256;
         
         int items_per_wi = (sm_range + wg_size - 1) / wg_size;
-
-        std::string itype;
-        switch(lbl.dtype())
-        {
-			case int32_data: itype = "int"; break;
-			case int64_data: itype = "int64_t"; break;
-			case float_data: itype = "float"; break;
-			default: throw NotImplementedError("Unsupported type");
-        }
-
+        
         Context ctx(e);
-		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"nll_loss_fwd",
-                            //"WG_SIZE",wg_size,
-                            //"ITEMS_PER_WI",items_per_wi,
-                            //"REDUCE",int(reduce),
-                            "itype",itype);
-
+		#if 1
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().nll_loss_fwd(ctx.device(), x.dtype(), lbl.dtype());
+		#else
+			std::string itype;
+			switch(lbl.dtype())
+			{
+				case int32_data: itype = "int"; break;
+				case int64_data: itype = "int64_t"; break;
+				case float_data: itype = "float"; break;
+				default: throw NotImplementedError("Unsupported type");
+			}
+			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"nll_loss_fwd",
+								//"WG_SIZE",wg_size,
+								//"ITEMS_PER_WI",items_per_wi,
+								//"REDUCE",int(reduce),
+								"itype",itype);
+		#endif
+		
         tart::kernel_ptr kernel = prog->getKernel("nll_loss_forward");
         Shape in_shape = x.shape();
         int p = 0;
@@ -196,7 +198,6 @@ namespace core {
         lbl.set_arg(kernel,p);
         y.set_arg(kernel,p);
         kernel->setArg(p++,scale);
-        std::vector<uint32_t> wg({wg_size, 1, 1});
         kernel->enqueue({1, 1, 1}, {wg_size, items_per_wi, static_cast<uint32_t>(reduce)});
     }
     ///
