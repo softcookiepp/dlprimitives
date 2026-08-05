@@ -56,14 +56,24 @@ namespace core {
                         "SECOND_REDUCE_SIZE",second_reduce_);
 			tart::program_ptr
             utils = gpu::Cache::instance().get_program(ctx,"bn_utils");
-			sums_ = fwd_sums->getKernel("compute");
-            if(second_reduce_ > 1) {
+            if(second_reduce_ > 1)
+            {
+				sums_ = fwd_sums->getKernel("compute");
                 sums_reduce_ = fwd_sums->getKernel("reduce");
             }
-            dyx_sums_ = bwd_sums->getKernel("compute_bwd");
+            else
+            {
+				sums_ = fwd_sums->getKernel("compute");
+			}
+            
             if(second_reduce_ > 1) {
+				dyx_sums_ = bwd_sums->getKernel("compute_bwd");
                 dyx_sums_reduce_ = bwd_sums->getKernel("reduce_bwd");
             }
+            else
+            {
+				dyx_sums_ = bwd_sums->getKernel("compute_bwd");
+			}
 
             update_sums_ = utils->getKernel("update_sums");
             mean_var_to_a_b_ =utils->getKernel("mean_var_to_a_b");
