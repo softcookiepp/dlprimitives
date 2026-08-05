@@ -2,15 +2,21 @@
 #include "../common/defs.glsl"
 #include "../common/reduce.glsl"
 
-#ifndef WG_SIZE
-#define WG_SIZE 256
-#endif
+#if 1
+	layout(constant_id = 0) const uint WG_SIZE = 256;
+	layout(constant_id = 1) const uint ITEMS_PER_WI = 1;
+	layout(constant_id = 2) const uint REDUCE = 1;
+	layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+#else
+	#ifndef WG_SIZE
+		#define WG_SIZE 256
+	#endif
 
-#ifndef ITEMS_PER_WI
-#define ITEMS_PER_WI 1
+	#ifndef ITEMS_PER_WI
+		#define ITEMS_PER_WI 1
+	#endif
+	layout(local_size_x = WG_SIZE, local_size_y = 1, local_size_z = 1) in;
 #endif
-
-layout(local_size_x = WG_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) readonly buffer data_buf { dtype data[]; };
@@ -50,7 +56,7 @@ void main()
     dtype sum = 0;
 
     UNROLL(ITEMS_PER_WI)
-    for(uint i=0;i<ITEMS_PER_WI;i++,item++)
+    for (uint i=0; i < ITEMS_PER_WI; i++, item++)
     {
         if(item < batch)
         {

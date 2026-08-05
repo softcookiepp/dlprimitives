@@ -86,10 +86,7 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		{
 			mCopyStridedProgram = gpu::Cache::instance().get_program(ctx, "copy_strided", "dtype_src", dt0.glsl(), "dtype_tgt", dt1.glsl() );
 		}
-		else
-		{
-			mNullLossBwdProgram = gpu::Cache::instance().get_program(ctx, "nll_loss_bwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
-		}
+		mNullLossBwdProgram = gpu::Cache::instance().get_program(ctx, "nll_loss_bwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
 	}
 }
 

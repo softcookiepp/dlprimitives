@@ -172,23 +172,19 @@ namespace core {
         int items_per_wi = (sm_range + wg_size - 1) / wg_size;
 
         std::string itype;
-        switch(lbl.dtype()) {
-        case int32_data: itype = "int"; break;
-#if VULKAN_API
-        case int64_data: itype = "int64_t"; break;
-#else
-        case int64_data: itype = "long"; break;
-#endif
-        case float_data: itype = "float"; break;
-        default: throw NotImplementedError("Unsupported type");
+        switch(lbl.dtype())
+        {
+			case int32_data: itype = "int"; break;
+			case int64_data: itype = "int64_t"; break;
+			case float_data: itype = "float"; break;
+			default: throw NotImplementedError("Unsupported type");
         }
 
         Context ctx(e);
-#if VULKAN_API
 		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"nll_loss_fwd",
-                            "WG_SIZE",wg_size,
-                            "ITEMS_PER_WI",items_per_wi,
-                            "REDUCE",int(reduce),
+                            //"WG_SIZE",wg_size,
+                            //"ITEMS_PER_WI",items_per_wi,
+                            //"REDUCE",int(reduce),
                             "itype",itype);
 
         tart::kernel_ptr kernel = prog->getKernel("nll_loss_forward");
@@ -201,26 +197,7 @@ namespace core {
         y.set_arg(kernel,p);
         kernel->setArg(p++,scale);
         std::vector<uint32_t> wg({wg_size, 1, 1});
-        kernel->enqueue({1, 1, 1}, {});
-#else
-        cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_fwd",
-                            "WG_SIZE",wg_size,
-                            "ITEMS_PER_WI",items_per_wi,
-                            "REDUCE",int(reduce),
-                            "itype",itype);
-
-        cl::Kernel kernel(prog,"nll_loss_forward");
-        Shape in_shape = x.shape();
-        int p = 0;
-        kernel.setArg(p++,int(in_shape[0]));
-        kernel.setArg(p++,int(in_shape[1]));
-        x.set_arg(kernel,p);
-        lbl.set_arg(kernel,p);
-        y.set_arg(kernel,p);
-        kernel.setArg(p++,scale);
-        cl::NDRange wg(wg_size,1,1);
-        e.queue().enqueueNDRangeKernel(kernel,cl::NullRange,wg,wg,e.events(),e.event("nll_loss_fwd"));
-#endif
+        kernel->enqueue({1, 1, 1}, {wg_size, items_per_wi, static_cast<uint32_t>(reduce)});
     }
     ///
     /// Compute forward Negative log likelehood loss x should be log of prob
