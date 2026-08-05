@@ -2,6 +2,8 @@
 #include "../common/defs.glsl"
 #include "../common/workgroup.glsl"
 
+layout(constant_id = 3) const uint REDUCE = 0;
+
 #if USE_BDA == 0
 	layout(binding = 0, std430) buffer dx_buf { dtype dx[]; };
 	layout(binding = 1, std430) readonly buffer label_buf { itype label[]; };

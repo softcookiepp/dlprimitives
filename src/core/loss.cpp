@@ -245,7 +245,7 @@ namespace core {
         Context ctx(e);
 #if VULKAN_API
         tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"nll_loss_bwd",
-                            "REDUCE",int(reduce),
+                            //"REDUCE",int(reduce),
                             "itype",itype);
         tart::kernel_ptr kernel = prog->getKernel("nll_loss_backward");
         Shape in_shape = dx.shape();
@@ -257,7 +257,7 @@ namespace core {
         dy.set_arg(kernel,p);
         kernel->setArg(p++,scale);
         kernel->setArg(p++,factor);
-        kernel->enqueue({in_shape[1],in_shape[0], 1}, {1, 1, 1});
+        kernel->enqueue({in_shape[1],in_shape[0], 1}, {1, 1, 1, static_cast<uint32_t>(reduce)} );
 #else
         cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"nll_loss_bwd",
                             "REDUCE",int(reduce),
