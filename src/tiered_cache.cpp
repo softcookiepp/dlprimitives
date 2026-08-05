@@ -80,7 +80,16 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		bool use_io_type = (dtypes[0] == dtypes[1]);
 		tart::DType dt0 = data_type_to_tart_dtype(dtypes[0], use_io_type);
 		tart::DType dt1 = data_type_to_tart_dtype(dtypes[1], use_io_type);
-		mCopyStridedProgram = gpu::Cache::instance().get_program(ctx,"copy_strided", "dtype_src", dt0.glsl(), "dtype_tgt", dt1.glsl() );
+		
+		// avoid compilation errors
+		if (is_floating_point_data_type(dtypes[1]))
+		{
+			mCopyStridedProgram = gpu::Cache::instance().get_program(ctx, "copy_strided", "dtype_src", dt0.glsl(), "dtype_tgt", dt1.glsl() );
+		}
+		else
+		{
+			mNullLossBwdProgram = gpu::Cache::instance().get_program(ctx, "nll_loss_bwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
+		}
 	}
 }
 

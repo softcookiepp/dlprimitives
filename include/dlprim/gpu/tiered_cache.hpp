@@ -44,6 +44,8 @@ class AllPrograms
 	
 	tart::program_ptr mInterpolate2dProgram = nullptr;
 	
+	tart::program_ptr mNullLossBwdProgram = nullptr;
+	
 	tart::program_ptr mPoolingProgram = nullptr;
 	tart::program_ptr mGlobalPoolingProgram = nullptr;
 	
@@ -93,6 +95,8 @@ public:
 	inline const tart::program_ptr& im2col(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mIm2colProgram; }
 	
 	inline const tart::program_ptr& interpolate2d(const tart::device_ptr& device) { return getAllPrograms(device, {}).mInterpolate2dProgram; }
+	
+	inline const tart::program_ptr& nll_loss_bwd(const tart::device_ptr& device, const DataType dt, const DataType it) { return getAllPrograms(device, {dt, it}).mNullLossBwdProgram; }
 	
 	inline const tart::program_ptr& pooling(const tart::device_ptr& device) { return getAllPrograms(device, {}).mPoolingProgram; }
 	inline const tart::program_ptr& global_pooling(const tart::device_ptr& device) { return getAllPrograms(device, {}).mGlobalPoolingProgram; }
