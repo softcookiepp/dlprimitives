@@ -79,7 +79,7 @@ layout(push_constant, std430) uniform compute
 #endif                
 };
           
-void main()
+void compute_impl()
 {
     uint feature = get_global_id(1);
     if(feature >= channels)

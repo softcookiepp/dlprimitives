@@ -17,3 +17,8 @@
 #endif
 
 #include "compute_template.glsl"
+
+void main()
+{
+	compute_impl();
+}

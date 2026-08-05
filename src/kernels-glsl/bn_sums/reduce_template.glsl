@@ -60,7 +60,7 @@ layout(push_constant, std430) uniform reduce
 #endif
 };
 
-void main()
+void reduce_impl()
 {
     uint f = get_global_id(1);
     if(f >= channels)
