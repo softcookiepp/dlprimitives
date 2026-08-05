@@ -171,23 +171,7 @@ namespace core {
         int items_per_wi = (sm_range + wg_size - 1) / wg_size;
         
         Context ctx(e);
-		#if 1
-			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().nll_loss_fwd(ctx.device(), x.dtype(), lbl.dtype());
-		#else
-			std::string itype;
-			switch(lbl.dtype())
-			{
-				case int32_data: itype = "int"; break;
-				case int64_data: itype = "int64_t"; break;
-				case float_data: itype = "float"; break;
-				default: throw NotImplementedError("Unsupported type");
-			}
-			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"nll_loss_fwd",
-								//"WG_SIZE",wg_size,
-								//"ITEMS_PER_WI",items_per_wi,
-								//"REDUCE",int(reduce),
-								"itype",itype);
-		#endif
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().nll_loss_fwd(ctx.device(), x.dtype(), lbl.dtype());
 		
         tart::kernel_ptr kernel = prog->getKernel("nll_loss_forward");
         Shape in_shape = x.shape();
