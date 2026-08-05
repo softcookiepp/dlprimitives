@@ -58,21 +58,21 @@ namespace core {
             utils = gpu::Cache::instance().get_program(ctx,"bn_utils");
             if(second_reduce_ > 1)
             {
-				sums_ = fwd_sums->getKernel("compute");
+				sums_ = fwd_sums->getKernel("compute_reduce");
                 sums_reduce_ = fwd_sums->getKernel("reduce");
             }
             else
             {
-				sums_ = fwd_sums->getKernel("compute");
+				sums_ = fwd_sums->getKernel("compute_no_reduce");
 			}
             
             if(second_reduce_ > 1) {
-				dyx_sums_ = bwd_sums->getKernel("compute_bwd");
+				dyx_sums_ = bwd_sums->getKernel("compute_bwd_reduce");
                 dyx_sums_reduce_ = bwd_sums->getKernel("reduce_bwd");
             }
             else
             {
-				dyx_sums_ = bwd_sums->getKernel("compute_bwd");
+				dyx_sums_ = bwd_sums->getKernel("compute_bwd_no_reduce");
 			}
 
             update_sums_ = utils->getKernel("update_sums");
