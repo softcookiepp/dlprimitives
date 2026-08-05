@@ -14,7 +14,6 @@ namespace core {
     void activation_forward(Tensor &x,Tensor &y,StandardActivations activation, ExecutionContext const &ec)
     {
         Context ctx(ec);
-		// tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"activation");
 		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().activation(ctx.device());
         tart::kernel_ptr k = prog->getKernel("activation");
         int p=0;

@@ -15,7 +15,7 @@ layout(constant_id = 2) const uint POOL_MODE = 1;
 
 layout(push_constant, std430) uniform global_pooling_bwd
 {
-	uint items; uint over; float scale;
+	uint items; uint over; dtype scale;
 #if USE_BDA
 	__global const dtype *x; // readonly
 #endif

@@ -102,8 +102,8 @@ public:
 	inline const tart::program_ptr& nll_loss_bwd(const tart::device_ptr& device, const DataType dt, const DataType it) { return getAllPrograms(device, {dt, it}).mNullLossBwdProgram; }
 	inline const tart::program_ptr& nll_loss_fwd(const tart::device_ptr& device, const DataType dt, const DataType it) { return getAllPrograms(device, {dt, it}).mNullLossFwdProgram; }
 	
-	inline const tart::program_ptr& pooling(const tart::device_ptr& device) { return getAllPrograms(device, {}).mPoolingProgram; }
-	inline const tart::program_ptr& global_pooling(const tart::device_ptr& device) { return getAllPrograms(device, {}).mGlobalPoolingProgram; }
+	inline const tart::program_ptr& pooling(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mPoolingProgram; }
+	inline const tart::program_ptr& global_pooling(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mGlobalPoolingProgram; }
 	
 	inline const tart::program_ptr& random(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mRandomProgram; }
 	inline const tart::program_ptr& scal(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mScalProgram; }

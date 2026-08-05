@@ -16,7 +16,7 @@ layout(push_constant, std430) uniform global_pooling
 {
 	uint items;
 	uint over;
-	float scale;
+	dtype scale;
 #if USE_BDA
 	__global dtype *inp;
 #endif

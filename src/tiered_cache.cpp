@@ -52,9 +52,6 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		mAxpbyProgram = gpu::Cache::instance().get_program(ctx,"axpby");
 		
 		mInterpolate2dProgram = gpu::Cache::instance().get_program(ctx, "interpolate_2d");
-		
-		mPoolingProgram = gpu::Cache::instance().get_program(ctx, "pooling");
-		mGlobalPoolingProgram = gpu::Cache::instance().get_program(ctx, "global_pooling");
 	}
 	else if (dtypes.size() == 1)
 	{
@@ -70,7 +67,11 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		
 		mFwdBiasProgram = gpu::Cache::instance().get_program(ctx, "fwd_bias", "dtype", dt.glsl());
 		
+		mGlobalPoolingProgram = gpu::Cache::instance().get_program(ctx, "global_pooling", "dtype", dt.glsl());
+		
 		mIm2colProgram = Cache::instance().get_program(ctx, "im2col_torch", "dtype", dt.glsl());
+		
+		mPoolingProgram = gpu::Cache::instance().get_program(ctx, "pooling", "dtype", dt.glsl());
 		
 		mRandomProgram = Cache::instance().get_program(ctx, "random", "dtype", dt.glsl());
 		mScalProgram = Cache::instance().get_program(ctx, "random", "dtype", dt.glsl());

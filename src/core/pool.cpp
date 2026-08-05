@@ -24,9 +24,8 @@ namespace core {
 			mIncludePad(inc_pad),
 			scal_(ctx,dt)
 		{
-			DLPRIM_CHECK(dt == float_data);
 			wg_size_ = 8;
-				tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(ctx.device());
+				tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(ctx.device(), dt);
 			kernel_ = prog->getKernel("pooling");
 			bwd_kernel_ = prog->getKernel("pooling_bw");
 		}
@@ -145,7 +144,6 @@ namespace core {
 		GlobalPoolingFWBWImpl(Context &ctx,bool avg,Shape const &sh,DataType dt=float_data) 
 		{
 			avg_ = avg;
-			DLPRIM_CHECK(dt == float_data);
 			DLPRIM_CHECK(sh.size() == 4);
 			int sm_range = sh[2]*sh[3];
 			if(sm_range <= 64)
@@ -155,7 +153,11 @@ namespace core {
 			else 
 				wg_size_ = 256;
 			items_per_wi_ = (sm_range + wg_size_ - 1) / wg_size_;
-			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"global_pooling");
+			#if 1
+				tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().global_pooling(ctx.device(), dt);
+			#else
+				tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"global_pooling");
+			#endif
 			kernel_ = prog->getKernel("global_pooling");
 			kernel_bwd_ = prog->getKernel("global_pooling_bwd");
 			sm_range_ = sm_range;
