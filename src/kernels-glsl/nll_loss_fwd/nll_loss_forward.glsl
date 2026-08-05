@@ -38,9 +38,7 @@ layout(push_constant, std430) uniform nll_loss_forward
 	dtype scale;
 };
 
-//#if REDUCE == 1
-    REDUCE_PREPARE(WG_SIZE, dtype);
-//#endif
+REDUCE_PREPARE(WG_SIZE, dtype);
 
 void main()
 {
@@ -49,31 +47,35 @@ void main()
     uint outp_ = outp_offset;
     
     uint item = get_local_id(0) * ITEMS_PER_WI;
-    #if REDUCE == 1
     dtype sum = 0;
-    #endif
 
     UNROLL(ITEMS_PER_WI)
-    for(uint i=0;i<ITEMS_PER_WI;i++,item++) {
-        if(item < batch) {
+    for(uint i=0;i<ITEMS_PER_WI;i++,item++)
+    {
+        if(item < batch)
+        {
             uint index = uint(label[item + label_]);
             dtype loss_value = 0;
             if(0<= index && index < channels) {
                 loss_value = -data[item*channels + index + data_];
             }
-            #if REDUCE==0
-            outp[item + outp_] = loss_value * scale;
-            #else
-            sum += loss_value;
-            #endif
+            if (REDUCE == 0)
+            {
+				outp[item + outp_] = loss_value * scale;
+			}
+            else
+            {
+				sum += loss_value;
+			}
         }
     }
-#if REDUCE == 1
-    my_work_group_reduce_add(sum, WG_SIZE);
-    if(get_local_id(0) == 0) {
-        outp[outp_] = sum * scale;
-    }
-#endif
+	if (REDUCE == 1)
+	{
+		my_work_group_reduce_add(sum, WG_SIZE);
+		if(get_local_id(0) == 0) {
+			outp[outp_] = sum * scale;
+		}
+	}
 }
 
 
