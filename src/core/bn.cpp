@@ -47,13 +47,11 @@ namespace core {
             
 			tart::program_ptr
             fwd_sums = gpu::Cache::instance().get_program(ctx,
-                        "bn_sums",
-                        "SECOND_REDUCE_SIZE",second_reduce_);
+                        "bn_sums");
 
 			tart::program_ptr
             bwd_sums = gpu::Cache::instance().get_program(ctx,
-                        "bn_sums",
-                        "SECOND_REDUCE_SIZE",second_reduce_);
+                        "bn_sums");
 			tart::program_ptr
             utils = gpu::Cache::instance().get_program(ctx,"bn_utils");
             if(second_reduce_ > 1)
@@ -117,7 +115,7 @@ namespace core {
             if(second_reduce_ <= 1) {
                 mean.set_arg(sums_,p);
                 var.set_arg(sums_,p);
-				sums_->enqueue({1, features_}, {wg_});
+				sums_->enqueue({1, features_}, {wg_, second_reduce_});
             }
             else {
                 Tensor x_sum = ws.sub_tensor(0,Shape(second_reduce_,features_),dt_);
@@ -135,9 +133,9 @@ namespace core {
 
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
-				sums_->enqueue({second_reduce_,features_}, {wg_});
-				e.queue()->sync();
-				sums_reduce_->enqueue({1, features_}, {});
+				sums_->enqueue({second_reduce_,features_}, {wg_, second_reduce_});
+				//e.queue()->sync();
+				sums_reduce_->enqueue({1, features_}, {second_reduce_});
             }
         }
         
@@ -339,7 +337,7 @@ namespace core {
             if(second_reduce_ <= 1) {
                 dyx_sum.set_arg(dyx_sums_,p);
                 dy_sum.set_arg(dyx_sums_,p);
-				dyx_sums_->enqueue({1, features_}, {wg_});
+				dyx_sums_->enqueue({1, features_}, {wg_, second_reduce_});
             }
             else {
                 Tensor s1 = ws.sub_tensor(0,Shape(second_reduce_,features_),dt_);
@@ -356,8 +354,8 @@ namespace core {
 
                 auto e1 = e.generate_series_context(0,2);
                 auto e2 = e.generate_series_context(1,2);
-				dyx_sums_->enqueue({second_reduce_, features_}, {wg_});
-				dyx_sums_reduce_->enqueue({1, features_}, {});
+				dyx_sums_->enqueue({second_reduce_, features_}, {wg_, second_reduce_});
+				dyx_sums_reduce_->enqueue({1, features_}, {second_reduce_});
             }
         }
 

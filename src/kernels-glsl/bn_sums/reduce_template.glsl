@@ -3,15 +3,12 @@
 #define USE_SPEC_CONSTANTS 1
 #include "../common/reduce2.glsl"
 
-#ifndef SECOND_REDUCE_SIZE
-#define SECOND_REDUCE_SIZE 1
-#endif
-
 #ifndef BACKWARD
 #define BACKWARD 0
 #endif
 
-layout(local_size_x = SECOND_REDUCE_SIZE, local_size_y = 1, local_size_z = 1) in;
+layout(constant_id = 0) const uint SECOND_REDUCE_SIZE = 1;
+layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
 
 #if USE_BDA == 0
 	layout(binding = 0, std430) readonly buffer s1_buf { float s1[]; };
