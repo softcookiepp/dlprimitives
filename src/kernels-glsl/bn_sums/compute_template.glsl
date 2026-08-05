@@ -7,11 +7,7 @@
 #endif
 
 #ifndef REQUIRES_REDUCE
-	#if SECOND_REDUCE_SIZE > 1
-		#define REQUIRES_REDUCE 1
-	#else
-		#define REQUIRES_REDUCE 0
-	#endif
+	#error "REQUIRES_REDUCE must be defined prior to including template"
 #endif
 
 #ifndef BACKWARD
