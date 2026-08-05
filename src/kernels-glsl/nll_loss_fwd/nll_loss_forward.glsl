@@ -38,9 +38,9 @@ layout(push_constant, std430) uniform nll_loss_forward
 	dtype scale;
 };
 
-#if REDUCE == 1
+//#if REDUCE == 1
     REDUCE_PREPARE(WG_SIZE, dtype);
-#endif
+//#endif
 
 void main()
 {

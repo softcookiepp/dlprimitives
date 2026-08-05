@@ -45,6 +45,7 @@ class AllPrograms
 	tart::program_ptr mInterpolate2dProgram = nullptr;
 	
 	tart::program_ptr mNullLossBwdProgram = nullptr;
+	tart::program_ptr mNullLossFwdProgram = nullptr;
 	
 	tart::program_ptr mPoolingProgram = nullptr;
 	tart::program_ptr mGlobalPoolingProgram = nullptr;
