@@ -27,6 +27,9 @@ class AllPrograms
 	tart::program_ptr mActivationProgram = nullptr;
 	tart::program_ptr mAxpbyProgram = nullptr;
 	
+	tart::program_ptr mBnSumsProgram = nullptr;
+	tart::program_ptr mBnUtilsProgram = nullptr;
+	
 	tart::program_ptr mCopyProgram = nullptr;
 	
 	tart::program_ptr mCopyStridedProgram = nullptr;
@@ -68,6 +71,9 @@ public:
 	
 	inline const tart::program_ptr& activation(const tart::device_ptr& device) { return getAllPrograms(device, {}).mActivationProgram; }
 	inline const tart::program_ptr& axpby(const tart::device_ptr& device) { return getAllPrograms(device, {}).mAxpbyProgram; }
+	
+	inline const tart::program_ptr& bn_sums(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mBnSumsProgram; }
+	inline const tart::program_ptr& bn_utils(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mBnUtilsProgram; }
 	
 	inline const tart::program_ptr& copy(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mCopyProgram; }
 	

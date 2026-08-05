@@ -51,8 +51,6 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		mActivationProgram = gpu::Cache::instance().get_program(ctx,"activation");
 		mAxpbyProgram = gpu::Cache::instance().get_program(ctx,"axpby");
 		
-		
-		
 		mInterpolate2dProgram = gpu::Cache::instance().get_program(ctx, "interpolate_2d");
 		
 		mPoolingProgram = gpu::Cache::instance().get_program(ctx, "pooling");
@@ -62,6 +60,9 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 	{
 		tart::DType dt = data_type_to_tart_dtype(dtypes[0]);
 		mCopyProgram = gpu::Cache::instance().get_program(ctx, "copy", "dtype", dt.glsl());
+		
+		mBnSumsProgram = gpu::Cache::instance().get_program(ctx, "bn_sums", "dtype", dt.glsl());
+		mBnUtilsProgram = gpu::Cache::instance().get_program(ctx, "bn_utils", "dtype", dt.glsl());
 				
 		mCol2imProgram = Cache::instance().get_program(ctx, "col2im_torch", "dtype", dt.glsl());
 		mIm2colProgram = Cache::instance().get_program(ctx, "im2col_torch", "dtype", dt.glsl());

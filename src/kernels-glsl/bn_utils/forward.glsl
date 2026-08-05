@@ -5,29 +5,29 @@
 
 
 #if USE_BDA == 0
-	layout(binding = 0, std430) readonly buffer x_buf { float x[]; };
-	layout(binding = 1, std430) buffer y_buf { float y[]; };
-	layout(binding = 2, std430) readonly buffer A_buf { float A[]; };
-	layout(binding = 3, std430) readonly buffer B_buf { float B[]; };
+	layout(binding = 0, std430) readonly buffer x_buf { dtype x[]; };
+	layout(binding = 1, std430) buffer y_buf { dtype y[]; };
+	layout(binding = 2, std430) readonly buffer A_buf { dtype A[]; };
+	layout(binding = 3, std430) readonly buffer B_buf { dtype B[]; };
 #endif
 
 layout(push_constant, std430) uniform forward
 {
 	uint batches; uint channels; uint HW;
 	#if USE_BDA
-		__global float const *x;
+		__global dtype const *x;
 	#endif
 	uint  x_offset;
 	#if USE_BDA
-		__global float *y;      
+		__global dtype *y;      
 	#endif
 	uint  y_offset;
 	#if USE_BDA
-		__global float const *A;
+		__global dtype const *A;
 	#endif
 	uint A_offset;
 	#if USE_BDA
-		__global float const *B;
+		__global dtype const *B;
 	#endif
 	uint B_offset;
 };

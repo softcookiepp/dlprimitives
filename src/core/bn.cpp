@@ -7,6 +7,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/core/bn.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
 
 #include <iostream>
 
@@ -45,30 +46,19 @@ namespace core {
                 ws_ += second_reduce_ * 2 * size_of_data_type(dtype) * features_;
             }
             
-			tart::program_ptr
-            fwd_sums = gpu::Cache::instance().get_program(ctx, "bn_sums");
-
-			tart::program_ptr
-            bwd_sums = gpu::Cache::instance().get_program(ctx, "bn_sums");
-			tart::program_ptr
-            utils = gpu::Cache::instance().get_program(ctx, "bn_utils");
+			tart::program_ptr sums = gpu::PerDeviceProgramCache::instance().bn_sums(ctx.device(), dtype);
+			tart::program_ptr utils = gpu::PerDeviceProgramCache::instance().bn_utils(ctx.device(), dtype);
             if(second_reduce_ > 1)
             {
-				sums_ = fwd_sums->getKernel("compute_reduce");
-                sums_reduce_ = fwd_sums->getKernel("reduce");
+				sums_ = sums->getKernel("compute_reduce");
+                sums_reduce_ = sums->getKernel("reduce");
+                dyx_sums_ = sums->getKernel("compute_bwd_reduce");
+                dyx_sums_reduce_ = sums->getKernel("reduce_bwd");
             }
             else
             {
-				sums_ = fwd_sums->getKernel("compute_no_reduce");
-			}
-            
-            if(second_reduce_ > 1) {
-				dyx_sums_ = bwd_sums->getKernel("compute_bwd_reduce");
-                dyx_sums_reduce_ = bwd_sums->getKernel("reduce_bwd");
-            }
-            else
-            {
-				dyx_sums_ = bwd_sums->getKernel("compute_bwd_no_reduce");
+				sums_ = sums->getKernel("compute_no_reduce");
+				dyx_sums_ = sums->getKernel("compute_bwd_no_reduce");
 			}
 
             update_sums_ = utils->getKernel("update_sums");
