@@ -7,6 +7,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/core/activation.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
 #include <iostream>
 
 namespace dlprim {
@@ -231,8 +232,7 @@ namespace core {
         DLPRIM_CHECK(dy.dtype() == dx.dtype());
 
         Context ctx(e);
-        tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"nll_loss_bwd", "dtype", data_type_to_tart_dtype(dx.dtype()).glsl(), "itype", data_type_to_tart_dtype(lbl.dtype()).glsl());
-        
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().nll_loss_bwd(ctx.device(), dx.dtype(), lbl.dtype());
         tart::kernel_ptr kernel = prog->getKernel("nll_loss_backward");
         Shape in_shape = dx.shape();
         int p = 0;
