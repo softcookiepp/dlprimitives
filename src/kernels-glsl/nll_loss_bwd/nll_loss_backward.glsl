@@ -39,11 +39,8 @@ void main()
         return;
     uint index = uint(label[b + label_]);
     uint offset = b*channel + c;
-#if REDUCE == 1
     uint dyoffset = 0;
-#else
-    uint dyoffset = b;
-#endif    
+    if (REDUCE == 0) dyoffset = b;
     dtype dxval = (c == index) ? -scale * dy[dyoffset + dy_] : 0;
     if(factor == 0)
         dx[offset + dx_] = dxval;
