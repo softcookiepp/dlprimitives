@@ -14,11 +14,11 @@ layout(push_constant, std430) uniform fwd_bias
 #if USE_BDA
 	dtype_addr_rw tensor;
 #endif
-	ulong tensor_offset;
+	uint tensor_offset;
 #if USE_BDA
 	dtype_addr_ro bias;
 #endif
-	ulong bias_offset;
+	uint bias_offset;
 };
 
 void main()

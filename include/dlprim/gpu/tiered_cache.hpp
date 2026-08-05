@@ -30,11 +30,16 @@ class AllPrograms
 	tart::program_ptr mBnSumsProgram = nullptr;
 	tart::program_ptr mBnUtilsProgram = nullptr;
 	
+	tart::program_ptr mBwdBiasProgram = nullptr;
+	
 	tart::program_ptr mCopyProgram = nullptr;
 	
 	tart::program_ptr mCopyStridedProgram = nullptr;
 	
 	tart::program_ptr mCol2imProgram = nullptr;
+	
+	tart::program_ptr mFwdBiasProgram = nullptr;
+	
 	tart::program_ptr mIm2colProgram = nullptr;
 	
 	tart::program_ptr mInterpolate2dProgram = nullptr;
@@ -75,11 +80,16 @@ public:
 	inline const tart::program_ptr& bn_sums(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mBnSumsProgram; }
 	inline const tart::program_ptr& bn_utils(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mBnUtilsProgram; }
 	
+	inline const tart::program_ptr& bwd_bias(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mBwdBiasProgram; }
+	
 	inline const tart::program_ptr& copy(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mCopyProgram; }
 	
 	inline const tart::program_ptr& copy_strided(const tart::device_ptr& device, const DataType dtSrc, const DataType dtTgt) { return getAllPrograms(device, {dtSrc, dtTgt}).mCopyStridedProgram; }
 	
 	inline const tart::program_ptr& col2im(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mCol2imProgram; }
+	
+	inline const tart::program_ptr& fwd_bias(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mFwdBiasProgram; }
+	
 	inline const tart::program_ptr& im2col(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mIm2colProgram; }
 	
 	inline const tart::program_ptr& interpolate2d(const tart::device_ptr& device) { return getAllPrograms(device, {}).mInterpolate2dProgram; }

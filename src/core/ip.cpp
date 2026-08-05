@@ -9,6 +9,7 @@
 #include <dlprim/core/bias.hpp>
 #include <dlprim/gpu/gemm.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
 
 namespace dlprim {
 namespace core {
@@ -145,10 +146,10 @@ namespace core {
             two_stage_reduction_(false),
             dt_(dt)
         {
-            DLPRIM_CHECK(dt == float_data);
             int total_size = batch_ * rows_columns_;
             two_stage_reduction_ = false;
-
+			
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().bwd_bias(ctx.device(), dt);
             if(total_size > 256 * 16) {
                 two_stage_reduction_ = true;
                 wg_ = 256;
@@ -162,8 +163,6 @@ namespace core {
                 else
                     wg2_ = 64;
                 items_per_wi2_ = (size2_ + wg2_ - 1) / wg2_;
-				tart::program_ptr
-				prog = gpu::Cache::instance().get_program(ctx,"bwd_bias");
 				kernel2_ = prog->getKernel("bwd_bias");
             }
             else {
@@ -178,7 +177,6 @@ namespace core {
                 items_per_wi_ = (total_size + wg_ - 1) / wg_;
 
             }
-			tart::program_ptr prog = gpu::Cache::instance().get_program(ctx, "bwd_bias");
             kernel_ = prog->getKernel("bwd_bias");
 
         }
@@ -272,11 +270,10 @@ namespace core {
     {
         Context ctx(e);
 
-        DLPRIM_CHECK(t.dtype() == float_data);
         DLPRIM_CHECK(t.shape().size() >= 2);
         DLPRIM_CHECK(t.shape()[1] == bias.shape().total_size());
 
-		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"fwd_bias");
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().fwd_bias(ctx.device(), t.dtype());
         tart::kernel_ptr k = prog->getKernel("fwd_bias");
 
         Shape const &s = t.shape();
