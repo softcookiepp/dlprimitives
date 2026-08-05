@@ -15,61 +15,61 @@ layout(constant_id = 1) const uint SECOND_REDUCE_SIZE = 1;
 layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
 
 #if USE_BDA == 0
-	layout(binding = 0, std430) readonly buffer x_buf { float x[]; };
+	layout(binding = 0, std430) readonly buffer x_buf { dtype x[]; };
 	#if BACKWARD == 1
-		layout(binding = 1, std430) readonly buffer dy_buf { float dy[]; };
-		layout(binding = 2, std430) buffer dyx_sum_buf { float dyx_sum[]; };
-		layout(binding = 3, std430) buffer dy_sum_buf { float dy_sum[]; };
+		layout(binding = 1, std430) readonly buffer dy_buf { dtype dy[]; };
+		layout(binding = 2, std430) buffer dyx_sum_buf { dtype dyx_sum[]; };
+		layout(binding = 3, std430) buffer dy_sum_buf { dtype dy_sum[]; };
 	#else
 		#if REQUIRES_REDUCE == 0
-			layout(binding = 1, std430) buffer x_mean_buf { float x_mean[]; };
-			layout(binding = 2, std430) buffer x_var_buf { float x_var[]; };
+			layout(binding = 1, std430) buffer x_mean_buf { dtype x_mean[]; };
+			layout(binding = 2, std430) buffer x_var_buf { dtype x_var[]; };
 		#else
-			layout(binding = 1, std430) buffer x_sum_buf { float x_sum[]; };
-			layout(binding = 2, std430) buffer x2_sum_buf { float x2_sum[]; };
+			layout(binding = 1, std430) buffer x_sum_buf { dtype x_sum[]; };
+			layout(binding = 2, std430) buffer x2_sum_buf { dtype x2_sum[]; };
 		#endif
 	#endif
 #endif
 
-REDUCE_PREPARE_X2(WG_SIZE,float);
+REDUCE_PREPARE_X2(WG_SIZE,dtype);
 
 layout(push_constant, std430) uniform compute
 {
 	int batch; int channels; int HW;
 	#if USE_BDA
-		__global float const *x,
+		__global dtype const *x,
 	#endif
 	uint x_offset;
 #if BACKWARD == 1
 	#if USE_BDA
-		__global float const *dy;
+		__global dtype const *dy;
 	#endif
 	uint dy_offset;
 	#if USE_BDA
-		__global float *dyx_sum;
+		__global dtype *dyx_sum;
 	#endif
 	uint dyx_sum_offset;
 	#if USE_BDA
-		__global float *dy_sum;
+		__global dtype *dy_sum;
 	#endif
 	uint dy_sum_offset;
 #else
 	#if REQUIRES_REDUCE == 0
 		#if USE_BDA
-			__global float *x_mean;
+			__global dtype *x_mean;
 		#endif
 		uint x_mean_offset;
 		#if USE_BDA
-			__global float *x_var;
+			__global dtype *x_var;
 		#endif
 		uint x_var_offset;
 	#else
 		#if USE_BDA
-			__global float *x_sum;
+			__global dtype *x_sum;
 		#endif
 		uint x_sum_offset;
 		#if USE_BDA
-			__global float *x2_sum;
+			__global dtype *x2_sum;
 		#endif
 		uint x2_sum_offset;
 	#endif          
@@ -88,8 +88,8 @@ void compute_impl()
     uint my_start = items_per_wg * get_global_id(0); // it is same as local id for 1stage reduce
     uint my_end   = min(my_start + items_per_wg,items);
 
-    float sum1 = 0;
-    float sum2 = 0;
+    dtype sum1 = 0;
+    dtype sum2 = 0;
     uint b  = my_start / HW;
     uint rc = my_start % HW;
 
@@ -101,12 +101,12 @@ void compute_impl()
         {
             uint pos = b*(channels * HW) + rc;
             #if BACKWARD == 1
-                float xv  =   x[pos + x_offset + (feature * HW)];
-                float dyv =  dy[pos + dy_offset + (feature * HW)];
+                dtype xv  =   x[pos + x_offset + (feature * HW)];
+                dtype dyv =  dy[pos + dy_offset + (feature * HW)];
                 sum1 += xv*dyv;
                 sum2 += dyv;
             #else
-                float val =   x[pos + x_offset + feature * HW];
+                dtype val =   x[pos + x_offset + feature * HW];
                 sum1 += val;
                 sum2 += val*val;
             #endif
@@ -137,8 +137,8 @@ void compute_impl()
             dy_sum[pos + dy_sum_offset] = sum2;
         #else
             #if REQUIRES_REDUCE == 0
-				float mean_val  = sum1 / (batch * HW);
-				float mean2_val = sum2 / (batch * HW);
+				dtype mean_val  = sum1 / (batch * HW);
+				dtype mean2_val = sum2 / (batch * HW);
 				x_mean[pos + x_mean_offset] = mean_val;
 				x_var[pos + x_var_offset] = mean2_val - mean_val*mean_val;
             #else

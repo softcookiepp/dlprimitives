@@ -51,6 +51,8 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		mActivationProgram = gpu::Cache::instance().get_program(ctx,"activation");
 		mAxpbyProgram = gpu::Cache::instance().get_program(ctx,"axpby");
 		
+		
+		
 		mInterpolate2dProgram = gpu::Cache::instance().get_program(ctx, "interpolate_2d");
 		
 		mPoolingProgram = gpu::Cache::instance().get_program(ctx, "pooling");

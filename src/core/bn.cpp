@@ -46,14 +46,12 @@ namespace core {
             }
             
 			tart::program_ptr
-            fwd_sums = gpu::Cache::instance().get_program(ctx,
-                        "bn_sums");
+            fwd_sums = gpu::Cache::instance().get_program(ctx, "bn_sums");
 
 			tart::program_ptr
-            bwd_sums = gpu::Cache::instance().get_program(ctx,
-                        "bn_sums");
+            bwd_sums = gpu::Cache::instance().get_program(ctx, "bn_sums");
 			tart::program_ptr
-            utils = gpu::Cache::instance().get_program(ctx,"bn_utils");
+            utils = gpu::Cache::instance().get_program(ctx, "bn_utils");
             if(second_reduce_ > 1)
             {
 				sums_ = fwd_sums->getKernel("compute_reduce");
