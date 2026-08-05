@@ -7,6 +7,7 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 #include "../common/defs.glsl"
+#define USE_SPEC_CONSTANTS 1
 #include "../common/reduce2.glsl"
 
 #ifndef SECOND_REDUCE_SIZE

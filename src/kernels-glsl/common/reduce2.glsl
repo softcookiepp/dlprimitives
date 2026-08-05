@@ -6,8 +6,10 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef WG_SIZE
-	#define WG_SIZE 256
+#ifndef USE_SPEC_CONSTANTS
+	#ifndef WG_SIZE
+		#define WG_SIZE 256
+	#endif
 #endif
 
 #ifndef my_get_local_wg_id
