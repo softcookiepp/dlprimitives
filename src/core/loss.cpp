@@ -229,14 +229,6 @@ namespace core {
         DLPRIM_CHECK(dx.shape().size() == 2);
         DLPRIM_CHECK(dy.shape()==(reduce ? Shape(1) : Shape(dx.shape()[0])));
         DLPRIM_CHECK(dy.dtype() == dx.dtype());
-        std::string itype;
-        switch(lbl.dtype())
-        {
-			case int32_data: itype = "int"; break;
-			case int64_data: itype = "int64_t"; break;
-			case float_data: itype = "float"; break;
-			default: throw NotImplementedError("Unsupported type");
-        }
 
         Context ctx(e);
         tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"nll_loss_bwd", "dtype", data_type_to_tart_dtype(dx.dtype()).glsl(), "itype", data_type_to_tart_dtype(lbl.dtype()).glsl());
