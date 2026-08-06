@@ -129,19 +129,30 @@ namespace core {
 
 
 
-
-    template<int size>
-    struct CLShape {
-		uint32_t s[size];
-    };
+	#if 1
+		// max supported dims is 8, at least for now.
+		struct CLShape
+		{
+			uint32_t s[8];
+		};
+	#else
+		template<int size>
+		struct CLShape {
+			uint32_t s[size];
+		};
+	#endif
 
     template<int size>
     void bind_cl_shape(tart::kernel_ptr k,int &p,Shape const &s)
     {
-        CLShape<size> cl_s;
+		#if 1
+			CLShape cl_s;
+		#else
+			CLShape<size> cl_s;
+		#endif
         for(int i=0;i<size;i++)
-            cl_s.s[i]=s[i];
-        k->setArg(p++,cl_s);
+            cl_s.s[i] = s[i];
+        k->setArg(p++, cl_s);
     }
     void bind_shape(tart::kernel_ptr k, int &p,Shape const &s)
     {

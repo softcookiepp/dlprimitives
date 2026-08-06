@@ -1,7 +1,10 @@
+#ifndef DIMS_MAX
+	#define DIMS_MAX 8
+#endif
 
 struct Shape
 {
-    uint s[DIMS];
+    uint s[DIMS_MAX];
 };
 
 
