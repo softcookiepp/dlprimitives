@@ -107,22 +107,26 @@ namespace gpu {
         }
         void set_scale(Context &ctx,StandardActivations &activation)
         {
-            if(sep_scale_ == false) {
-				tart::program_ptr
-					prog = gpu::Cache::instance().get_program(ctx,"scal");
-                scal_ = prog->getKernel("sscal");
-                if(activation != StandardActivations::identity) {
+			#if 1
+				throw std::runtime_error("this shouldn't be used");
+			#else
+				if(sep_scale_ == false) {
 					tart::program_ptr
-						prog = gpu::Cache::instance().get_program(ctx,"activation",
-                                                        "ACTIVATION",int(activation));
-					tart::kernel_ptr k = prog->getKernel("activation");
-					act_ = k;
-                    activation = StandardActivations::identity;
-                    sep_act_ = true;
-                }
+						prog = gpu::Cache::instance().get_program(ctx,"scal");
+					scal_ = prog->getKernel("sscal");
+					if(activation != StandardActivations::identity) {
+						tart::program_ptr
+							prog = gpu::Cache::instance().get_program(ctx,"activation",
+															"ACTIVATION",int(activation));
+						tart::kernel_ptr k = prog->getKernel("activation");
+						act_ = k;
+						activation = StandardActivations::identity;
+						sep_act_ = true;
+					}
 
-                sep_scale_ = true;
-            }
+					sep_scale_ = true;
+				}
+            #endif
         }
 
         void activation(size_t size, 
@@ -168,120 +172,6 @@ namespace gpu {
         StandardActivations mActivation;
     };
 
-    class StandardSGEMM : public GEMM, public StandardSGEMMBase {
-    public:
-        StandardSGEMM(  Context &ctx,
-                        bool atrans,bool btrans,
-                        int M,int N,int K,
-                        int bias,
-                        StandardActivations act,
-                        int im2col_chan = 0) : 
-                StandardSGEMMBase(ctx,M,N,K,true,false,act)
-        {
-            check_zorder(ctx,M,N);
-            tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm",
-                                        "TILE_SIZE_M",tile_size_m_,
-                                        "TILE_SIZE_N",tile_size_n_,
-                                        "BLOCK_SIZE_M",block_size_m_,
-                                        "BLOCK_SIZE_N",block_size_n_,
-                                        "TILE_SIZE_K",tile_size_k_,
-                                        "TILE_OFFSET",off_,
-                                        "BIAS",bias,
-                                        "ATRANS",int(atrans),
-                                        "BTRANS",int(btrans),
-                                        "IM2COL_OCHAN",im2col_chan,
-                                        "REDUCE_K",reduce_k_,
-                                        "ZORDER",zorder_,
-                                        "ACTIVATION",int(act));
-            kernel_ = prog->getKernel("sgemm");
-            bias_ = bias;
-        }
-        static int round_up_div(int x,int y)
-        {
-            return (x + y - 1)/y;
-        }
-        virtual void gemm(int M,int N,int K,
-						tart::buffer_ptr &a,
-						uint32_t offset_a,
-						int lda,
-						tart::buffer_ptr &b,
-						uint32_t offset_b,
-						int ldb,
-						tart::buffer_ptr &c,
-						uint32_t offset_c,
-						int ldc,
-						tart::buffer_ptr bias,
-						uint32_t bias_offset,
-                          float beta,
-                          int size_of_c,
-                          ExecutionContext const &ein)
-        {
-
-            ExecutionContext e;
-            int kernel_runs = 1 + int(sep_act_) + int(sep_scale_);
-            if(sep_scale_) {
-                scale(size_of_c,beta,c,offset_c,ein.generate_series_context(0,kernel_runs));
-                e=ein.generate_series_context(1,kernel_runs);
-                beta = 1.0;
-            }
-            else {
-                e=ein;
-            }
-            int ind=0;
-            kernel_->setArg(ind++,M);
-            kernel_->setArg(ind++,N);
-            kernel_->setArg(ind++,K);
-            kernel_->setArg(ind++,a);
-            kernel_->setArg(ind++,offset_a);
-            kernel_->setArg(ind++,lda);
-            kernel_->setArg(ind++,b);
-            kernel_->setArg(ind++,offset_b);
-            kernel_->setArg(ind++,ldb);
-            kernel_->setArg(ind++,c);
-            kernel_->setArg(ind++,offset_c);
-            kernel_->setArg(ind++,ldc);
-            kernel_->setArg(ind++,beta);
-            if(bias_) {
-                DLPRIM_CHECK(bias != nullptr);
-                kernel_->setArg(ind++,*bias);
-                kernel_->setArg(ind++,bias_offset);
-            }
-            else {
-                DLPRIM_CHECK(bias == nullptr);
-            }
-
-            int gs0,gs1,ls0,ls1;
-            calc_dims(gs0,ls0,gs1,ls1,M,N);
-			std::vector<uint32_t>
-				global,local;
-            if(reduce_k_ > 1) {
-				global = {reduce_k_,gs0/ls0,gs1/ls1};
-				local = {1,ls0,ls1};
-            }
-            else {
-				global = {gs0/ls0,gs1/ls1};
-                local =  {ls0,ls1};
-            }
-			// correct global size
-			for (size_t i = 0; i < global.size(); i += 1)
-			{
-				global[i] = global[i]/local[i];
-			}
-			// weeeeeeeeeeeeeee
-			global.resize(3, 1);
-			kernel_->enqueue(global, {});
-            
-            if(sep_act_) {
-                auto e2 = ein.generate_series_context(kernel_runs-1,kernel_runs);
-                activation(size_of_c,c,offset_c,e2);
-            }
-        }
-
-    private:
-        tart::kernel_ptr kernel_;
-        bool bias_;
-    };
-
 	class BlasBatchSGEMM
 	{
 		tart::device_ptr mDevice = nullptr;
@@ -322,224 +212,6 @@ namespace gpu {
 				batches, mDevice);
 		}
 	};
-
-    class BatchSGEMM : public StandardSGEMMBase {
-    public:
-        BatchSGEMM(     Context &ctx,
-                        bool atrans,bool btrans,
-                        int M,int N,int K,
-                        StandardActivations &act
-                        ):
-                StandardSGEMMBase(ctx,M,N,K,true,true,act)
-        {
-            DLPRIM_CHECK(act == StandardActivations::identity);
-            check_zorder(ctx,M,N);
-			tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm",
-                                        "BATCH_GEMM",1,
-                                        "TILE_SIZE_M",tile_size_m_,
-                                        "TILE_SIZE_N",tile_size_n_,
-                                        "BLOCK_SIZE_M",block_size_m_,
-                                        "BLOCK_SIZE_N",block_size_n_,
-                                        "TILE_SIZE_K",tile_size_k_,
-                                        "TILE_OFFSET",off_,
-                                        "BIAS",0,
-                                        "ATRANS",int(atrans),
-                                        "BTRANS",int(btrans),
-                                        "IM2COL_OCHAN",0,
-                                        "REDUCE_K",0,
-                                        "ZORDER",zorder_,
-                                        "ACTIVATION",0);
-			throw std::runtime_error("using this right now might be a bad idea");
-			kernel_ = prog->getKernel("sgemm");
-            bias_ = false;
-        }
-        virtual void gemm(int batches,int M,int N,int K,
-						tart::buffer_ptr a,
-						uint32_t offset_a,
-						int batch_stride_a,
-						int lda,
-						tart::buffer_ptr b,
-						uint32_t offset_b,
-						int batch_stride_b,
-						int ldb,
-						tart::buffer_ptr c,
-						uint32_t offset_c,
-                          int batch_stride_c,
-                          int ldc,
-                          float beta,
-                          ExecutionContext const &e)
-        {
-
-            int ind=0;
-            kernel_->setArg(ind++,batches);
-            kernel_->setArg(ind++,M);
-            kernel_->setArg(ind++,N);
-            kernel_->setArg(ind++,K);
-            kernel_->setArg(ind++,a);
-            kernel_->setArg(ind++,offset_a);
-            kernel_->setArg(ind++,batch_stride_a);
-            kernel_->setArg(ind++,lda);
-            kernel_->setArg(ind++,b);
-            kernel_->setArg(ind++,offset_b);
-            kernel_->setArg(ind++,batch_stride_b);
-            kernel_->setArg(ind++,ldb);
-            kernel_->setArg(ind++,c);
-            kernel_->setArg(ind++,offset_c);
-            kernel_->setArg(ind++,batch_stride_c);
-            kernel_->setArg(ind++,ldc);
-            kernel_->setArg(ind++,beta);
-           
-            int gs0,gs1,ls0,ls1;
-            calc_dims(gs0,ls0,gs1,ls1,M,N);
-			std::vector<uint32_t>  local({1,ls0,ls1});
-			std::vector<uint32_t> global({batches/local[0],gs0/local[1],gs1/local[2]});
-			kernel_->enqueue(global, {});     
-        }
-
-    private:
-		tart::kernel_ptr kernel_;
-        bool bias_;
-        bool zorder_;
-    };
-    
-    class ConvSGEMM : public GEMM, public StandardSGEMMBase {
-    public:
-        ConvSGEMM(  Context &ctx,
-                    GemmOpMode op_mode,
-                    bool atrans,bool btrans,
-                    int M,int N,int K,
-                    int kernel[2],int dilate[2],int padding[2],int stride[2],int groups,
-                    int src_channels,int src_rows,int src_cols,
-                    int tgt_rows,int tgt_cols,
-                    int bias,
-                    StandardActivations act,
-                    int im2col_chan = 0) :
-                StandardSGEMMBase(ctx,M,N,K,false,false,act)
-        {
-			tart::program_ptr prog = Cache::instance().get_program(ctx,"sgemm",
-                                        "TILE_SIZE_M",tile_size_m_,
-                                        "TILE_SIZE_N",tile_size_n_,
-                                        "BLOCK_SIZE_M",block_size_m_,
-                                        "BLOCK_SIZE_N",block_size_n_,
-                                        "TILE_SIZE_K",tile_size_k_,
-                                        "TILE_OFFSET",off_,
-                                        "BIAS",bias,
-                                        "ATRANS",int(atrans),
-                                        "BTRANS",int(btrans),
-                                        "IM2COL_OCHAN",im2col_chan,
-                                        "CONVGEMM",int(op_mode),
-                                        "KERN_H",  kernel[0], "KERN_W",kernel[1],
-                                        "DILATE_H",dilate[0], "DILATE_W",dilate[1],
-                                        "PAD_H",   padding[0],"PAD_W",padding[1],
-                                        "STRIDE_H",stride[0], "STRIDE_W",stride[1],
-                                        "GROUPS",groups,
-                                        "CHANNELS_IN",src_channels,
-                                        "SRC_COLS",src_cols,
-                                        "SRC_ROWS",src_rows,
-                                        "IMG_COLS",tgt_cols,
-                                        "IMG_ROWS",tgt_rows,
-                                        "REDUCE_K",reduce_k_,
-                                        "ACTIVATION",int(act));
-            if(op_mode == GemmOpMode::backward_data) {
-                DLPRIM_CHECK(act == StandardActivations::identity);
-                set_scale(ctx,act);
-                gemm_name_="conv_gemm_bwd_data";
-            }
-            else if(op_mode == GemmOpMode::backward_filter)
-                gemm_name_="conv_gemm_bwd_filter";
-            else
-                gemm_name_="conv_gemm";
-            kernel_ = prog->getKernel("sgemm");
-            bias_ = bias;
-            groups_ = groups;
-            md_ = int(op_mode);
-            k_ = kernel[0];
-            pad_ = padding[0];
-            s_ = stride[0];
-            ci_ = src_channels;
-            w_ = src_cols;
-        }
-        virtual void gemm(int M,int N,int K,
-						tart::buffer_ptr &a,
-						uint32_t offset_a,
-						int lda,
-						tart::buffer_ptr &b,
-						uint32_t offset_b,
-						int ldb,
-						tart::buffer_ptr &c,
-						uint32_t offset_c,
-						int ldc,
-						tart::buffer_ptr bias,
-						uint32_t bias_offset,
-                          float beta,
-                          int size_of_c,
-                          ExecutionContext const &ein)
-        {
-            ExecutionContext e;
-            int kernel_runs = 1 + int(sep_scale_) + int(sep_act_);
-            if(sep_scale_) {
-                scale(size_of_c,beta,c,offset_c,ein.generate_series_context(0,kernel_runs));
-                e=ein.generate_series_context(1,kernel_runs);
-                beta = 1.0;
-            }
-            else {
-                e=ein;
-            }
-            int ind=0;
-            kernel_->setArg(ind++,M);
-            kernel_->setArg(ind++,N);
-            kernel_->setArg(ind++,K);
-            kernel_->setArg(ind++,a);
-            kernel_->setArg(ind++,offset_a);
-            kernel_->setArg(ind++,lda);
-            kernel_->setArg(ind++,b);
-            kernel_->setArg(ind++,offset_b);
-            kernel_->setArg(ind++,ldb);
-            kernel_->setArg(ind++,c);
-            kernel_->setArg(ind++,offset_c);
-            kernel_->setArg(ind++,ldc);
-            kernel_->setArg(ind++,beta);
-            if(bias_) {
-                DLPRIM_CHECK(bias != nullptr);
-                kernel_->setArg(ind++,*bias);
-                kernel_->setArg(ind++,bias_offset);
-            }
-            else {
-                DLPRIM_CHECK(bias == nullptr);
-            }
-           
-            int ls0 = tile_size_m_ / block_size_m_;
-            int ls1 = tile_size_n_ / block_size_n_; 
-            int gs0 = round_up_div(M,tile_size_m_) * tile_size_m_ / block_size_m_;
-            int gs1 = round_up_div(N,tile_size_n_) * tile_size_n_ / block_size_n_;
-			std::vector<uint32_t> global,local;
-            if(groups_ > 1 || reduce_k_ > 1) {
-				local = {1,ls0,ls1};
-				global = { (groups_ * reduce_k_)/local[0], gs0/local[1], gs1/local[2]};
-            }
-            else {
-				local = {ls0, ls1, 1};
-				global = {gs0/ls0, gs1/ls1, 1};
-            }
-			global.resize(3, 1);
-			kernel_->enqueue(global, {});
-
-            if(sep_act_) {
-                auto e2 = ein.generate_series_context(kernel_runs-1,kernel_runs);
-                activation(size_of_c,c,offset_c,e2);
-            }
-        }
-
-    private:
-        char const *gemm_name_;
-		tart::kernel_ptr kernel_ = nullptr;
-		tart::kernel_ptr scal_ = nullptr;
-        bool bias_;
-        int groups_;
-        int md_;
-        int w_;
-        int ci_,co_,k_,pad_,s_;
-    };
 
 	// dlprim's existing GEMM kernels are too difficult for me to port to GLSL.
 	// So I am simply taking the stuff I developed for CLBlast and putting it here!
