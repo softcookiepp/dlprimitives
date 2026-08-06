@@ -19,7 +19,7 @@ Shape get_pos_broadcast(Shape limits)
 	{
 		r.s[0] = get_global_id(1);      
 		r.s[1] = get_global_id(0);      
-	{
+	}
 	else if ( DIMS == 3    )
 	{
 		r.s[0] = get_global_id(2);      
