@@ -91,20 +91,24 @@ void SoftmaxWithLoss::setup_kernel(int sm_range)
 {
     if(!setup_kernel_params(sm_range))
         return;
-    tart::program_ptr prog_fwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
-                                                            "WG_SIZE",wg_size_,
-                                                            "ITEMS_PER_WI",items_per_wi_,
-                                                            "itype",itype_,
-                                                            "CALC_LOSS",1);
-    kernel_ = prog_fwd->getKernel("softmax");
-    tart::program_ptr prog_bwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
-                                                "WG_SIZE",wg_size_,
-                                                "ITEMS_PER_WI",items_per_wi_,
-                                                "itype",itype_,
-                                                "CALC_LOSS",2);
+	#if 1
+		throw std::runtime_error("softmax_with_loss is broken right now, don't use it");
+	#else
+		tart::program_ptr prog_fwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
+																"WG_SIZE",wg_size_,
+																"ITEMS_PER_WI",items_per_wi_,
+																"itype",itype_,
+																"CALC_LOSS",1);
+		kernel_ = prog_fwd->getKernel("softmax");
+		tart::program_ptr prog_bwd = gpu::Cache::instance().get_program(ctx_,"softmax_with_loss",
+													"WG_SIZE",wg_size_,
+													"ITEMS_PER_WI",items_per_wi_,
+													"itype",itype_,
+													"CALC_LOSS",2);
 
-    kernel_bwd_ = prog_bwd->getKernel("softmax");
-    scal_.reset(new Scal(ctx_,dtype_));
+		kernel_bwd_ = prog_bwd->getKernel("softmax");
+		scal_.reset(new Scal(ctx_,dtype_));
+	#endif
 }
 
 void Softmax::reshape(std::vector<Shape> const &in,std::vector<Shape> &out,size_t &ws)
