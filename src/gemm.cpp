@@ -12,165 +12,10 @@
 #include <clblast_vk.h>
 #include <dlprim/core/pointwise.hpp>
 
-namespace dlprim {
-namespace gpu {
-    
-    class StandardSGEMMBase  {
-    public:
-        StandardSGEMMBase(Context &ctx,int M,int N,int K,bool actual_gemm,bool batch_gemm,StandardActivations &activation)
-        {
-            sep_scale_ = false;
-            sep_act_ = false;
-            batch_gemm_ = batch_gemm;
-            reduce_k_ = 1;
-			if(M >= 256 && N >= 256) {
-				tile_size_m_ = 128;
-				tile_size_n_ = 128;
-				block_size_m_ = 8;
-				block_size_n_ = 8;
-				tile_size_k_ = 16;
-				off_ = 1;
-			}
-			else if(M >= 128 && N>= 128) {
-				tile_size_m_ = 64;
-				tile_size_n_ = 64;
-				block_size_m_ = 8;
-				block_size_n_ = 8;
-				tile_size_k_ = 16;
-				off_ = 1;
-			}
-			else if(M >= 32 && N >= 32) {
-				tile_size_m_ = 32;
-				tile_size_n_ = 32;
-				block_size_m_ = 4;
-				block_size_n_ = 4;
-				tile_size_k_ = 32;
-				off_ = 0;
-			}
-			else if(M * N <= 256) {
-				tile_size_m_ = 16;
-				tile_size_n_ = 16;
-				block_size_m_ = 1;
-				block_size_n_ = 1;
-				tile_size_k_ = 128;
-				off_ = 0;
-			}
-			else {
-				tile_size_m_ = 16;
-				tile_size_n_ = 16;
-				block_size_m_ = 2;
-				block_size_n_ = 2;
-				tile_size_k_ = 64;
-				off_ = 0;
-			}
-#if 0
-            if(!batch_gemm_) {
-                int cores = ctx.estimated_core_count();
-                if(cores >= 256 && M * N / (block_size_m_ * block_size_n_) < 4 * cores && K > M*16 && K > N*16) {
-                    reduce_k_ = 8;
-                    set_scale(ctx,activation);
-                }
-            }
-#endif
-        }
-    protected:
-        static int round_up_div(int x,int y)
-        {
-            return (x + y - 1)/y;
-        }
-        void check_zorder(Context &ctx,int M,int N)
-        {
-            ///
-            /// on AMD lda % 1024==0 / ldb % 1024==0 wipes cache out - so we reorder 
-            //  all ops in Z-order/Morton order
-            ///
-            zorder_ = 0;
-        }
-        void calc_dims(int &gs0,int &ls0,int &gs1,int &ls1,int M,int N)
-        {
-            ls0 = tile_size_m_ / block_size_m_;
-            ls1 = tile_size_n_ / block_size_n_; 
-            int gr0 = round_up_div(M,tile_size_m_);
-            int gr1 = round_up_div(N,tile_size_n_);
-
-            if(zorder_) {
-                int gr = std::max(gr0,gr1);
-                int n=1;
-                while(gr > n) {
-                    n<<=1;
-                }
-                gr0 = gr1 = n;
-            }
-            
-            gs0 = gr0 * ls0;
-            gs1 = gr1 * ls1;
-        }
-        void set_scale(Context &ctx,StandardActivations &activation)
-        {
-			#if 1
-				throw std::runtime_error("this shouldn't be used");
-			#else
-				if(sep_scale_ == false) {
-					tart::program_ptr
-						prog = gpu::Cache::instance().get_program(ctx,"scal");
-					scal_ = prog->getKernel("sscal");
-					if(activation != StandardActivations::identity) {
-						tart::program_ptr
-							prog = gpu::Cache::instance().get_program(ctx,"activation",
-															"ACTIVATION",int(activation));
-						tart::kernel_ptr k = prog->getKernel("activation");
-						act_ = k;
-						activation = StandardActivations::identity;
-						sep_act_ = true;
-					}
-
-					sep_scale_ = true;
-				}
-            #endif
-        }
-
-        void activation(size_t size, 
-			tart::buffer_ptr x,
-			size_t x_offset,
-			ExecutionContext const &ec)
-        {
-			act_->setArg(0, uint32_t(size));
-			act_->setArg(1, x);
-			act_->setArg(2, x_offset);
-			act_->setArg(3, x);
-			act_->setArg(4, x_offset);
-			// TODO: ensure the global size for this isn't wrong
-			act_->enqueue({size}, {1});
-        }
-        void scale(size_t size,float s, const tart::buffer_ptr& x, uint32_t x_offset,ExecutionContext const &ec)
-        {
-            int wg = 64;
-            if(size >= 1024)
-                wg = 256;
-            int p=0;
-            scal_->setArg(p++, uint32_t(size));
-            scal_->setArg(p++, s);
-            scal_->setArg(p++, x);
-            scal_->setArg(p++, x_offset);
-			std::vector<uint32_t> l({wg});
-			std::vector<uint32_t> g = gpu::round_range(size, l);
-			g[0] = g[0]/wg;
-			g.resize(3, 1);
-			scal_->enqueue(g, {});
-        }
-        int tile_size_n_,tile_size_m_,tile_size_k_;
-        int block_size_n_,block_size_m_;
-        int off_;
-        int reduce_k_;
-        bool sep_scale_;
-        bool sep_act_;
-        bool batch_gemm_;
-        tart::kernel_ptr scal_;
-        tart::kernel_ptr act_;
-        bool zorder_ = false;
-        
-        StandardActivations mActivation;
-    };
+namespace dlprim
+{
+namespace gpu
+{
 
 	class BlasBatchSGEMM
 	{
@@ -271,14 +116,11 @@ namespace gpu {
 
     private:
 		// here we store program, since there are multiple kernels
-		tart::program_ptr mProgram = nullptr;
-		tart::program_ptr mBiasProgram = nullptr;
 		tart::device_ptr mDevice = nullptr;
 		
+		// TODO: make these all stateless.
 		clblast::Transpose mATrans;
 		clblast::Transpose mBTrans;
-		
-		const bool mSepAct = true;
 		const bool mUseBias;
     };
 
@@ -307,16 +149,8 @@ namespace gpu {
             int im2col_chan)
     {
 		// TODO: remove or something. I don't know how this will work :c
-		#if 1
-			throw std::runtime_error("YOU SHALL NOT PASS");
-			return nullptr;
-		#else
-			DLPRIM_CHECK(dtype == float_data); // for now, this will be made different later!
-			std::unique_ptr<GEMM> g = std::make_unique<BlasConvSGEMM>(ctx, op_mode,
-				trans_a, trans_b, M, N, K, kernel,dilate, padding,stride, groups,
-				src_channels, src_rows, src_cols, tgt_rows, tgt_cols, bias,act,im2col_chan);
-			return g;
-		#endif
+		throw std::runtime_error("This isn't ported to Vulkan yet, and I doubt it ever will be due to lack of design simplicity");
+		return nullptr;
     }
 
     void GEMM::batch_sgemm(DataType dt,
