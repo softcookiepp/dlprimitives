@@ -28,8 +28,7 @@ namespace core {
     }
     void Scale::enqueue(float s,Tensor &t,ExecutionContext const &ec)
     {
-		Context ctx(ec);
-		clblast::Scal<float>(t.shape().total_size(), s, t.device_buffer(), t.device_offset(), 1, ctx.device());
+		clblast::Scal<float>(t.shape().total_size(), s, t.device_buffer(), t.device_offset(), 1, tensorDevice(t));
     }
     
     void scale_tensor(float s,Tensor &t,ExecutionContext const &ec)
@@ -44,14 +43,12 @@ namespace core {
     ///
     void fill_tensor(Tensor &t,double value,ExecutionContext const &e)
     {
-        Context ctx(e);
         pointwise_operation({},{t},{value},"y0 = dtype(w0);",e);
     }
 
     void fill_random(Tensor &t, uint64_t philox_seed, uint64_t philox_seq,RandomDistribution dist,float p1,float p2,ExecutionContext const &e)
     {
-        Context ctx(e);
-        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().random(ctx.device(), t.dtype());
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().random(tensorDevice(t), t.dtype());
 		tart::kernel_ptr k = prog->getKernel("fill");
 		uint64_t total = t.shape().total_size();
         int p=0;
@@ -63,7 +60,7 @@ namespace core {
         k->setArg(p++,p2);
         
         const size_t globalSizeX = (total+3)/4;
-        auto metadata = ctx.device()->getMetadata();
+        auto metadata = tensorDevice(t)->getMetadata();
         const size_t maxWgX = metadata.physicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
         size_t targetLocalSizeX = maxWgX;
         while (targetLocalSizeX > 1)

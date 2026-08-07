@@ -157,7 +157,6 @@ void Interpolation::forward(std::vector<Tensor> &input,std::vector<Tensor> &outp
     DLPRIM_CHECK(input[0].shape().size()==4);
     DLPRIM_CHECK(output[0].shape() == calc_size(input[0].shape()));
     DLPRIM_CHECK(input[0].dtype() == output[0].dtype());
-    Context ctx(e);
     {
         core::interpolate2d(input[0],output[0],config_.scale_y,config_.scale_x,config_.method,config_.align_corners,e);
     }

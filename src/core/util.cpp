@@ -22,9 +22,9 @@ namespace core {
         DLPRIM_CHECK(shape.size() == src_strides.size());
         DLPRIM_CHECK(shape.size() == dst_strides.size());
         int dims = shape.size();
-        Context ctx(q);
+        tart::device_ptr device = src->getDevice();
         bool use_io_type = dtype_src == dtype_dst;
-        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy_strided(ctx.device(), dtype_src, dtype_dst);
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy_strided(device, dtype_src, dtype_dst);
         std::vector<uint32_t> range;
         switch(dims)
         {
@@ -64,7 +64,7 @@ namespace core {
         k->setArg(p++,dst_offset);
         
         // Ensure GPU is properly saturated
-        auto globalAndLocal = ctx.device()->chooseGlobalAndLocalSize(range);
+        auto globalAndLocal = device->chooseGlobalAndLocalSize(range);
         auto& local = globalAndLocal.second;
         
         std::vector<uint32_t> spec = {

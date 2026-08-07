@@ -13,8 +13,7 @@ namespace dlprim {
 namespace core {
     void activation_forward(Tensor &x,Tensor &y,StandardActivations activation, ExecutionContext const &ec)
     {
-        Context ctx(ec);
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().activation(ctx.device());
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().activation(tensorDevice(x));
         tart::kernel_ptr k = prog->getKernel("activation");
         int p=0;
 		uint32_t size = x.shape().total_size();
@@ -32,8 +31,7 @@ namespace core {
     }
     void activation_backward(Tensor &dx,Tensor &dy,Tensor &y,StandardActivations activation,float beta,ExecutionContext const &ec)
     {
-        Context ctx(ec);
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().activation(ctx.device());
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().activation(tensorDevice(dx));
         tart::kernel_ptr k = prog->getKernel("activation_diff");
         
         int p=0;

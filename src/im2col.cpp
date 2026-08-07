@@ -89,8 +89,7 @@ void col2im(
 	uint32_t block_num = (num_kernels - 1) / 512 + 1;
 	
 	// get the kernel
-	Context ctx(e);
-	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(ctx.device(), dtype);
+	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(data_im->getDevice(), dtype);
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im");
 
 	size_t p = 0;
@@ -146,8 +145,7 @@ void col2im_batched(
 	}
 	
 	// get the kernel
-	Context ctx(e);
-	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(ctx.device(), dtype);
+	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(data_im->getDevice(), dtype);
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im_batched");
 	
 	size_t p = 0;
