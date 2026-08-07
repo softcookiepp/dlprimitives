@@ -36,7 +36,6 @@ public:
     };
 
     struct Data {
-		tart::event_ptr event = std::make_shared<tart::Event>();
 		std::string name = "";
         int index = -1;
         int section = -1;
@@ -64,19 +63,6 @@ public:
         while(!sids_.empty())
             sids_.pop();
         events_.clear();
-    }
-    std::shared_ptr<Data> add_event(std::string name,int index=-1, tart::event_ptr ev = nullptr)
-    {
-        std::shared_ptr<Data> e(new Data());
-        if(ev)
-			e->event = ev;
-        if(!sids_.empty())
-            e->section = sids_.top();
-
-        e->name = name;
-        e->index = index;
-        events_.push_back(e);
-        return e;
     }
 
     std::vector<Section> &sections() {
@@ -127,37 +113,13 @@ class Context;
 class ExecutionContext {
 public:
     /// default constructor - can be used for CPU context
-    ExecutionContext() :
-        event_(nullptr), events_({}) {}
+    ExecutionContext() {}
 
     ///
     /// Create context from cl::CommandQueue, note no events will be waited/signaled
     ///
     ExecutionContext(tart::device_ptr dev) :
-		queue_(dev), event_(nullptr)
-    {
-    }
-    ///
-    /// Create a context with a request to signal completion event
-    ///
-    ExecutionContext(const tart::device_ptr& dev, const tart::event_ptr& event) :
-		queue_(dev), event_(event)
-    {
-    }
-
-    ///
-    /// Create a context with a request to wait for events
-    ///
-    ExecutionContext(const tart::device_ptr& dev, const std::vector<tart::event_ptr>& events) :
-        queue_(dev), event_(nullptr), events_(events)
-    {
-    }
-    ///
-    /// Create a context with a request to signal completion event and wait for events
-    ///
-    ExecutionContext(
-		const tart::device_ptr& q, const std::vector<tart::event_ptr>& events, const tart::event_ptr& event) :
-        queue_(q),event_(event),events_(events)
+		queue_(dev)
     {
     }
 
@@ -224,39 +186,16 @@ public:
         return queue_;
     }
 
-    ///
-    /// Get event to signal. Note: name is used for profiling. Such that profiling
-    /// is enabled profiling conters will be written the TimingData with the name of the
-    /// kernel you call. Optional id allows to distinguish between multiple similar calls
-    ///
-    const tart::event_ptr event(const std::string name = "unknown", int id = -1)
-    {
-        if(timing_ && !timing_->cpu_only)
-        {
-            return timing_->add_event(name,id,event_)->event;
-        }
-        return event_;
-    }
-    ///
-    /// Get events to wait for
-    ///
-	const std::vector<tart::event_ptr>& events()
-    {
-        return events_;
-    }
-
 
 private:
     ExecutionContext generate_series_context_impl(size_t id, size_t total) const
     {
-		return ExecutionContext(queue(), event_);
+		return ExecutionContext(queue());
     }
 
 
     std::shared_ptr<TimingData> timing_;
 	tart::device_ptr queue_;
-	tart::event_ptr event_;
-	std::vector<tart::event_ptr> events_;
     friend class Context;
 };
 
