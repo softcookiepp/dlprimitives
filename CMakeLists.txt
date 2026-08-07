@@ -292,9 +292,13 @@ if(NOT BUILD_CORE_ONLY)
     add_executable(test_from_template tests/test_from_template.cpp)
     add_executable(test_net tests/test_net.cpp)
     add_executable(test_json tests/json_test.cpp)
-    add_executable(dlprim_benchmark tools/benchmark.cpp)
+    
+    # benchmark uses DLPrim's OpenCL-dependent timing utility, which does not play nicely with Vulkan whatsoever.
+    # As such, it is being temporarily disabled until a replacement can be made.
+    #add_executable(dlprim_benchmark tools/benchmark.cpp)
     add_executable(image_predict examples/cpp/image_predict.cpp)
-    add_executable(mnist tests/mnist.cpp)
+    # same reason as above
+    #add_executable(mnist tests/mnist.cpp)
     add_executable(train_mnist examples/cpp/train_mnist.cpp)
     add_executable(dlprim_flops tools/flops.cpp)
     add_executable(test_random tests/test_random.cpp)
@@ -302,9 +306,9 @@ if(NOT BUILD_CORE_ONLY)
     add_executable(sanity_check tests/sanity_check.cpp)
 
     target_link_libraries(test_from_template dlprim)
-    target_link_libraries(mnist dlprim)
+    #target_link_libraries(mnist dlprim)
     target_link_libraries(train_mnist dlprim)
-    target_link_libraries(dlprim_benchmark dlprim)
+    #target_link_libraries(dlprim_benchmark dlprim)
     target_link_libraries(image_predict dlprim)
     target_link_libraries(test_json dlprim)
     target_link_libraries(dlprim_flops dlprim)
@@ -371,7 +375,7 @@ endif()
 #################
 
 if(NOT BUILD_CORE_ONLY)
-    set(EXTRA_INSTALL dlprim dlprim_benchmark dlprim_flops ${EXTRA_INSTALL})
+    set(EXTRA_INSTALL dlprim dlprim_flops ${EXTRA_INSTALL})
 endif()
 
 

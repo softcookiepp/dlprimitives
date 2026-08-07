@@ -15,70 +15,6 @@
 
 namespace dlprim {
 
-///
-/// Class used for benchmarking of the model
-///
-/// Detailed description TBD
-///
-class TimingData {
-public:
-    bool cpu_only=false;
-    typedef std::chrono::high_resolution_clock clock_type;
-    typedef std::chrono::time_point<clock_type> time_point_type;
-
-    struct Section {
-		Section(std::string n) : name(n) {}
-        Section(std::string n,time_point_type t) : name(n), start(t) {}
-		const std::string name = "unknown";
-        time_point_type start;
-        double time_sec;
-        int parent = -1;
-    };
-
-    struct Data {
-		std::string name = "";
-        int index = -1;
-        int section = -1;
-    };
-
-    void enter(const std::string& name)
-    {
-        sections_.push_back(Section(name,std::chrono::high_resolution_clock::now()));
-        if(!sids_.empty())
-            sections_.back().parent = sids_.top();
-        sids_.push(sections_.size() - 1);
-    }
-    void leave()
-    {
-        int sid = sids_.top();
-        auto now = clock_type::now();
-        auto diff = now - sections_[sid].start;
-        sections_[sid].time_sec = std::chrono::duration_cast<std::chrono::duration<double> >(diff).count();
-        sids_.pop();
-    }
-
-    void reset()
-    {
-        sections_.clear();
-        while(!sids_.empty())
-            sids_.pop();
-        events_.clear();
-    }
-
-    std::vector<Section> &sections() {
-        return sections_;
-    }
-    std::vector<std::shared_ptr<Data> > &events() {
-        return events_;
-    }
-
-private:
-    std::vector<Section> sections_;
-    std::stack<int> sids_;
-    std::vector<std::shared_ptr<Data> > events_;
-};
-
-
 class Context;
 
 ///
@@ -126,19 +62,6 @@ public:
     ExecutionContext(ExecutionContext const &) = default;
     ExecutionContext &operator=(ExecutionContext const &) = default;
 
-    bool timing_enabled() const
-    {
-        return !!timing_;
-    }
-
-    ///
-    /// Add benchmarking/traceing object data
-    ///
-    void enable_timing(std::shared_ptr<TimingData> p)
-    {
-        timing_ = p;
-    }
-
     ///
     /// Create contexts for multiple enqueues. 
     ///
@@ -149,25 +72,7 @@ public:
     ExecutionContext generate_series_context(size_t id,size_t total) const
     {
         ExecutionContext ctx = generate_series_context_impl(id,total);
-        ctx.timing_ = timing_;
         return ctx;
-    }
-
-    ///
-    /// Profiling scope enter called by ExecGuard::ExecGuard()
-    ///
-	void enter(const std::string& name) const
-    {
-        if(timing_)
-            timing_->enter(name);
-    }
-    ///
-    /// Profiling scope leave, called by ExecGuard::~ExecGuard()
-    ///
-    void leave() const
-    {
-        if(timing_)
-            timing_->leave();
     }
 
     void finish()
@@ -194,7 +99,6 @@ private:
     }
 
 
-    std::shared_ptr<TimingData> timing_;
 	tart::device_ptr queue_;
     friend class Context;
 };
@@ -274,11 +178,10 @@ public:
     void operator=(ExecGuard const &) = delete;
     ExecGuard(ExecutionContext const &ctx,char const *name) : ctx_(&ctx)
     {
-        ctx_->enter(name);
+        // this no longer does anything. sorry friends
     }
     ~ExecGuard()
     {
-        ctx_->leave();
     }
 private:
     ExecutionContext const *ctx_;
@@ -286,5 +189,4 @@ private:
 
 
 } // namespace
-/// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
