@@ -140,7 +140,7 @@ namespace dlprim {
                 copy_->tensor_slice_copy(cfg_.dim,slice,
                                          output[0],offset,
                                          input[i],0,
-                                         0.0f,q.generate_series_context(i,input.size()));
+                                         0.0f,q);
                 offset += slice;
             }
         }
@@ -171,7 +171,7 @@ namespace dlprim {
                                          input[i].diff,0,
                                          output[0].diff,offset,
                                          input[i].accumulate_gradient,
-                                         q.generate_series_context(count++,total));
+                                         q);
                 offset += slice;
             }
         }
@@ -261,14 +261,14 @@ namespace dlprim {
             int total = (input[0].accumulate_gradient != 1.0) + 1;
             int index = 0;
             if(input[0].accumulate_gradient != 1.0)
-                scale_->enqueue(input[0].accumulate_gradient,input[0].diff,q.generate_series_context(index++,total));
+                scale_->enqueue(input[0].accumulate_gradient,input[0].diff,q);
 
             size_t slice = cfg_.end - cfg_.begin;
             copy_->tensor_slice_copy(cfg_.dim,slice,
                                      input[0].diff,cfg_.begin,
                                      output[0].diff,0,
                                      1.0f,
-                                     q.generate_series_context(index++,total));
+                                     q);
         }
     }
 

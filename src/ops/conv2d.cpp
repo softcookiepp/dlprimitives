@@ -414,7 +414,7 @@ namespace dlprim {
 			std::vector<TensorAndGradient> tmp({output[0]}),empty;
 			tmp[0].requires_gradient = true;
 			tmp[0].accumulate_gradient = 0.0;
-			activation_->backward(tmp,tmp,empty,workspace,e.generate_series_context(step++,steps));
+			activation_->backward(tmp,tmp,empty,workspace, e);
 		}
 		if(config_.bias && parameters[1].requires_gradient) {
 			DLPRIM_CHECK(bwd_bias_->workspace() <= workspace.shape().total_size());
@@ -422,23 +422,22 @@ namespace dlprim {
 								parameters[1].diff,
 								workspace,
 								parameters[1].accumulate_gradient,
-								e.generate_series_context(step++,steps));
+								e);
 		}
 		if(parameters[0].requires_gradient) {
 			{
-				auto ec = e.generate_series_context(step++,steps);
 				conv_bwd_filter_->enqueue(input[0].data,parameters[0].diff,output[0].diff,
 										  workspace,
-										  parameters[0].accumulate_gradient,ec);
+										  parameters[0].accumulate_gradient,e);
 			}
 		}
 
 		if(input[0].requires_gradient) {
 			{
-				auto ec = e.generate_series_context(step++,steps);
+				auto ec = e;
 				conv_bwd_data_->enqueue(input[0].diff,parameters[0].data,output[0].diff,
 										workspace,
-										input[0].accumulate_gradient,ec);
+										input[0].accumulate_gradient, e);
 			}
 		}
 	}
@@ -651,9 +650,9 @@ namespace dlprim {
 		{
 			int total = 1 + bool(bias) + bool(activation_);
 			int p = 0;
-			conv_fwd_->enqueue(out[0],W,in[0],ws,0.0,ectx.generate_series_context(p++,total));
+			conv_fwd_->enqueue(out[0],W,in[0],ws,0.0,ectx);
 			if(bias) {
-				core::add_bias(out[0],*bias,ectx.generate_series_context(p++,total));
+				core::add_bias(out[0],*bias,ectx);
 			}
 		}
 		if(activation_) {
@@ -677,7 +676,7 @@ namespace dlprim {
 			std::vector<TensorAndGradient> tmp({output[0]}),empty;
 			tmp[0].requires_gradient = true;
 			tmp[0].accumulate_gradient = 0.0;
-			activation_->backward(tmp,tmp,empty,workspace,e.generate_series_context(step++,steps));
+			activation_->backward(tmp,tmp,empty,workspace,e);
 		}
 		if(config_.bias && parameters[1].requires_gradient) {
 			DLPRIM_CHECK(bwd_bias_->workspace() <= workspace.shape().total_size());
@@ -685,23 +684,21 @@ namespace dlprim {
 								parameters[1].diff,
 								workspace,
 								parameters[1].accumulate_gradient,
-								e.generate_series_context(step++,steps));
+								e);
 		}
 		if(parameters[0].requires_gradient) {
 			{
-				auto ec = e.generate_series_context(step++,steps);
 				conv_bwd_filter_->enqueue(output[0].diff,parameters[0].diff,input[0].data,
 										  workspace,
-										  parameters[0].accumulate_gradient,ec);
+										  parameters[0].accumulate_gradient,e);
 			}
 		}
 
 		if(input[0].requires_gradient) {
 			{
-				auto ec = e.generate_series_context(step++,steps);
 				conv_bwd_data_->enqueue(output[0].diff,parameters[0].data,nullptr,input[0].diff,
 										workspace,
-										input[0].accumulate_gradient,ec);
+										input[0].accumulate_gradient,e);
 			}
 		}
 	}

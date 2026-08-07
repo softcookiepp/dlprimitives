@@ -62,19 +62,6 @@ public:
     ExecutionContext(ExecutionContext const &) = default;
     ExecutionContext &operator=(ExecutionContext const &) = default;
 
-    ///
-    /// Create contexts for multiple enqueues. 
-    ///
-    /// The idea is simple if we have events to signal and wait for and multiple
-    /// kernels to execute, the first execution id == 0 should provide list of events
-    /// to wait if id == total - 1, give event to signal
-    ///
-    ExecutionContext generate_series_context(size_t id,size_t total) const
-    {
-        ExecutionContext ctx = generate_series_context_impl(id,total);
-        return ctx;
-    }
-
     void finish()
     {
         if(queue_)
@@ -93,11 +80,6 @@ public:
 
 
 private:
-    ExecutionContext generate_series_context_impl(size_t id, size_t total) const
-    {
-		return ExecutionContext(queue());
-    }
-
 
 	tart::device_ptr queue_;
     friend class Context;

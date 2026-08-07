@@ -79,8 +79,8 @@ namespace dlprim { namespace core {
     void interpolate2d_backward(Tensor &dx,Tensor &dy,double scale_y,double scale_x,InterpolateType method,bool align_corners,float factor,ExecutionContext const &e)
     {
         if(method == InterpolateType::bilinear) {
-            scale_tensor(factor,dx,e.generate_series_context(0,2));
-            interpolate2d_intern(dx,dy,scale_y,scale_x,method,align_corners,e.generate_series_context(1,2),false);
+            scale_tensor(factor, dx, e);
+            interpolate2d_intern(dx,dy,scale_y,scale_x,method,align_corners, e, false);
             return;
         }
         float offset = 0;

@@ -145,14 +145,6 @@ void Elementwise::backward_gpu( Tensor &a,Tensor &da,
 								ExecutionContext const &e)
 
 {
-	ExecutionContext ec_l,ec_r;
-	if(left && right) {
-		ec_l = e.generate_series_context(0,2);
-		ec_r = e.generate_series_context(1,2);
-	}
-	else {
-		ec_l = ec_r = e;
-	}
 	if(bwd_both_ && left && right) {
 		switch(config_.op) {
 		case ElementwiseConfig::elementwise_sum:
@@ -178,17 +170,17 @@ void Elementwise::backward_gpu( Tensor &a,Tensor &da,
 		case ElementwiseConfig::elementwise_sum:
 				bwd_l_->enqueue({c,dc},{da},ws,
 								   {config_.coeff[0]},
-								   {1},{beta_a},ec_l);
+								   {1},{beta_a},e);
 			break;
 		case ElementwiseConfig::elementwise_prod:
 				bwd_l_->enqueue({c,dc,b},{da},ws,
 								   {config_.coeff[0]*config_.coeff[1]},
-								   {1},{beta_a},ec_l);
+								   {1},{beta_a},e);
 			break;
 		case ElementwiseConfig::elementwise_max:
 				bwd_l_->enqueue({c,dc,a,b},{da},ws,
 								   {config_.coeff[0],config_.coeff[1]},
-								   {1},{beta_a},ec_l);
+								   {1},{beta_a},e);
 		}
 	}
 	
@@ -197,17 +189,17 @@ void Elementwise::backward_gpu( Tensor &a,Tensor &da,
 		case ElementwiseConfig::elementwise_sum:
 				bwd_r_->enqueue({c,dc},{db},ws,
 								   {config_.coeff[1]},
-								   {1},{beta_b},ec_r);
+								   {1},{beta_b},e);
 			break;
 		case ElementwiseConfig::elementwise_prod:
 				bwd_r_->enqueue({c,dc,a},{db},ws,
 								   {config_.coeff[0]*config_.coeff[1]},
-								   {1},{beta_b},ec_r);
+								   {1},{beta_b},e);
 			break;
 		case ElementwiseConfig::elementwise_max:
 				bwd_r_->enqueue({c,dc,a,b},{db},ws,
 								   {config_.coeff[0],config_.coeff[1]},
-								   {1},{beta_b},ec_r);
+								   {1},{beta_b},e);
 		}
 	}
 }

@@ -207,8 +207,6 @@ namespace core {
                 float_ws.set_arg(kernel_,p);
                 kernel_->setArg(p++,size2_);
                 kernel_->setArg(p++,0.0f);
-                auto ec1 = e.generate_series_context(0,2);
-                auto ec2 = e.generate_series_context(1,2);
                 g.resize(3, 1);
                 kernel_->enqueue(g, spec);
                 p=0;

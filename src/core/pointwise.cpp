@@ -432,12 +432,10 @@ namespace core {
 				kernel_->enqueue(glob, wg_range_);
             }
             else {
-                auto e1 = e.generate_series_context(0,2);
-                auto e2 = e.generate_series_context(1,2);
                 kernel_->enqueue(glob, wg_range_);
                 DLPRIM_CHECK(second_stage_->workspace() == 0);
                 Tensor tmp;
-                second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e2);
+                second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e);
             }
         }
 

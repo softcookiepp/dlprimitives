@@ -261,8 +261,6 @@ namespace core {
             out.set_arg(conv_,p);
 			conv_->setArg(p++,factor);
 
-            auto ec1 = ec.generate_series_context(0,2);
-            auto ec2 = ec.generate_series_context(1,2);
 			std::vector<uint32_t> l1({8,8});
             std::vector<uint32_t> g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
             g1[0] = g1[0]/l1[0];
@@ -342,10 +340,6 @@ namespace core {
         }
         virtual void enqueue(Tensor &dx,Tensor &K,Tensor &dy,Tensor &ws_bytes,float factor,ExecutionContext const &ec)
         {
-            auto ec1 = ec.generate_series_context(0,3);
-            auto ec2 = ec.generate_series_context(1,3);
-            auto ec3 = ec.generate_series_context(2,3);
-
             int B = dx.shape()[0];
             int N = config_.channels_out;
             int C = dx.shape()[1];
@@ -369,7 +363,7 @@ namespace core {
             ws.set_arg(bw_conv_data_,p);
             dy.set_arg(bw_conv_data_,p);
             
-            s_.enqueue(factor,dx,ec1);
+            s_.enqueue(factor,dx,ec);
 
             std::vector<uint32_t> l1({8,8});
             std::vector<uint32_t> g1 = gpu::round_range(config_.channels_out,config_.channels_in,l1);
@@ -441,9 +435,7 @@ namespace core {
             int g2 = (N+31)/32;
             std::vector<uint32_t> gr({g1, g2, reduce_k_ ? 8 : 1});
             if(reduce_k_) {
-                ExecutionContext ec1 = ec.generate_series_context(0,2);
-                ExecutionContext ec2 = ec.generate_series_context(1,2);
-                s_.enqueue(factor,dK,ec1);
+                s_.enqueue(factor,dK,ec);
                 gr.resize(3, 1);
                 bw_conv_filter_->enqueue(gr, wg);
             }
@@ -551,10 +543,8 @@ namespace core {
             int total = 1;
             if(factor != 1.0f ) {
                 total++;
-                ExecutionContext ec1 = ec.generate_series_context(0,2);
-                s_.enqueue(factor,dx,ec1);
+                s_.enqueue(factor,dx, ec);
             }
-            ExecutionContext ec2 = ec.generate_series_context(1,total);
             int batch = dx.shape()[0];
             int height = dx.shape()[2];
             int width = dx.shape()[3];
@@ -685,8 +675,6 @@ namespace core {
 				bw_conv_filter_->enqueue(gr, wg);
             }
             else  {
-                auto ec1 = ec.generate_series_context(0,2);
-                auto ec2 = ec.generate_series_context(1,2);
 				gr.resize(3, 1);
 				bw_conv_filter_->enqueue(gr, wg);
                 p=0;

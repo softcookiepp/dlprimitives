@@ -109,28 +109,25 @@ namespace dlprim {
         {
             {
                 Tensor mean,var;
-                ExecutionContext elast;
                 if(mode() == CalculationsMode::train && !config_.use_global_stats) {
                     int M = input[0].shape().total_size() / config_.features;
                     bn_gpu_->enqueue_calculate_batch_stats(
                             input[0],
                             current_mean_,current_var_,
-                            ws,e.generate_series_context(0,3));
+                            ws,e);
 
                     bn_gpu_->enqueue_update_running_stats(
                             config_.momentum,(1.0f-config_.momentum),
                             current_mean_,parameters[0],
                             (config_.momentum * M) / (M-1),(1.0f-config_.momentum),
                             current_var_,parameters[1],
-                            ws,e.generate_series_context(1,3));
+                            ws,e);
                     mean = current_mean_;
                     var = current_var_;
-                    elast = e.generate_series_context(2,3);
                 }
                 else  {
                     mean = parameters.at(0);
                     var  = parameters.at(1);
-                    elast = e;
                 }
                 if(config_.affine) {
                     bn_gpu_->enqueue_forward_affine(
@@ -138,14 +135,14 @@ namespace dlprim {
                             parameters.at(2),parameters.at(3),
                             mean,var,
                             config_.eps,
-                            ws,e.generate_series_context(2,3));
+                            ws,e);
                 }
                 else {
                     bn_gpu_->enqueue_forward_direct(
                             input[0],output[0],
                             mean,var,
                             config_.eps,
-                            ws,e.generate_series_context(2,3));
+                            ws,e);
                 }
             }
         }

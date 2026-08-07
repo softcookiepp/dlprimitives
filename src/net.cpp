@@ -838,13 +838,12 @@ namespace dlprim {
         ExecGuard g(e,"forward");
         for(size_t i=0;i<connections_.size();i++) {
             ExecGuard g(e,connections_[i].name.c_str());
-            ExecutionContext ec = e.generate_series_context(i,connections_.size());
             connections_[i].op->forward(
                 connections_[i].input_tensors,
                 connections_[i].output_tensors,
                 connections_[i].parameters,
                 workspace_,
-                ec);
+                e);
             if(sync)
                 e.queue()->sync();
         }
@@ -855,7 +854,6 @@ namespace dlprim {
         ExecGuard g(e,"backward");
         for(int i=connections_.size() - 1,it=0;i >= 0;i--,it++) {
             ExecGuard g(e,connections_[i].name.c_str());
-            ExecutionContext ec = e.generate_series_context(it,connections_.size());
             if(connections_[i].gradient_flags != 3)
                 continue;
             connections_[i].op->backward(
@@ -863,7 +861,7 @@ namespace dlprim {
                 connections_[i].out_grad,
                 connections_[i].param_grad,
                 workspace_,
-                ec);
+                e);
             if(sync) {
                 e.queue()->sync();
             }

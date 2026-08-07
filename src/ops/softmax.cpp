@@ -141,11 +141,10 @@ void SoftmaxWithLoss::forward_gpu_loss(Tensor &input,Tensor &label, Tensor &outp
     label.set_arg(kernel_,p);
     output.set_arg(kernel_,p);
 
-    scal_->scale(0,output,ctx.generate_series_context(0,2));
+    scal_->scale(0,output,ctx);
     
     std::vector<uint32_t> gr({in_shape[0], nd_range_/wg_size_});
     std::vector<uint32_t> wg({1, wg_size_});
-    auto ec = ctx.generate_series_context(1, 2);
     kernel_->enqueue(gr, wg);
 }
 

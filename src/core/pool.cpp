@@ -80,14 +80,7 @@ namespace core {
 
 			int p=0;
 
-			auto ec1 = ex.generate_series_context(0,2);
-			auto ec2 = ex.generate_series_context(1,2);
-			
-			#if 0
-				scal_.enqueue(factor,dx,ec1);
-			#else
-				scale_tensor(factor, dx, ec1);
-			#endif
+			scale_tensor(factor, dx, ex);
 			bwd_kernel_->setArg(p++,bc);
 			bwd_kernel_->setArg(p++,in_h);
 			bwd_kernel_->setArg(p++,in_w);

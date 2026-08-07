@@ -168,22 +168,20 @@ namespace dlprim {
             std::vector<TensorAndGradient> tmp({output[0]}),empty;
             tmp[0].requires_gradient = true;
             tmp[0].accumulate_gradient = 0.0;
-            activation_->backward(tmp,tmp,empty,ws,e.generate_series_context(step++,steps));
+            activation_->backward(tmp,tmp,empty,ws,e);
         }
         if(config_.bias && parameters[1].requires_gradient) {
             bwd_bias_->backward(output[0].diff,
                                 parameters[1].diff,
                                 ws,
                                 parameters[1].accumulate_gradient,
-                                e.generate_series_context(step++,steps));
+                                e);
         }
         if(parameters[0].requires_gradient) {
-            auto ec = e.generate_series_context(step++,steps);
-                bwd_weights_ip_->enqueue(input[0].data,parameters[0].diff,output[0].diff,parameters[0].accumulate_gradient,ec);
+			bwd_weights_ip_->enqueue(input[0].data,parameters[0].diff,output[0].diff,parameters[0].accumulate_gradient,e);
         }
         if(input[0].requires_gradient) {
-            auto ec = e.generate_series_context(step++,steps);
-            bwd_ip_->enqueue(input[0].diff,parameters[0].data,output[0].diff,input[0].accumulate_gradient,ec);
+            bwd_ip_->enqueue(input[0].diff,parameters[0].data,output[0].diff,input[0].accumulate_gradient,e);
         }
 
     }
