@@ -28,8 +28,7 @@ void im2col(const ExecutionContext& e,
 	const uint32_t data_col_offset, // new arg
 	const DataType dtype)
 {
-	Context ctx(e);
-	tart::program_ptr prg = PerDeviceProgramCache::instance().im2col(ctx.device(), dtype);
+	tart::program_ptr prg = PerDeviceProgramCache::instance().im2col(data_im->getDevice(), dtype);
 	tart::kernel_ptr im2colKernel = prg->getKernel("im2col");
 	
 	const uint32_t num_kernels = channels * height_col * width_col;

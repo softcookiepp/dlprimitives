@@ -323,6 +323,8 @@ namespace dlprim {
         return out;
     }
 
+inline tart::device_ptr tensorDevice(Tensor& t) { return t.device_buffer()->getDevice(); }
+
 }
 /// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 

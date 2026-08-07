@@ -43,8 +43,7 @@ namespace dlprim { namespace core {
             }
         }
         
-        Context ctx(e);
-        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().interpolate2d(ctx.device());
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().interpolate2d(tensorDevice(x));
         tart::kernel_ptr k = prog->getKernel(bilinear ? "bilinear" : "nearest_fwd");
         int bc = x_shape[0]*x_shape[1];
         int p=0;
@@ -104,8 +103,7 @@ namespace dlprim { namespace core {
             DLPRIM_CHECK(tgtW == int(srcW * scale_x));
         }
         
-        Context ctx(e);
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().interpolate2d(ctx.device());
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().interpolate2d(tensorDevice(dx));
 		tart::kernel_ptr k = prog->getKernel("nearest_bwd");
 
         int bc = x_shape[0]*x_shape[1];
