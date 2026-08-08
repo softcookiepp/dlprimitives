@@ -28,7 +28,7 @@ namespace dlprim {
             shape_(s),
             dtype_(d)
         {
-            is_trainable_ = trainable && is_floating_point_data_type(d);
+            is_trainable_ = trainable && data_type_to_tart_dtype(d).isFloatingPoint();
         }
         
         bool operator==(TensorSpecs const &other) const
