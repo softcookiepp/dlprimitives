@@ -234,6 +234,8 @@ namespace core {
         DLPRIM_CHECK(!xs.empty());
         DLPRIM_CHECK(!ys.empty());
         DLPRIM_CHECK(ws.size() == dts.size());
+        
+        tart::device_ptr device = tensorDevice(xs[0]);
 
         std::vector<Shape> shapes(xs.size() + ys.size());
         for(size_t i=0;i<xs.size();i++)
@@ -246,7 +248,6 @@ namespace core {
 
 
         DataType target_type = ys[0].dtype();
-        Context ctx(e);
         Shape ref = shapes[xs.size()]; // ys[0]
         for(size_t i=0;i<ys.size();i++) {
             DLPRIM_CHECK(shapes[i + xs.size()] == ref);
@@ -291,7 +292,7 @@ namespace core {
 
         loads << '\n';
         saves <<'\n';
-		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(),  "pointwise_broadcast",
+		tart::program_ptr prog = gpu::Cache::instance().get_program(device,  "pointwise_broadcast",
                                                                            "DIMS",ref.size(),
                                                                            "$TYPEDEFS", typeDefs.str(),
                                                                            "#BUFFER_DEFS", bufferDefs.str(),
@@ -300,7 +301,6 @@ namespace core {
                                                                            "#SAVES",saves.str(),
                                                                            "#CALC",format_code(code));
         tart::kernel_ptr k = prog->getKernel("exec");
-        tart::device_ptr device = prog->getDevice();
         int p=0;
         bind_shape(k,p,ref);
         for(size_t i=0;i<xs.size();i++) {
