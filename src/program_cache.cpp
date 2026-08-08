@@ -43,11 +43,15 @@ Cache &Cache::instance()
 
 tart::program_ptr Cache::get_program(Context &ctx,std::string const &source,std::vector<Parameter> const &params)
 {
-    std::string key = make_key(ctx,source,params);
+	std::string key = make_key(ctx.device(), source, params);
     std::unique_lock<std::mutex> g(mutex_);
     auto p = cache_.find(key);
     if(p == cache_.end()) {
-        auto prg = build_program(ctx,source,params);
+		#if 1
+			auto prg = build_program(ctx, source, params);
+		#else
+			auto prg = build_program(ctx,source,params);
+		#endif
         cache_[key]=prg;
     }
     return cache_[key];
@@ -118,10 +122,9 @@ tart::program_ptr Cache::build_program(Context  &ctx,std::string const &source,s
 	// end
 }
 
-
-std::string Cache::make_key(Context &ctx,std::string const &src,std::vector<Parameter> const &params)
+std::string Cache::make_key(const tart::device_ptr& device,std::string const &src,std::vector<Parameter> const &params)
 {
-	std::uintptr_t ctx_ptr = (std::uintptr_t)(ctx.device().get());
+	std::uintptr_t ctx_ptr = (std::uintptr_t)(device.get());
     std::ostringstream ss;
     ss << "prg:" << ctx_ptr <<  "@" << src <<  "/?";
     for(size_t i=0;i<params.size();i++) {

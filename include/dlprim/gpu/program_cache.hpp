@@ -114,7 +114,7 @@ namespace dlprim {
 			static tart::program_ptr
 				build_program(Context &ctx,std::string const &source,std::vector<Parameter> const &params);
         private:
-            static std::string make_key(Context &ctx,std::string const &src,std::vector<Parameter> const &params);
+			static std::string make_key(const tart::device_ptr& device, std::string const &src,std::vector<Parameter> const &params);
             std::unordered_map<std::string,
 				tart::program_ptr
 				> cache_;
