@@ -258,7 +258,6 @@ namespace core {
             strides[i] = shapes[i].broadcast_strides(ref);
         }
         
-        // TODO: rewrite this to not be vulkan-only. oops!
         size_t bindingIndex = 0;
 		std::stringstream bufferDefs;
 		std::stringstream typeDefs;
