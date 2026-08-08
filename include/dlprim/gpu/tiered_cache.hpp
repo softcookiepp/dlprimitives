@@ -10,12 +10,22 @@ namespace dlprim
 
 namespace gpu
 {
-	
+
+// The fundamental distinguishing factor of each pointwise op.
+typedef struct PointwiseOpKey
+{
+	std::vector<DataType> xtypes;
+	std::vector<DataType> ytypes;
+	std::string code;
+} PointwiseOpKey;
+
 class PointwiseCache
 {
+	
 public:
 	PointwiseCache(const tart::device_ptr& device);
 	
+	tart::program_ptr getPointwiseOperation();
 };
 
 class PerDeviceProgramCache;
