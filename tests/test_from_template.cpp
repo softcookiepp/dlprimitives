@@ -101,7 +101,7 @@ void copy_tensors(std::vector<dp::Tensor> &out,std::vector<dp::Tensor> &inp,dp::
     for(size_t i=0;i<out.size();i++) {
         TESTEQ(out[i].shape(),inp[i].shape());
         TESTEQ(out[i].dtype(),inp[i].dtype());
-        size_t len = dp::size_of_data_type(out[i].dtype()) * out[i].shape().total_size();
+        size_t len = dp::data_type_to_tart_dtype(out[i].dtype()).size() * out[i].shape().total_size();
         memcpy(out[i].host_data(),inp[i].host_data(),len);
         out[i].to_device(q,true);
     }

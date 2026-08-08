@@ -25,7 +25,7 @@ namespace core {
 			features_ = s[1];
 			int total = s.total_size() / features_;
 			int second_size = (total + 255) / 256;
-			ws_ = features_ * size_of_data_type(dtype) * 5; // two sums + fdy+ fdx+ off
+			ws_ = features_ * data_type_to_tart_dtype(dtype).size() * 5; // two sums + fdy+ fdx+ off
 			if(second_size < 64) {
 				if(total >= 256)
 					wg_ = 256;
@@ -43,7 +43,7 @@ namespace core {
 					second_reduce_ = 128;
 				else
 					second_reduce_ = 64;
-				ws_ += second_reduce_ * 2 * size_of_data_type(dtype) * features_;
+				ws_ += second_reduce_ * 2 * data_type_to_tart_dtype(dtype).size() * features_;
 			}
 			
 			tart::program_ptr sums = gpu::PerDeviceProgramCache::instance().bn_sums(ctx.device(), dtype);
@@ -172,8 +172,8 @@ namespace core {
 		{
 			split_ws_to_a_b(ws,a,b);
 
-			size_t msize = ws.shape().total_size() * size_of_data_type(ws.dtype());
-			size_t items = msize / size_of_data_type(dt_);
+			size_t msize = ws.shape().total_size() * data_type_to_tart_dtype(ws.dtype()).size();
+			size_t items = msize / data_type_to_tart_dtype(dt_).size();
 			rest = ws.sub_tensor_target_offset(features_ * 2,Shape(items - features_ * 2),dt_);
 		}
 		void split_ws_to_a_b(Tensor &ws,Tensor &a,Tensor &b)

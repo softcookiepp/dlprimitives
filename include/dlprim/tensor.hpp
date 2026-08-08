@@ -81,7 +81,7 @@ namespace dlprim {
         ///
         size_t memory_size() const
         {
-            return shape_.total_size() * size_of_data_type(dtype_);
+            return shape_.total_size() * data_type_to_tart_dtype(dtype_).size();
         }
 
 
@@ -160,7 +160,7 @@ namespace dlprim {
         ///
         size_t memory_size() const
         {
-            return shape().total_size() * size_of_data_type(dtype());
+            return shape().total_size() * data_type_to_tart_dtype(dtype()).size();
         }
 
 
@@ -203,7 +203,7 @@ namespace dlprim {
         ///
         Tensor workspace_as_type(DataType d=float_data) const
         {
-            size_t size = memory_size() / size_of_data_type(d);
+            size_t size = memory_size() / data_type_to_tart_dtype(d).size();
             return sub_tensor(0,Shape(size),d);
         }
         
@@ -217,8 +217,8 @@ namespace dlprim {
         ///
         Tensor sub_tensor_target_offset(size_t offset,Shape const &s,DataType d=float_data,bool trainable = true) const
         {
-            size_t bytes = offset * size_of_data_type(d);
-            int this_sizeof = size_of_data_type(dtype());
+            size_t bytes = offset * data_type_to_tart_dtype(d).size();
+            int this_sizeof = data_type_to_tart_dtype(dtype()).size();
             DLPRIM_CHECK(bytes % this_sizeof == 0);
             return sub_tensor(bytes / this_sizeof,s,d,trainable);
         }

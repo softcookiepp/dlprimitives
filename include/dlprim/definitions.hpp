@@ -259,15 +259,23 @@ namespace dlprim {
         }
 	}
     
-    inline std::string data_type_to_opencl_param_type(DataType dt)
-    {
-        return data_type_to_tart_dtype(dt,false,true).glsl();
-    }
-
+    #if 1
+		inline std::string data_type_to_opencl_param_type(DataType dt)
+		{
+			return data_type_to_tart_dtype(dt,false,true).glsl();
+		}
+	#else
+		inline std::string data_type_to_opencl_param_type(DataType dt)
+		{
+			return data_type_to_tart_dtype(dt,false,true).glsl();
+		}
+	#endif
+	#if 0
     constexpr int size_of_data_type(DataType d)
     {
         return 1 << ((d & 0x7) - 1);
     }
+    #endif
 
     /// Maximal number of dimensions in tensor
     static constexpr int max_tensor_dim = 8;

@@ -163,7 +163,7 @@ public:
                 double total = double(A.total_size()) 
                                + double(B.total_size())
                                + double(C.total_size());
-                total *= dp::size_of_data_type(dtype);
+                total *= dp::data_type_to_tart_dtype(dtype).size();
                 double op_per_sec = total / ref_.bps;
                 double target_calls = 2 / op_per_sec;
                 int calls = std::max(5,std::min(200,int(target_calls)));
