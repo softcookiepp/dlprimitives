@@ -46,19 +46,16 @@ tart::program_ptr Cache::get_program(Context &ctx,std::string const &source,std:
 	std::string key = make_key(ctx.device(), source, params);
     std::unique_lock<std::mutex> g(mutex_);
     auto p = cache_.find(key);
-    if(p == cache_.end()) {
-		#if 1
-			auto prg = build_program(ctx, source, params);
-		#else
-			auto prg = build_program(ctx,source,params);
-		#endif
+    if(p == cache_.end())
+    {
+		auto prg = build_program(ctx.device(), source, params);
         cache_[key]=prg;
     }
     return cache_[key];
 
 }
 
-tart::program_ptr Cache::build_program(Context  &ctx,std::string const &source,std::vector<Parameter> const &params)
+tart::program_ptr Cache::build_program(const tart::device_ptr& device, std::string const &source,std::vector<Parameter> const &params)
 {
 	// std::cout << "	Getting program: " << source << std::endl;
 	auto ks = kernel_sources.find(source);
@@ -91,7 +88,8 @@ tart::program_ptr Cache::build_program(Context  &ctx,std::string const &source,s
 				throw std::runtime_error("dtype cannot be empty");
         }
     }
-    tart::DeviceMetadata meta = ctx.device()->getMetadata();
+    
+	tart::DeviceMetadata meta = device->getMetadata();
     // storage extensions
     if (meta.half_ || meta.short_) prepend << "#extension GL_EXT_shader_16bit_storage : require\n";
     if(meta.char_) prepend << "#extension GL_EXT_shader_8bit_storage : require\n";
@@ -109,7 +107,7 @@ tart::program_ptr Cache::build_program(Context  &ctx,std::string const &source,s
 	for (auto& pair : entryPointMap)
 	{
 		const std::string src = "#version 450\n" + (combine ? prepend.str() + pair.second : pair.second);
-		entryPointModules[pair.first] = ctx.device()->compileGLSL(src, options, pair.first);
+		entryPointModules[pair.first] = device->compileGLSL(src, options, pair.first);
 	}
 	
     #ifdef DEBUG_CACHE_TIMES
@@ -117,7 +115,7 @@ tart::program_ptr Cache::build_program(Context  &ctx,std::string const &source,s
     #endif
     
 	// this may be more complicated than I thought :c
-	tart::program_ptr prg = ctx.device()->createProgram(entryPointModules);
+	tart::program_ptr prg = device->createProgram(entryPointModules);
 	return prg;
 	// end
 }

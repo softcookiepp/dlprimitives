@@ -98,21 +98,41 @@ namespace dlprim {
 
             template<typename Val,typename... Args>
 			static tart::program_ptr
+			#if 1
+				build_program(const tart::device_ptr& device, std::string const &source,std::string const &n1,Val const &v1,Args...args)
+			#else
 				build_program(Context  &ctx,std::string const &source,std::string const &n1,Val const &v1,Args...args)
+			#endif
             {
                 std::vector<Parameter> p;
                 fill_params(p,n1,v1,args...);
-                return build_program(ctx,source,p);
+                #if 1
+					return build_program(device, source,p);
+				#else
+					return build_program(ctx,source,p);
+				#endif
             }
             
 			static tart::program_ptr
+			#if 1
+				build_program(const tart::device_ptr& device, std::string const &source)
+			#else
 				build_program(Context  &ctx,std::string const &source)
+			#endif
             {
                 std::vector<Parameter> p;
-                return build_program(ctx,source,p);
+				#if 1
+					return build_program(device, source,p);
+				#else
+					return build_program(ctx,source,p);
+				#endif
             }
 			static tart::program_ptr
+			#if 1
+				build_program(const tart::device_ptr& device, std::string const &source,std::vector<Parameter> const &params);
+			#else
 				build_program(Context &ctx,std::string const &source,std::vector<Parameter> const &params);
+			#endif
         private:
 			static std::string make_key(const tart::device_ptr& device, std::string const &src,std::vector<Parameter> const &params);
             std::unordered_map<std::string,
