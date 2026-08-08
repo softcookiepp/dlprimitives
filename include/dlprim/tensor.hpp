@@ -26,7 +26,8 @@ namespace dlprim {
         ///
         TensorSpecs(Shape const &s=Shape(),DataType d=float_data,bool trainable = true) :
             shape_(s),
-            dtype_(d)
+            dtype_(d),
+            mDtype(data_type_to_tart_dtype(d))
         {
             is_trainable_ = trainable && data_type_to_tart_dtype(d).isFloatingPoint();
         }
@@ -89,10 +90,13 @@ namespace dlprim {
         {
             return dtype_;
         }
+        
+        tart::DType tDtype() const { return mDtype; }
     private:
         friend class Tensor;
         Shape shape_;
         DataType dtype_;
+        tart::DType mDtype;
         bool is_trainable_;
     };
 
@@ -169,6 +173,7 @@ namespace dlprim {
             return specs_->dtype();
         }
         
+		tart::DType tDtype() const { return specs_->tDtype(); }
 
         ///
         /// Reshape the tensor, the only requirement that ns.total_size() <= shape().total_size()

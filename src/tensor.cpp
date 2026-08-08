@@ -77,37 +77,37 @@ namespace dlprim {
 
     void Tensor::to_device(ExecutionContext const &c,void *p,bool sync)
     {
-		buffer_->copyIn(p, memory_size(), offset_ * data_type_to_tart_dtype(dtype()).size());
+		buffer_->copyIn(p, memory_size(), offset_ * tDtype().size());
     }
 
     void Tensor::to_device(ExecutionContext const &c,bool sync)
     {
-		buffer_->copyIn(host_data(), memory_size(), offset_ * data_type_to_tart_dtype(dtype()).size());
+		buffer_->copyIn(host_data(), memory_size(), offset_ * tDtype().size());
     }
     void Tensor::to_host(ExecutionContext const &c, void *p,bool sync)
     {
         {
-			buffer_->copyOut(p, memory_size(), offset_ * data_type_to_tart_dtype(dtype()).size());
+			buffer_->copyOut(p, memory_size(), offset_ * tDtype().size());
 		}
     }
     void Tensor::to_host(ExecutionContext const &c,bool sync)
     {
 		// all buffer copies in tart are sync, sorry :c
-		buffer_->copyOut(host_data(), memory_size(), offset_ * data_type_to_tart_dtype(dtype()).size());
+		buffer_->copyOut(host_data(), memory_size(), offset_ * tDtype().size());
     }
 
     Tensor Tensor::sub_tensor(size_t offset,Shape const &s,DataType d,bool trainable) const
     {
-        size_t offset_bytes = offset * data_type_to_tart_dtype(dtype()).size();
-        DLPRIM_CHECK(shape().total_size()*data_type_to_tart_dtype(dtype()).size() >= s.total_size() * data_type_to_tart_dtype(d).size());
-        DLPRIM_CHECK((offset_ * data_type_to_tart_dtype(dtype()).size() + offset_bytes) % data_type_to_tart_dtype(d).size() == 0);
+        size_t offset_bytes = offset * tDtype().size();
+        DLPRIM_CHECK(shape().total_size()*tDtype().size() >= s.total_size() * data_type_to_tart_dtype(d).size());
+        DLPRIM_CHECK((offset_ * tDtype().size() + offset_bytes) % data_type_to_tart_dtype(d).size() == 0);
         Tensor r;
         r.specs_.reset(new TensorSpecs(s,d,trainable));
         r.host_ = host_;
         r.buffer_ = buffer_;
         r.capacity_ = r.memory_size();
         r.full_capacity_ = full_capacity_;
-        r.offset_ = (offset_ * data_type_to_tart_dtype(dtype()).size()  + offset_bytes) / data_type_to_tart_dtype(d).size();
+        r.offset_ = (offset_ * tDtype().size()  + offset_bytes) / data_type_to_tart_dtype(d).size();
         return r;
     }
 
@@ -118,7 +118,7 @@ namespace dlprim {
 		{
 			host_->alloc(full_capacity_);
 		}
-		return (char*)(host_->mHostMem.data()) + offset_ * data_type_to_tart_dtype(dtype()).size();
+		return (char*)(host_->mHostMem.data()) + offset_ * tDtype().size();
     }
 };
 /// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
