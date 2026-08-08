@@ -38,7 +38,13 @@ namespace core {
                              std::string const &code,
                              ExecutionContext const &e)
     {
-        Context ctx(e);
+        tart::device_ptr device = nullptr;
+        if (xs.size() > 0)
+			device = tensorDevice(xs[0]);
+		else if (ys.size() > 0)
+			device = tensorDevice(ys[0]);
+		else
+			throw std::runtime_error("no tensors provided!");
         Shape ref;
         DataType ref_type = float_data;
         DLPRIM_CHECK(xs.size() + ys.size() > 0);
@@ -100,7 +106,7 @@ namespace core {
             else
                 code_fixed << code[i];
 		tart::DType refT = data_type_to_tart_dtype(ref_type);
-        tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(), "pointwise",
+        tart::program_ptr prog = gpu::Cache::instance().get_program(device, "pointwise",
                                                                            "dtype", refT.glsl(),
                                                                            "#BUFFER_DEFS", bufferDefs.str(),
                                                                            "#PARAMS",params.str(),
@@ -119,7 +125,7 @@ namespace core {
             bind_as_dtype(k,p,w,ref_type);
             
 		// this should at least keep things safe. There is almost certainly a better way to do this.
-		std::vector<uint32_t> local({ctx.device()->getMetadata().maxComputeWorkGroupSize[0], 1, 1});
+		std::vector<uint32_t> local({device->getMetadata().maxComputeWorkGroupSize[0], 1, 1});
 		uint32_t global = 1;
 		if (total > 0)
 			global = (local[0] / total) + 1;
@@ -129,27 +135,17 @@ namespace core {
 
 
 
-	#if 1
-		// max supported dims is 8, at least for now.
-		struct CLShape
-		{
-			uint32_t s[8];
-		};
-	#else
-		template<int size>
-		struct CLShape {
-			uint32_t s[size];
-		};
-	#endif
+	
+	// max supported dims is 8, at least for now.
+	struct CLShape
+	{
+		uint32_t s[8];
+	};
 
     template<int size>
     void bind_cl_shape(tart::kernel_ptr k,int &p,Shape const &s)
     {
-		#if 1
-			CLShape cl_s;
-		#else
-			CLShape<size> cl_s;
-		#endif
+		CLShape cl_s;
         for(int i=0;i<size;i++)
             cl_s.s[i] = s[i];
         k->setArg(p++, cl_s);
