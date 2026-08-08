@@ -252,20 +252,6 @@ namespace dlprim {
 			throw NotImplementedError("Unsupported data type");
 		#endif
     }
-    
-    
-    
-    #if 1
-		inline std::string data_type_to_opencl_param_type(DataType dt)
-		{
-			return data_type_to_tart_dtype(dt,false,true).glsl();
-		}
-	#else
-		inline std::string data_type_to_opencl_param_type(DataType dt)
-		{
-			return data_type_to_tart_dtype(dt,false,true).glsl();
-		}
-	#endif
 
     /// Maximal number of dimensions in tensor
     static constexpr int max_tensor_dim = 8;

@@ -92,7 +92,7 @@ namespace core {
 			bindingIndex += 1;
 		}
 		
-		std::string param_dtype = data_type_to_opencl_param_type(ref_type);
+		std::string param_dtype = data_type_to_tart_dtype(ref_type, false, true).glsl();
 		for (size_t i = 0; i < ws.size(); i += 1)
 		{
 			params << param_dtype << " w" << i << "; ";
@@ -284,7 +284,7 @@ namespace core {
         typeDefs << "#define target_type " << data_type_to_tart_dtype(target_type).glsl() << "\n";
 
         for(size_t i=0;i<ws.size();i++) {
-            std::string type = data_type_to_opencl_param_type(dts[i]);
+            std::string type = data_type_to_tart_dtype(dts[i], false, true).glsl();
             params << type << " w" << i << "; ";
             typeDefs << "#define typeof_w" << i << " " << type << "\n";
         }
@@ -519,7 +519,7 @@ namespace core {
 
             for(size_t i=0;i<ys.size();i++) {
                 std::string type = data_type_to_tart_dtype(ys[i].dtype()).glsl();
-                std::string ptype = data_type_to_opencl_param_type(ys[i].dtype());
+                std::string ptype = data_type_to_tart_dtype(ys[i].dtype(), false, true).glsl();
                 std::string suffix_out = "(" + type + "," + ptype + "," + std::to_string(i) + ") ";
                 std::string suffix_out_buf = "(" + type + "," + ptype + "," + std::to_string(i) + ", " + std::to_string(bindIndex) + ") ";
                 std::string suffix = "(" + type + "," + std::to_string(i) + ") ";
@@ -537,7 +537,7 @@ namespace core {
             REDUCE_INIT_ALL << format_code(reduce_init) << "\n";
 
             for(size_t i=0;i<params_count_;i++) {
-                std::string type = data_type_to_opencl_param_type(target_type_);
+                std::string type = data_type_to_tart_dtype(target_type_, false, true).glsl();
                 PARAMS << type << " w" << i <<"; ";
                 TYPE_DEFS << "#define typeof_w" << i << " " << type << "\n";
             }
