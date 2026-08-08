@@ -435,7 +435,7 @@ namespace core {
             }
         }
 
-        PointwiseOperationBroadcastReduceImpl(  Context &ctx,
+        PointwiseOperationBroadcastReduceImpl(  const tart::device_ptr& device,
                                                 std::vector<TensorSpecs> xs,
                                                 std::vector<TensorSpecs> ys,
                                                 int weights_count,DataType weights_type,
@@ -445,6 +445,8 @@ namespace core {
         {
             DLPRIM_CHECK(!xs.empty());
             DLPRIM_CHECK(!ys.empty());
+            
+            //tart::device_ptr device = tensorDevice(xs);
 
             std::vector<Shape> shapes(xs.size() + ys.size());
             for(size_t i=0;i<xs.size();i++)
@@ -595,7 +597,7 @@ namespace core {
                         ws_size_ += size;
                     }
                     second_stage_.reset(new PointwiseOperationBroadcastReduceImpl(
-                        ctx,big_ys,small_ys,0,float_data,
+                        device, big_ys,small_ys,0,float_data,
                         code.str(),reduce_init,reduce));
                         
                 }
@@ -613,7 +615,7 @@ namespace core {
 #ifdef DEBUG_2STAGE
             std::cerr << "Items per thread/wg_size/nd_range:" << items_per_wi << "/" << wg_size << "/" << nd_range<< std::endl;
 #endif            
-            tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(),  "pointwise_broadcast_reduce",
+            tart::program_ptr prog = gpu::Cache::instance().get_program(device,  "pointwise_broadcast_reduce",
                                                                                "REDUCE_DIMS",reduce_dims.size(),
                                                                                "SMALL_REDUCTION",small_reduction,
                                                                                "DIMS",ref.size(),
@@ -694,7 +696,7 @@ namespace core {
                     std::string const &reduce)
     {
         std::unique_ptr<PointwiseOperationBroadcastReduce> r(new PointwiseOperationBroadcastReduceImpl(
-                    ctx,xs,ys,
+                    ctx.device(),xs,ys,
                     weights_count,weights_type,
                     compute_code,reduce_init,reduce));
         return r;
