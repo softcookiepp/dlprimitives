@@ -81,7 +81,7 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		tart::DType dt1 = data_type_to_tart_dtype(dtypes[1], use_io_type);
 		
 		// avoid compilation errors
-		if (is_floating_point_data_type(dtypes[1]))
+		if (dt1.isFloatingPoint())
 		{
 			mCopyStridedProgram = gpu::Cache::instance().get_program(device, "copy_strided", "dtype_src", dt0.glsl(), "dtype_tgt", dt1.glsl() );
 		}
