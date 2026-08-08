@@ -836,14 +836,14 @@ FlopsStats get_flops(std::string device, double scale)
     for(int half =0;half < 1 + float16;half++) {
         try {
 #if VULKAN_API
-			tart::program_ptr prog = dp::gpu::Cache::instance().get_program(ctx,"benchmark","USE_HALF",half);
+			tart::program_ptr prog = dp::gpu::Cache::instance().get_program(ctx.device(), "benchmark","USE_HALF",half);
             tart::kernel_ptr k1 = prog->getKernel("flops_v1");
             tart::kernel_ptr k2 = prog->getKernel("flops_v2");
             tart::kernel_ptr k4 = prog->getKernel("flops_v4");
             tart::kernel_ptr k8 = prog->getKernel("flops_v8");
             tart::kernel_ptr k16 = prog->getKernel("flops_v16");
 #else
-            cl::Program const &prog = dp::gpu::Cache::instance().get_program(ctx,"benchmark","USE_HALF",half);
+            cl::Program const &prog = dp::gpu::Cache::instance().get_program(ctx.device(), "benchmark","USE_HALF",half);
             cl::Kernel k1(prog,"flops_v1");
             cl::Kernel k2(prog,"flops_v2");
             cl::Kernel k4(prog,"flops_v4");

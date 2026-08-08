@@ -100,7 +100,7 @@ namespace core {
             else
                 code_fixed << code[i];
 		tart::DType refT = data_type_to_tart_dtype(ref_type);
-        tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"pointwise",
+        tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(), "pointwise",
                                                                            "dtype", refT.glsl(),
                                                                            "#BUFFER_DEFS", bufferDefs.str(),
                                                                            "#PARAMS",params.str(),
@@ -295,7 +295,7 @@ namespace core {
 
         loads << '\n';
         saves <<'\n';
-		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast",
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(),  "pointwise_broadcast",
                                                                            "DIMS",ref.size(),
                                                                            "$TYPEDEFS", typeDefs.str(),
                                                                            "#BUFFER_DEFS", bufferDefs.str(),
@@ -617,7 +617,7 @@ namespace core {
 #ifdef DEBUG_2STAGE
             std::cerr << "Items per thread/wg_size/nd_range:" << items_per_wi << "/" << wg_size << "/" << nd_range<< std::endl;
 #endif            
-            tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,  "pointwise_broadcast_reduce",
+            tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(),  "pointwise_broadcast_reduce",
                                                                                "REDUCE_DIMS",reduce_dims.size(),
                                                                                "SMALL_REDUCTION",small_reduction,
                                                                                "DIMS",ref.size(),

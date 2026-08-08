@@ -41,41 +41,38 @@ AllPrograms& ProgramsPerDtypes::getAllPrograms(const std::vector<DataType>& dtyp
 AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes) :
 	mDevice(device)
 {
-	// Once this is created, initialize as many as possible from just the data
-	Context ctx(device);
-	
 	if (dtypes.size() == 0)
 	{
 		// any programs that don't require a dtype.
 		// Some of them just haven't been made compatible with anything other than floats, in which case they will be moved to the next section later
-		mActivationProgram = gpu::Cache::instance().get_program(ctx,"activation");
-		mAxpbyProgram = gpu::Cache::instance().get_program(ctx,"axpby");
+		mActivationProgram = gpu::Cache::instance().get_program(device, "activation");
+		mAxpbyProgram = gpu::Cache::instance().get_program(device, "axpby");
 		
-		mInterpolate2dProgram = gpu::Cache::instance().get_program(ctx, "interpolate_2d");
+		mInterpolate2dProgram = gpu::Cache::instance().get_program(device, "interpolate_2d");
 	}
 	else if (dtypes.size() == 1)
 	{
 		tart::DType dt = data_type_to_tart_dtype(dtypes[0]);
-		mCopyProgram = gpu::Cache::instance().get_program(ctx, "copy", "dtype", dt.glsl());
+		mCopyProgram = gpu::Cache::instance().get_program(device, "copy", "dtype", dt.glsl());
 		
-		mBnSumsProgram = gpu::Cache::instance().get_program(ctx, "bn_sums", "dtype", dt.glsl());
-		mBnUtilsProgram = gpu::Cache::instance().get_program(ctx, "bn_utils", "dtype", dt.glsl());
+		mBnSumsProgram = gpu::Cache::instance().get_program(device, "bn_sums", "dtype", dt.glsl());
+		mBnUtilsProgram = gpu::Cache::instance().get_program(device, "bn_utils", "dtype", dt.glsl());
 		
-		mBwdBiasProgram = gpu::Cache::instance().get_program(ctx, "bwd_bias", "dtype", dt.glsl());
+		mBwdBiasProgram = gpu::Cache::instance().get_program(device, "bwd_bias", "dtype", dt.glsl());
 				
-		mCol2imProgram = Cache::instance().get_program(ctx, "col2im_torch", "dtype", dt.glsl());
+		mCol2imProgram = Cache::instance().get_program(device, "col2im_torch", "dtype", dt.glsl());
 		
-		mFwdBiasProgram = gpu::Cache::instance().get_program(ctx, "fwd_bias", "dtype", dt.glsl());
+		mFwdBiasProgram = gpu::Cache::instance().get_program(device, "fwd_bias", "dtype", dt.glsl());
 		
-		mGlobalPoolingProgram = gpu::Cache::instance().get_program(ctx, "global_pooling", "dtype", dt.glsl());
+		mGlobalPoolingProgram = gpu::Cache::instance().get_program(device, "global_pooling", "dtype", dt.glsl());
 		
-		mIm2colProgram = Cache::instance().get_program(ctx, "im2col_torch", "dtype", dt.glsl());
+		mIm2colProgram = Cache::instance().get_program(device, "im2col_torch", "dtype", dt.glsl());
 		
-		mPoolingProgram = gpu::Cache::instance().get_program(ctx, "pooling", "dtype", dt.glsl());
+		mPoolingProgram = gpu::Cache::instance().get_program(device, "pooling", "dtype", dt.glsl());
 		
-		mRandomProgram = Cache::instance().get_program(ctx, "random", "dtype", dt.glsl());
-		mScalProgram = Cache::instance().get_program(ctx, "random", "dtype", dt.glsl());
-		mSpatialSoftmaxProgram = Cache::instance().get_program(ctx, "spatial_softmax_torch", "dtype", dt.glsl());
+		mRandomProgram = Cache::instance().get_program(device, "random", "dtype", dt.glsl());
+		mScalProgram = Cache::instance().get_program(device, "random", "dtype", dt.glsl());
+		mSpatialSoftmaxProgram = Cache::instance().get_program(device, "spatial_softmax_torch", "dtype", dt.glsl());
 	}
 	else if (dtypes.size() == 2)
 	{
@@ -86,10 +83,10 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		// avoid compilation errors
 		if (is_floating_point_data_type(dtypes[1]))
 		{
-			mCopyStridedProgram = gpu::Cache::instance().get_program(ctx, "copy_strided", "dtype_src", dt0.glsl(), "dtype_tgt", dt1.glsl() );
+			mCopyStridedProgram = gpu::Cache::instance().get_program(device, "copy_strided", "dtype_src", dt0.glsl(), "dtype_tgt", dt1.glsl() );
 		}
-		mNullLossBwdProgram = gpu::Cache::instance().get_program(ctx, "nll_loss_bwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
-		mNullLossFwdProgram = gpu::Cache::instance().get_program(ctx, "nll_loss_fwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
+		mNullLossBwdProgram = gpu::Cache::instance().get_program(device, "nll_loss_bwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
+		mNullLossFwdProgram = gpu::Cache::instance().get_program(device, "nll_loss_fwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
 	}
 }
 

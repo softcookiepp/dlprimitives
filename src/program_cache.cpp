@@ -41,14 +41,14 @@ Cache &Cache::instance()
     return c;
 }
 
-tart::program_ptr Cache::get_program(Context &ctx,std::string const &source,std::vector<Parameter> const &params)
+tart::program_ptr Cache::get_program(const tart::device_ptr& device, std::string const &source,std::vector<Parameter> const &params)
 {
-	std::string key = make_key(ctx.device(), source, params);
+	std::string key = make_key(device, source, params);
     std::unique_lock<std::mutex> g(mutex_);
     auto p = cache_.find(key);
     if(p == cache_.end())
     {
-		auto prg = build_program(ctx.device(), source, params);
+		auto prg = build_program(device, source, params);
         cache_[key]=prg;
     }
     return cache_[key];

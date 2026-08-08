@@ -41,7 +41,7 @@ namespace core {
         uint32_t nd_range = (sm_range + mpl - 1) / mpl * wg_size;
         Context ctx(e);
 #if VULKAN_API
-		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"softmax",
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(), "softmax",
                             "WG_SIZE",wg_size,
                             "ITEMS_PER_WI",items_per_wi,
                             "LOG_SM",int(log_softmax));
@@ -60,7 +60,7 @@ namespace core {
         //kernel->enqueue(gr, wg);
         kernel->enqueue({b0, nd_range/wg_size, b2}, {});
 #else
-        cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"softmax",
+        cl::Program const &prog = gpu::Cache::instance().get_program(ctx.device(), "softmax",
                             "WG_SIZE",wg_size,
                             "ITEMS_PER_WI",items_per_wi,
                             "LOG_SM",int(log_softmax));
@@ -105,8 +105,8 @@ namespace core {
         int mpl = wg_size * items_per_wi;
         int nd_range = (sm_range + mpl - 1) / mpl * wg_size;
         Context ctx(e);
-#if VULKAN_API
-		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"softmax",
+
+		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(), "softmax",
                             "WG_SIZE",wg_size,
                             "ITEMS_PER_WI",items_per_wi,
                             "LOG_SM",int(log_softmax));
@@ -126,28 +126,6 @@ namespace core {
         //std::vector<uint32_t> wg({1,wg_size,1});
         //kernel->enqueue(gr, wg);
         kernel->enqueue({b0,nd_range/wg_size,b2}, {});
-#else
-        cl::Program const &prog = gpu::Cache::instance().get_program(ctx,"softmax",
-                            "WG_SIZE",wg_size,
-                            "ITEMS_PER_WI",items_per_wi,
-                            "LOG_SM",int(log_softmax));
-        cl::Kernel kernel(prog,"softmax_backward");
-        Shape in_shape = dx.shape();
-        int b0 = in_shape[0];
-        int b2 = in_shape.size() == 3 ? in_shape[2] : 1;
-        int p = 0;
-        kernel.setArg(p++,b0);
-        kernel.setArg(p++,sm_range);
-        kernel.setArg(p++,b2);
-        dx.set_arg(kernel,p);
-        y.set_arg(kernel,p);
-        dy.set_arg(kernel,p);
-        kernel.setArg(p++,factor);
-
-        cl::NDRange gr(b0,nd_range,b2);
-        cl::NDRange wg(1,wg_size,1);
-        e.queue().enqueueNDRangeKernel(kernel,cl::NullRange,gr,wg,e.events(),e.event("softmax"));
-#endif
     }
 
     ///

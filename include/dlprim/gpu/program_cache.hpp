@@ -81,20 +81,20 @@ namespace dlprim {
 
             template<typename Val,typename... Args>
 			tart::program_ptr
-				get_program(Context  &ctx,std::string const &source,std::string const &n1,Val const &v1,Args...args)
+				get_program(const tart::device_ptr& device, std::string const &source,std::string const &n1,Val const &v1,Args...args)
             {
                 std::vector<Parameter> p;
                 fill_params(p,n1,v1,args...);
-                return get_program(ctx,source,p);
+                return get_program(device, source,p);
             }
 			tart::program_ptr
-				get_program(Context  &ctx,std::string const &source)
+				get_program(const tart::device_ptr& device, std::string const &source)
             {
                 std::vector<Parameter> p;
-                return get_program(ctx,source,p);
+                return get_program(device, source, p);
             }
 			tart::program_ptr
-				get_program(Context  &ctx,std::string const &source,std::vector<Parameter> const &params);
+				get_program(const tart::device_ptr& device, std::string const &source,std::vector<Parameter> const &params);
 
             template<typename Val,typename... Args>
 			static tart::program_ptr build_program(const tart::device_ptr& device, std::string const &source,std::string const &n1,Val const &v1,Args...args)

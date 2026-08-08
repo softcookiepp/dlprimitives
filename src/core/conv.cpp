@@ -289,7 +289,7 @@ namespace core {
             #if 1
 				throw std::runtime_error("Conv2DForwardWinograd has not been ported to Vulkan");
             #else
-				tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"winograd_fwd",
+				tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(), "winograd_fwd",
 												"ACTIVATION",int(activation),
 												"STRIDE_OFFSET",off,
 												"TR_STRIDE_OFFSET",toff,
@@ -332,7 +332,7 @@ namespace core {
 				throw std::runtime_error("Conv2DBackwardDataWinograd has not been ported to Vulkan");
 			#else
 				tart::program_ptr
-				prog = gpu::Cache::instance().get_program(ctx,"winograd_bwd_data",
+				prog = gpu::Cache::instance().get_program(ctx.device(),"winograd_bwd_data",
 							"STRIDE_OFFSET",off,"TR_STRIDE_OFFSET",toff);
 				conv_kernel_bwd_ = prog->getKernel("winconv_calc_gkgt_3x3");
 				bw_conv_data_ = prog->getKernel("winconv_3x3_bwd_data");
@@ -409,7 +409,7 @@ namespace core {
             #if 1
 				throw std::runtime_error("Conv2DBackwardFilterWinograd has not been ported to Vulkan");
             #else
-				tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"winograd_bwd_filter",
+				tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(),"winograd_bwd_filter",
 																				"IMG_H",h,"IMG_W",w,
 																				"STRIDE_OFFSET",off,
 																				"TR_STRIDE_OFFSET",toff);
@@ -517,7 +517,7 @@ namespace core {
 			#if 1
 				throw std::runtime_error("Conv2DForwardDepthwiseSeparable has not been ported to Vulkan");
 			#else
-				tart::program_ptr prog = gpu::Cache::instance().get_program(ctx,"depthwise_separable_conv",
+				tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(),"depthwise_separable_conv",
 										"ACTIVATION",int(activation),
 										"BIAS",int(bias),
 										"PATCH_ROWS",ds_patch_rows,
@@ -580,7 +580,7 @@ namespace core {
 				throw std::runtime_error("Conv2DBackwardDataDepthwiseSeparable has not been ported to Vulkan");
 			#else
 				tart::program_ptr
-				prog = gpu::Cache::instance().get_program(ctx,"depthwise_separable_conv",
+				prog = gpu::Cache::instance().get_program(ctx.device(),"depthwise_separable_conv",
 										"PATCH_ROWS",ds_patch_rows,
 										"PATCH_COLS",ds_patch_cols,
 										"KERN",config_.kernel[0],
@@ -634,7 +634,7 @@ namespace core {
 				throw std::runtime_error("Conv2DBackwardFilterDepthwiseSeparable has not been ported to Vulkan");
             #else
 				tart::program_ptr
-				prog = gpu::Cache::instance().get_program(ctx,
+				prog = gpu::Cache::instance().get_program(ctx.device(),
 							"depthwise_separable_bw_filter",
 							"KERN",config_.kernel[0],
 							"WG_SIZE",dwsc_bw_filter_wg_,
