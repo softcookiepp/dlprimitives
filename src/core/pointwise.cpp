@@ -445,8 +445,6 @@ namespace core {
         {
             DLPRIM_CHECK(!xs.empty());
             DLPRIM_CHECK(!ys.empty());
-            
-            //tart::device_ptr device = tensorDevice(xs);
 
             std::vector<Shape> shapes(xs.size() + ys.size());
             for(size_t i=0;i<xs.size();i++)
