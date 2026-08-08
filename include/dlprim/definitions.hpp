@@ -94,12 +94,6 @@ namespace dlprim {
         uint8_data    = 1 + (3 << 3),
     };
 
-    /// returns true of data is double, float, half or bfloat16 type
-    inline bool is_floating_point_data_type(DataType d)
-    {
-        return (d >> 3) < 2;
-    }
-
     template<typename T>
     struct TypeTraits;
 
@@ -187,12 +181,35 @@ namespace dlprim {
         dt_min_val,
         dt_max_val,
     };
+    
+    inline tart::DType data_type_to_tart_dtype(DataType dt, bool io_type = false, bool kernel_param = false)
+    {
+		switch(dt) {
+        case double_data: return tart::dtypes::float64;
+        case int64_data: return tart::dtypes::int64;
+        case uint64_data: return tart::dtypes::uint64;
+
+        case float_data: return tart::dtypes::float32;
+        case int32_data: return tart::dtypes::int32;
+        case uint32_data: return tart::dtypes::uint32;
+
+        case half_data: return (kernel_param ? tart::dtypes::float32 : tart::dtypes::float16);
+        case bfloat16_data: return (io_type ? tart::dtypes::uint16 : tart::dtypes::float32 );
+        case int16_data: return tart::dtypes::int16;
+        case uint16_data: return tart::dtypes::uint16;
+
+        case int8_data: return tart::dtypes::int8;
+        case uint8_data: return tart::dtypes::uint8;
+        default:
+            throw NotImplementedError("Unsupported data type");
+        }
+	}
 
     inline std::string data_type_to_opencl_numeric_limit(DataType dt,DataTypeLimit lmt)
     {
 		#if 0
 		#else
-			if(is_floating_point_data_type(dt)) {
+			if(data_type_to_tart_dtype(dt).isFloatingPoint()) {
 				std::string prefix;
 				switch(dt) {
 				case float_data: 
@@ -236,28 +253,7 @@ namespace dlprim {
 		#endif
     }
     
-    inline tart::DType data_type_to_tart_dtype(DataType dt, bool io_type = false, bool kernel_param = false)
-    {
-		switch(dt) {
-        case double_data: return tart::dtypes::float64;
-        case int64_data: return tart::dtypes::int64;
-        case uint64_data: return tart::dtypes::uint64;
-
-        case float_data: return tart::dtypes::float32;
-        case int32_data: return tart::dtypes::int32;
-        case uint32_data: return tart::dtypes::uint32;
-
-        case half_data: return (kernel_param ? tart::dtypes::float32 : tart::dtypes::float16);
-        case bfloat16_data: return (io_type ? tart::dtypes::uint16 : tart::dtypes::float32 );
-        case int16_data: return tart::dtypes::int16;
-        case uint16_data: return tart::dtypes::uint16;
-
-        case int8_data: return tart::dtypes::int8;
-        case uint8_data: return tart::dtypes::uint8;
-        default:
-            throw NotImplementedError("Unsupported data type");
-        }
-	}
+    
     
     #if 1
 		inline std::string data_type_to_opencl_param_type(DataType dt)
@@ -270,12 +266,6 @@ namespace dlprim {
 			return data_type_to_tart_dtype(dt,false,true).glsl();
 		}
 	#endif
-	#if 0
-    constexpr int size_of_data_type(DataType d)
-    {
-        return 1 << ((d & 0x7) - 1);
-    }
-    #endif
 
     /// Maximal number of dimensions in tensor
     static constexpr int max_tensor_dim = 8;
