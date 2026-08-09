@@ -51,7 +51,7 @@ void test_mm(int batch,int m,int n,int k,bool ta,bool tb,float beta,dp::Context 
     }
     else {
         auto ptr = dlprim::gpu::GEMM::get_optimal_gemm(
-            ctx,dp::float_data,
+            ctx.device(),dp::float_data,
             ta,tb,m,n,k);
         ptr->gemm(m,n,k,
             A.device_buffer(),A.device_offset(),A.shape()[2],

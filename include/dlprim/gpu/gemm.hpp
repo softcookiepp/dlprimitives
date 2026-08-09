@@ -60,7 +60,8 @@ namespace gpu {
                           ExecutionContext const &e);
 
         static std::unique_ptr<GEMM> get_optimal_gemm(
-            Context &ctx,DataType dtype,
+            const tart::device_ptr& device,
+            DataType dtype,
             bool trans_a,bool trans_b,
             int M,int N,int K,
             int bias = 0,

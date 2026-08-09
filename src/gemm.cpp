@@ -23,10 +23,10 @@ namespace gpu
 		clblast::Transpose mATrans;
 		clblast::Transpose mBTrans;
 	public:
-		BlasBatchSGEMM(Context &ctx, bool atrans,bool btrans,
+		BlasBatchSGEMM(const tart::device_ptr& device, bool atrans,bool btrans,
 			int M,int N,int K, StandardActivations &act)
 		{
-			mDevice = ctx.device();
+			mDevice = device;
 			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
 			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
 		}
@@ -65,12 +65,12 @@ namespace gpu
 	{
 		
     public:
-        BlasSGEMM(Context &ctx, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0) :
+        BlasSGEMM(const tart::device_ptr& device, bool atrans,bool btrans, int M,int N,int K, int bias, StandardActivations act, int im2col_chan = 0) :
 			mUseBias(bias)
         {
 			if (act != StandardActivations::identity)
 				throw std::runtime_error("non-identity activations not implemented yet");
-			mDevice = ctx.device();
+			mDevice = device;
 			mATrans = atrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
 			mBTrans = btrans ? clblast::Transpose::kYes : clblast::Transpose::kNo;
         }
@@ -125,7 +125,8 @@ namespace gpu
     };
 
     std::unique_ptr<GEMM> GEMM::get_optimal_gemm(
-            Context &ctx,DataType dtype,
+            const tart::device_ptr& device,
+            DataType dtype,
             bool trans_a,bool trans_b,
             int M,int N,int K,
             int bias,
@@ -133,7 +134,7 @@ namespace gpu
             int im2col_chan)
     {
 		DLPRIM_CHECK(dtype == float_data);
-		std::unique_ptr<GEMM> g = std::make_unique<BlasSGEMM>(ctx,trans_a,trans_b,M,N,K,bias,act,im2col_chan);
+		std::unique_ptr<GEMM> g = std::make_unique<BlasSGEMM>(device,trans_a,trans_b,M,N,K,bias,act,im2col_chan);
 		return g;
     }
     std::unique_ptr<GEMM> GEMM::get_optimal_conv_gemm(
@@ -175,8 +176,7 @@ namespace gpu
 		DLPRIM_CHECK(dt == float_data);
         
         StandardActivations act = StandardActivations::identity;
-        Context ctx(e);
-        BlasBatchSGEMM gemm_opt(ctx,trans_a,trans_b,M,N,K,act);
+        BlasBatchSGEMM gemm_opt(e.queue(), trans_a,trans_b,M,N,K,act);
         gemm_opt.gemm(Batch,M,N,K,
                 a,offset_a,batch_stride_a,lda,
                 b,offset_b,batch_stride_b,ldb,

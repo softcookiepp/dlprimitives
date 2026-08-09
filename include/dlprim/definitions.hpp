@@ -184,24 +184,25 @@ namespace dlprim {
     
     inline tart::DType data_type_to_tart_dtype(DataType dt, bool io_type = false, bool kernel_param = false)
     {
-		switch(dt) {
-        case double_data: return tart::dtypes::float64;
-        case int64_data: return tart::dtypes::int64;
-        case uint64_data: return tart::dtypes::uint64;
+		switch(dt)
+		{
+			case double_data: return tart::dtypes::float64;
+			case int64_data: return tart::dtypes::int64;
+			case uint64_data: return tart::dtypes::uint64;
 
-        case float_data: return tart::dtypes::float32;
-        case int32_data: return tart::dtypes::int32;
-        case uint32_data: return tart::dtypes::uint32;
+			case float_data: return tart::dtypes::float32;
+			case int32_data: return tart::dtypes::int32;
+			case uint32_data: return tart::dtypes::uint32;
 
-        case half_data: return (kernel_param ? tart::dtypes::float32 : tart::dtypes::float16);
-        case bfloat16_data: return (io_type ? tart::dtypes::uint16 : tart::dtypes::float32 );
-        case int16_data: return tart::dtypes::int16;
-        case uint16_data: return tart::dtypes::uint16;
+			case half_data: return (kernel_param ? tart::dtypes::float32 : tart::dtypes::float16);
+			case bfloat16_data: return (io_type ? tart::dtypes::uint16 : tart::dtypes::float32 );
+			case int16_data: return tart::dtypes::int16;
+			case uint16_data: return tart::dtypes::uint16;
 
-        case int8_data: return tart::dtypes::int8;
-        case uint8_data: return tart::dtypes::uint8;
-        default:
-            throw NotImplementedError("Unsupported data type");
+			case int8_data: return tart::dtypes::int8;
+			case uint8_data: return tart::dtypes::uint8;
+			default:
+				throw NotImplementedError("Unsupported data type");
         }
 	}
 
@@ -209,21 +210,25 @@ namespace dlprim {
     {
 		#if 0
 		#else
-			if(data_type_to_tart_dtype(dt).isFloatingPoint()) {
+			// TODO: move this to tart as well
+			tart::DType dtt = data_type_to_tart_dtype(dt);
+			if(dtt.isFloatingPoint())
+			{
 				std::string prefix;
 				switch(dt) {
-				case float_data: 
-				case bfloat16_data:
-					prefix="FLT"; 
-					break;
-				case double_data : prefix="DBL"; break;
-				case half_data: prefix="HALF"; break;
-				default:
-					throw ValidationError("Unsupported type");
-				}
-				switch(lmt) {
-				case dt_min_val: return "(-" + prefix + "_MAX)";
-				case dt_max_val: return prefix + "_MAX";
+					case float_data: 
+					case bfloat16_data:
+						prefix="FLT"; 
+						break;
+					case double_data : prefix="DBL"; break;
+					case half_data: prefix="HALF"; break;
+					default:
+						throw ValidationError("Unsupported type");
+					}
+				switch(lmt)
+				{
+					case dt_min_val: return "(-" + prefix + "_MAX)";
+					case dt_max_val: return prefix + "_MAX";
 				};
 			}
 			else {

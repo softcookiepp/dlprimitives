@@ -46,13 +46,15 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 		// any programs that don't require a dtype.
 		// Some of them just haven't been made compatible with anything other than floats, in which case they will be moved to the next section later
 		mActivationProgram = gpu::Cache::instance().get_program(device, "activation");
-		mAxpbyProgram = gpu::Cache::instance().get_program(device, "axpby");
 		
 		mInterpolate2dProgram = gpu::Cache::instance().get_program(device, "interpolate_2d");
 	}
 	else if (dtypes.size() == 1)
 	{
 		tart::DType dt = data_type_to_tart_dtype(dtypes[0]);
+		
+		mAxpbyProgram = gpu::Cache::instance().get_program(device, "axpby");
+		
 		mCopyProgram = gpu::Cache::instance().get_program(device, "copy", "dtype", dt.glsl());
 		
 		mBnSumsProgram = gpu::Cache::instance().get_program(device, "bn_sums", "dtype", dt.glsl());
