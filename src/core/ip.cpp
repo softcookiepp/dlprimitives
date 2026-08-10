@@ -183,7 +183,7 @@ namespace core {
         virtual size_t workspace()
         {
             if(two_stage_reduction_)
-                return features_ * size2_ * data_type_to_tart_dtype(float_data).size();
+                return features_ * size2_ * tart::dtypes::float32.size();
             return 0;
         }
         virtual void enqueue(Tensor &dy,Tensor &dw,Tensor &ws,float beta,ExecutionContext const &e)

@@ -165,6 +165,16 @@ dp::Tensor make_tensor(dp::ExecutionContext const &q,dp::Shape s,std::vector<T> 
     return r;
 }
 
+#if 0
+	// initialize from float instead to accomodate half
+	template<typename T>
+	dp::Tensor make_tensor(const tart::device_ptr& device, dp::Shape s, const std::vector<float>& values)
+	{
+		TEST(s.total_size() == values.size());
+		TEST(values.size() > 0);
+	}
+#endif
+
 
 bool equal(dp::Tensor a,dp::Tensor b,dp::ExecutionContext const &q,int eps = 0)
 {
@@ -183,8 +193,8 @@ bool equal(dp::Tensor a,dp::Tensor b,dp::ExecutionContext const &q,int eps = 0)
         for(size_t i=0;i<N;i++)
         {
 			// hack. will write properly later
-            int a_val = ((my_half*)(a.data<tart::half>()))[i].to_int();
-            int b_val = ((my_half*)(b.data<tart::half>()))[i].to_int();
+            tart::half a_val = a.data<tart::half>()[i];
+			tart::half b_val = b.data<tart::half>()[i];
             if(abs(a_val - b_val) > eps) {
                 std::cout << "Failure for half at " << i << " "<<a_val << "!="<<b_val << "withing " << eps << std::endl;
                 res = false;
@@ -446,13 +456,8 @@ void test_reduce(dp::ExecutionContext const &q)
         dp::Tensor c1(ctx,dp::Shape(1,2),a.dtype());
         std::cout << a <<"+"<<"->"<<c0 << "x" << c1<<","<<c1<<std::endl;
         pointwise_operation_broadcast_reduce({a},{c0,c1},{},
-#if VULKAN_API
                     "y0=typeof_y0(x0); y1=typeof_y1(reduce_item);",
                     "reduce_y0 = -100; reduce_y1 = -1;" ,"if(y0 > reduce_y0) { reduce_y0 = y0; reduce_y1 = y1; }",q);
-#else
-                    "y0=x0; y1=reduce_item;",
-                    "reduce_y0 = -100; reduce_y1 = -1;" ,"if(y0 > reduce_y0) { reduce_y0 = y0; reduce_y1 = y1; }",q);
-#endif
         TEST(equal(c0,ref0,q));
         TEST(equal(c1,ref1,q));
     }
@@ -575,15 +580,9 @@ void test_reduce(dp::ExecutionContext const &q)
         auto op = dp::core::PointwiseOperationBroadcastReduce::create(
             ctx,{a.specs()},{c0.specs(),c1.specs()},
             0,dp::float_data,
-#if VULKAN_API
             "y0=typeof_y0(x0); y1=typeof_y1(-x0);",
             "reduce_y0 = 0; reduce_y1 = 0;" ,
             "reduce_y0 += y0; reduce_y1 += y1;");
-#else
-			"y0=x0; y1=-x0;",
-            "reduce_y0 = 0; reduce_y1 = 0;" ,
-            "reduce_y0 += y0; reduce_y1 += y1;");
-#endif
         dp::Tensor ws;
         if(op->workspace() > 0)
             ws = dp::Tensor(ctx,dp::Shape(op->workspace()),dp::uint8_data);
@@ -685,7 +684,7 @@ int main(int argc,char **argv)
         #if 0
 			// broken until tart::half is fully integrated
 			if(with_half)
-				test_pointwise<my_half>(q);
+				test_pointwise<tart::half>(q);
 		#endif
         std::cout << "Broadcast" << std::endl;
         test_broadcast<float>(q);

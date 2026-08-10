@@ -91,6 +91,7 @@ namespace core {
 			bindingIndex += 1;
 		}
 		
+		tart::DType ref_dt = data_type_to_tart_dtype(ref_type);
 		std::string param_dtype = data_type_to_tart_dtype(ref_type, false, true).glsl();
 		for (size_t i = 0; i < ws.size(); i += 1)
 		{
