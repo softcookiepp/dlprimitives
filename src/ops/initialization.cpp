@@ -111,7 +111,7 @@ void set_to_urandom(Tensor &t,RandomState &state,float minv,float maxv,Execution
     RandomState::sequence_type seq;
     get_seed_seq(t.shape().total_size(),state,seed,seq);
     {
-        core::fill_random(t,seed,seq,core::rnd_uniform,minv,maxv,e);
+        core::fill_random(t,seed,seq,core::rnd_uniform,minv,maxv);
     }
 }
 
@@ -121,7 +121,7 @@ void set_to_bernoulli(Tensor &t,RandomState &state,float p,ExecutionContext cons
     RandomState::sequence_type seq;
     get_seed_seq(t.shape().total_size(),state,seed,seq);
     {
-        core::fill_random(t,seed,seq,core::rnd_bernoulli,p,0,e);
+        core::fill_random(t,seed,seq,core::rnd_bernoulli,p,0);
     }
 }
 
@@ -135,7 +135,7 @@ void set_to_normal(Tensor &t,RandomState &state,float mean,float sigma,Execution
     RandomState::sequence_type seq;
     get_seed_seq(t.shape().total_size(),state,seed,seq);
     {
-        core::fill_random(t,seed,seq,core::rnd_normal,mean,sigma,e);
+        core::fill_random(t,seed,seq,core::rnd_normal,mean,sigma);
     }
 }
 

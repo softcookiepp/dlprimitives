@@ -17,7 +17,8 @@ namespace core {
 	public:
 		virtual ~BatchNormImpl() {}
 
-		BatchNormImpl(Context &ctx,Shape const &s,DataType dtype)
+		BatchNormImpl(Context &ctx,Shape const &s,DataType dtype) :
+			mDType(data_type_to_tart_dtype(dtype))
 		{
 			dt_ = dtype;
 			DLPRIM_CHECK(dtype == float_data);
@@ -25,7 +26,7 @@ namespace core {
 			features_ = s[1];
 			int total = s.total_size() / features_;
 			int second_size = (total + 255) / 256;
-			ws_ = features_ * data_type_to_tart_dtype(dtype).size() * 5; // two sums + fdy+ fdx+ off
+			ws_ = features_ * mDType.size() * 5; // two sums + fdy+ fdx+ off
 			if(second_size < 64) {
 				if(total >= 256)
 					wg_ = 256;
@@ -43,11 +44,10 @@ namespace core {
 					second_reduce_ = 128;
 				else
 					second_reduce_ = 64;
-				ws_ += second_reduce_ * 2 * data_type_to_tart_dtype(dtype).size() * features_;
+				ws_ += second_reduce_ * 2 * mDType.size() * features_;
 			}
-			tart::DType dt = data_type_to_tart_dtype(dtype);
-			tart::program_ptr sums = gpu::PerDeviceProgramCache::instance().bn_sums(ctx.device(), dt);
-			tart::program_ptr utils = gpu::PerDeviceProgramCache::instance().bn_utils(ctx.device(), dt);
+			tart::program_ptr sums = gpu::PerDeviceProgramCache::instance().bn_sums(ctx.device(), mDType);
+			tart::program_ptr utils = gpu::PerDeviceProgramCache::instance().bn_utils(ctx.device(), mDType);
 			if(second_reduce_ > 1)
 			{
 				sums_ = sums->getKernel("compute_reduce");
@@ -173,7 +173,7 @@ namespace core {
 			split_ws_to_a_b(ws,a,b);
 
 			size_t msize = ws.shape().total_size() * data_type_to_tart_dtype(ws.dtype()).size();
-			size_t items = msize / data_type_to_tart_dtype(dt_).size();
+			size_t items = msize / mDType.size();
 			rest = ws.sub_tensor_target_offset(features_ * 2,Shape(items - features_ * 2),dt_);
 		}
 		void split_ws_to_a_b(Tensor &ws,Tensor &a,Tensor &b)
@@ -517,6 +517,7 @@ namespace core {
 		int wg_;
 		int second_reduce_;
 		DataType dt_;
+		tart::DType mDType;
 		tart::kernel_ptr sums_,sums_reduce_;
 		tart::kernel_ptr dyx_sums_,dyx_sums_reduce_;
 		tart::kernel_ptr forward_,backward_data_,backward_filter_;

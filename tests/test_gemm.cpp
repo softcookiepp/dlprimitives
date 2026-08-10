@@ -16,8 +16,8 @@ void test_mm(int batch,int m,int n,int k,bool ta,bool tb,float beta,dp::Context 
     dp::Tensor B(ctx,(tb?dp::Shape(batch,n,k):dp::Shape(batch,k,n)),dp::float_data);
     dp::Tensor C(ctx,dp::Shape(batch,m,n),dp::float_data);
     
-    dp::core::fill_random(A,0,0,dp::core::rnd_normal,-5,5,q);
-    dp::core::fill_random(B,0,(A.shape().total_size() + 3)/4,dp::core::rnd_normal,-5,5,q);
+    dp::core::fill_random(A,0,0,dp::core::rnd_normal,-5,5);
+    dp::core::fill_random(B,0,(A.shape().total_size() + 3)/4,dp::core::rnd_normal,-5,5);
     dp::core::fill_tensor(C,1,q);
 
     // make sure we work with ints

@@ -46,7 +46,7 @@ namespace core {
         pointwise_operation({},{t},{value},"y0 = dtype(w0);",e);
     }
 
-    void fill_random(Tensor &t, uint64_t philox_seed, uint64_t philox_seq,RandomDistribution dist,float p1,float p2,ExecutionContext const &e)
+    void fill_random(Tensor &t, uint64_t philox_seed, uint64_t philox_seq,RandomDistribution dist,float p1,float p2)
     {
         tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().random(tensorDevice(t), t.tDtype());
 		tart::kernel_ptr k = prog->getKernel("fill");

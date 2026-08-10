@@ -55,7 +55,7 @@ namespace core {
 	/// \param p1 - min value for uniform and mu for normal
 	/// \param p2 - max value for uniform and sigma for normal
 	///
-	void fill_random(Tensor &t, uint64_t philox_seed, uint64_t philox_seq,RandomDistribution dist,float p1,float p2,ExecutionContext const &e);
+	void fill_random(Tensor &t, uint64_t philox_seed, uint64_t philox_seq,RandomDistribution dist,float p1,float p2);
    
 	///
 	/// Class for copying a slice of an tensor

@@ -251,7 +251,7 @@ public:
     void rand(dp::Tensor &t,float sigma)
     {
         if(t.dtype() == dp::float_data || t.dtype() == dp::half_data || t.dtype() == dp::bfloat16_data) {
-            dp::core::fill_random(t,seed_,seq_,dp::core::rnd_normal,0,sigma,ec_);
+            dp::core::fill_random(t,seed_,seq_,dp::core::rnd_normal,0,sigma);
             seq_ += (t.shape().total_size() + 3)/4;
         }
         else {
