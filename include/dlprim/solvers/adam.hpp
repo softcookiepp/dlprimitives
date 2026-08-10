@@ -76,8 +76,7 @@ namespace dlprim {
                                             y0 = p_next;
                                             y1 = m_next;
                                             y2 = v_next;
-                                          )xxx",
-                    e);
+                                          )xxx");
             }
 
             Context ctx_;

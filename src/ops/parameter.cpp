@@ -26,9 +26,9 @@ namespace dlprim {
 
         {
             if(accum == 0)
-                core::pointwise_operation({src},{tgt},{},"y0=x0;",q);
+                core::pointwise_operation({src},{tgt},{},"y0=x0;");
             else
-                core::pointwise_operation({src,tgt},{tgt},{accum},"y0=x0+w0*x1;",q);
+                core::pointwise_operation({src,tgt},{tgt},{accum},"y0=x0+w0*x1;");
         }
     }
 }

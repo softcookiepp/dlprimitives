@@ -71,11 +71,11 @@ namespace dlprim {
     }
     void Threshold::forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q)
     {
-        core::pointwise_operation({x},{y},{cfg_.threshold},"y0 = typeof_y0(cmp_gt(x0, w0) ? 1 : 0);",q);
+        core::pointwise_operation({x},{y},{cfg_.threshold},"y0 = typeof_y0(cmp_gt(x0, w0) ? 1 : 0);");
     }
     void Threshold::backward_gpu(Tensor &,Tensor &dx,Tensor &,Tensor &,float beta,ExecutionContext const &q)
     {
-        core::pointwise_operation({dx},{dx},{beta},"y0 = cmp_gt(w0, 0) ? x0 * w0 : 0;",q);
+        core::pointwise_operation({dx},{dx},{beta},"y0 = cmp_gt(w0, 0) ? x0 * w0 : 0;");
     }
 
 
@@ -89,25 +89,22 @@ namespace dlprim {
     void Hardtanh::forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q)
     {
         core::pointwise_operation({x},{y},{cfg_.min_val,cfg_.max_val},
-                                    "y0=max(w0,min(w1,x0));",q);
+                                    "y0=max(w0,min(w1,x0));");
     }
     void Hardtanh::backward_gpu(Tensor &x,Tensor &dx,Tensor &,Tensor &dy,float beta,ExecutionContext const &q)
     {
         core::pointwise_operation({x,dy,dx},{dx},{cfg_.min_val,cfg_.max_val,beta},
-                                    "y0 = (w2 != 0 ? (x2 * w2) : 0) +  ((w0 <= x0 && x0 <= w1) ? x1 : 0);",
-                                    q);
+                                    "y0 = (w2 != 0 ? (x2 * w2) : 0) +  ((w0 <= x0 && x0 <= w1) ? x1 : 0);");
     }
 
     void Abs::forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q)
     {
-        core::pointwise_operation({x},{y},{},
-                                    "y0=x0 >= 0 ? x0 : -x0;",q);
+        core::pointwise_operation({x},{y},{}, "y0=x0 >= 0 ? x0 : -x0;");
     }
     void Abs::backward_gpu(Tensor &x,Tensor &dx,Tensor &,Tensor &dy,float beta,ExecutionContext const &q)
     {
         core::pointwise_operation({x,dy,dx},{dx},{beta},
-                                    "y0 = (w0 != 0 ? (x2 * w0) : 0) +  ((x0 >= 0) ? x1 : -x1);",
-                                    q);
+                                    "y0 = (w0 != 0 ? (x2 * w0) : 0) +  ((x0 >= 0) ? x1 : -x1);");
     }
 
 

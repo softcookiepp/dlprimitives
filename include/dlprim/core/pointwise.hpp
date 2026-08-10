@@ -26,8 +26,7 @@ namespace core {
     void pointwise_operation(std::vector<Tensor> xs,
                              std::vector<Tensor> ys,
                              std::vector<double>  ws,
-                             std::string const &code,
-                             ExecutionContext const &ec);
+                             std::string const &code);
     ///
     /// Similar to pointwise_operation but xs are broadcasted numpy style. ys must much broadcasted shape, weights are considered
     /// of ys[0].dtype()

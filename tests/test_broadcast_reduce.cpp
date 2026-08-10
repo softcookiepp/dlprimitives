@@ -230,11 +230,7 @@ void test_pointwise(dp::ExecutionContext const &q)
         auto ref=make_tensor<Type>(q,dp::Shape(3,2),{6,8,10,12,14,16});
         dp::Tensor c(ctx,dp::Shape(3,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-#if VULKAN_API
-        pointwise_operation({a,b},{c},{},"y0=x0+x1;",q);
-#else
-        pointwise_operation({a,b},{c},{},"y0=x0+x1;",q);
-#endif
+        pointwise_operation({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -243,7 +239,7 @@ void test_pointwise(dp::ExecutionContext const &q)
         auto ref=make_tensor<Type>(q,dp::Shape(3,2),{-4,-4,-4,-4,-4,-4});
         dp::Tensor c(ctx,dp::Shape(3,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation({a,b},{c},{-1},"y0=x0+w0*x1;",q);
+        pointwise_operation({a,b},{c},{-1},"y0=x0+w0*x1;");
         TEST(equal(c,ref,q));
     }
 }

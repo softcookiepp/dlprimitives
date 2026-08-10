@@ -35,8 +35,7 @@ namespace core {
     void pointwise_operation(std::vector<Tensor> xs,
                              std::vector<Tensor> ys,
                              std::vector<double>  ws,
-                             std::string const &code,
-                             ExecutionContext const &e)
+                             std::string const &code)
     {
         tart::device_ptr device = nullptr;
         if (xs.size() > 0)
