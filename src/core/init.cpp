@@ -41,7 +41,7 @@ namespace core {
     ///
     /// Set to zero tensor - OpenCL only
     ///
-    void fill_tensor(Tensor &t,double value,ExecutionContext const &e)
+    void fill_tensor(Tensor &t,double value)
     {
         pointwise_operation({}, {t}, {value}, "y0 = dtype(w0);");
     }

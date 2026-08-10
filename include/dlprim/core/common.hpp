@@ -33,7 +33,7 @@ namespace core {
 	///
 	/// Set to zero tensor - OpenCL only
 	///
-	void fill_tensor(Tensor &t,double value,ExecutionContext const &e);
+	void fill_tensor(Tensor &t, double value);
 
 	///
 	/// Type of random distribution

@@ -18,7 +18,7 @@ void test_mm(int batch,int m,int n,int k,bool ta,bool tb,float beta,dp::Context 
     
     dp::core::fill_random(A,0,0,dp::core::rnd_normal,-5,5);
     dp::core::fill_random(B,0,(A.shape().total_size() + 3)/4,dp::core::rnd_normal,-5,5);
-    dp::core::fill_tensor(C,1,q);
+    dp::core::fill_tensor(C,1);
 
     // make sure we work with ints
     dp::core::pointwise_operation({A},{A},{},"y0 = round(x0);");

@@ -214,7 +214,7 @@ public:
         
         rand(A,1);
         rand(B,1);
-        dp::core::fill_tensor(C,0,ec_);
+        dp::core::fill_tensor(C,0);
 
         auto op = dp::core::PointwiseOperationBroadcastReduce::create(ctx_,
                     {A.specs(),B.specs()},{C.specs()},
@@ -353,7 +353,7 @@ public:
         
         rand(A,std::sqrt(1.0/k));
         rand(B,std::sqrt(1.0/k));
-        dp::core::fill_tensor(C,0,ec_);
+        dp::core::fill_tensor(C, 0);
 
 
         time_point_type warmp,start,end;

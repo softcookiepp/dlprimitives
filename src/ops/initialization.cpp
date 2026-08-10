@@ -16,7 +16,7 @@ namespace dlprim {
 void set_to_zero(Tensor &t,ExecutionContext const &e)
 {
     {
-       core::fill_tensor(t,0,e);
+       core::fill_tensor(t,0);
     }
 }
 
@@ -34,7 +34,7 @@ namespace {
 void set_to_constant(Tensor &t,double value,ExecutionContext const &e)
 {
     {
-        core::fill_tensor(t,value,e);
+        core::fill_tensor(t,value);
     }
 }
 
