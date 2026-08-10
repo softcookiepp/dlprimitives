@@ -14,8 +14,8 @@ namespace gpu
 // The fundamental distinguishing factor of each pointwise op.
 typedef struct PointwiseOpKey
 {
-	std::vector<DataType> xtypes;
-	std::vector<DataType> ytypes;
+	std::vector<tart::DType> xtypes;
+	std::vector<tart::DType> ytypes;
 	std::string code;
 } PointwiseOpKey;
 
@@ -67,7 +67,7 @@ class AllPrograms
 	tart::program_ptr mSpatialSoftmaxProgram = nullptr;
 	
 public:
-	AllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes);
+	AllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes);
 	
 	friend class PerDeviceProgramCache;
 };
@@ -75,50 +75,51 @@ public:
 class ProgramsPerDtypes
 {
 	tart::device_ref mDevice;
-	std::map<std::vector<DataType>, std::unique_ptr<AllPrograms>> mAllPrograms;
+	// use enum for faster lookup
+	std::map<std::vector<tart::DataType>, std::unique_ptr<AllPrograms>> mAllPrograms;
 public:
 	ProgramsPerDtypes(const tart::device_ptr& device);
-	AllPrograms& getAllPrograms(const std::vector<DataType>& dtypes);
+	AllPrograms& getAllPrograms(const std::vector<tart::DType>& dtypes);
 };
 
 class PerDeviceProgramCache
 {
 	std::map<std::uintptr_t, std::unique_ptr<ProgramsPerDtypes>> mProgramsPerDtypes;
 public:
-	AllPrograms& getAllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes);
+	AllPrograms& getAllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes);
 	
 	static PerDeviceProgramCache& instance();
 	
 	inline const tart::program_ptr& activation(const tart::device_ptr& device) { return getAllPrograms(device, {}).mActivationProgram; }
 	inline const tart::program_ptr& axpby(const tart::device_ptr& device) { return getAllPrograms(device, {}).mAxpbyProgram; }
 	
-	inline const tart::program_ptr& bn_sums(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mBnSumsProgram; }
-	inline const tart::program_ptr& bn_utils(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mBnUtilsProgram; }
+	inline const tart::program_ptr& bn_sums(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mBnSumsProgram; }
+	inline const tart::program_ptr& bn_utils(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mBnUtilsProgram; }
 	
-	inline const tart::program_ptr& bwd_bias(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mBwdBiasProgram; }
+	inline const tart::program_ptr& bwd_bias(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mBwdBiasProgram; }
 	
-	inline const tart::program_ptr& copy(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mCopyProgram; }
+	inline const tart::program_ptr& copy(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mCopyProgram; }
 	
-	inline const tart::program_ptr& copy_strided(const tart::device_ptr& device, const DataType dtSrc, const DataType dtTgt) { return getAllPrograms(device, {dtSrc, dtTgt}).mCopyStridedProgram; }
+	inline const tart::program_ptr& copy_strided(const tart::device_ptr& device, const tart::DType dtSrc, const tart::DType dtTgt) { return getAllPrograms(device, {dtSrc, dtTgt}).mCopyStridedProgram; }
 	
-	inline const tart::program_ptr& col2im(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mCol2imProgram; }
+	inline const tart::program_ptr& col2im(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mCol2imProgram; }
 	
-	inline const tart::program_ptr& fwd_bias(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mFwdBiasProgram; }
+	inline const tart::program_ptr& fwd_bias(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mFwdBiasProgram; }
 	
-	inline const tart::program_ptr& im2col(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mIm2colProgram; }
+	inline const tart::program_ptr& im2col(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mIm2colProgram; }
 	
 	inline const tart::program_ptr& interpolate2d(const tart::device_ptr& device) { return getAllPrograms(device, {}).mInterpolate2dProgram; }
 	
-	inline const tart::program_ptr& nll_loss_bwd(const tart::device_ptr& device, const DataType dt, const DataType it) { return getAllPrograms(device, {dt, it}).mNullLossBwdProgram; }
-	inline const tart::program_ptr& nll_loss_fwd(const tart::device_ptr& device, const DataType dt, const DataType it) { return getAllPrograms(device, {dt, it}).mNullLossFwdProgram; }
+	inline const tart::program_ptr& nll_loss_bwd(const tart::device_ptr& device, const tart::DType dt, const tart::DType it) { return getAllPrograms(device, {dt, it}).mNullLossBwdProgram; }
+	inline const tart::program_ptr& nll_loss_fwd(const tart::device_ptr& device, const tart::DType dt, const tart::DType it) { return getAllPrograms(device, {dt, it}).mNullLossFwdProgram; }
 	
-	inline const tart::program_ptr& pooling(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mPoolingProgram; }
-	inline const tart::program_ptr& global_pooling(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mGlobalPoolingProgram; }
+	inline const tart::program_ptr& pooling(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mPoolingProgram; }
+	inline const tart::program_ptr& global_pooling(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mGlobalPoolingProgram; }
 	
-	inline const tart::program_ptr& random(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mRandomProgram; }
-	inline const tart::program_ptr& scal(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mScalProgram; }
+	inline const tart::program_ptr& random(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mRandomProgram; }
+	inline const tart::program_ptr& scal(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mScalProgram; }
 	
-	inline const tart::program_ptr& spatial_softmax(const tart::device_ptr& device, const DataType dtype) { return getAllPrograms(device, {dtype}).mSpatialSoftmaxProgram; }
+	inline const tart::program_ptr& spatial_softmax(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mSpatialSoftmaxProgram; }
 };
 
 } // namespace gpu

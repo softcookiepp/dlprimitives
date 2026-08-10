@@ -13,7 +13,7 @@ PerDeviceProgramCache& PerDeviceProgramCache::instance()
 	return cache;
 }
 
-AllPrograms& PerDeviceProgramCache::getAllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes)
+AllPrograms& PerDeviceProgramCache::getAllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes)
 {
 	std::uintptr_t key = (std::uintptr_t)device.get();
 	if (mProgramsPerDtypes.find(key) == mProgramsPerDtypes.end() )
@@ -29,16 +29,21 @@ ProgramsPerDtypes::ProgramsPerDtypes(const tart::device_ptr& device) :
 {
 }
 
-AllPrograms& ProgramsPerDtypes::getAllPrograms(const std::vector<DataType>& dtypes)
+AllPrograms& ProgramsPerDtypes::getAllPrograms(const std::vector<tart::DType>& dtypes)
 {
-	if (mAllPrograms.find(dtypes) == mAllPrograms.end())
+	std::vector<tart::DataType> dtEnums(dtypes.size());
+	for (size_t i = 0; i < dtypes.size(); i += 1)
 	{
-		mAllPrograms[dtypes] = std::make_unique<AllPrograms>(mDevice.lock(), dtypes);
+		dtEnums[i] = dtypes[i]();
 	}
-	return *mAllPrograms[dtypes];
+	if (mAllPrograms.find(dtEnums) == mAllPrograms.end())
+	{
+		mAllPrograms[dtEnums] = std::make_unique<AllPrograms>(mDevice.lock(), dtypes);
+	}
+	return *mAllPrograms[dtEnums];
 }
 
-AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataType>& dtypes) :
+AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes) :
 	mDevice(device)
 {
 	if (dtypes.size() == 0)
@@ -51,7 +56,7 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 	}
 	else if (dtypes.size() == 1)
 	{
-		tart::DType dt = data_type_to_tart_dtype(dtypes[0]);
+		tart::DType dt = dtypes[0];
 		
 		mAxpbyProgram = gpu::Cache::instance().get_program(device, "axpby");
 		
@@ -78,9 +83,15 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<DataT
 	}
 	else if (dtypes.size() == 2)
 	{
-		bool use_io_type = (dtypes[0] == dtypes[1]);
-		tart::DType dt0 = data_type_to_tart_dtype(dtypes[0], use_io_type);
-		tart::DType dt1 = data_type_to_tart_dtype(dtypes[1], use_io_type);
+		#if 1
+			bool use_io_type = (dtypes[0] == dtypes[1]);
+			tart::DType dt0 = dtypes[0];
+			tart::DType dt1 = dtypes[1];
+		#else
+			bool use_io_type = (dtypes[0] == dtypes[1]);
+			tart::DType dt0 = data_type_to_tart_dtype(dtypes[0], use_io_type);
+			tart::DType dt1 = data_type_to_tart_dtype(dtypes[1], use_io_type);
+		#endif
 		
 		// avoid compilation errors
 		if (dt1.isFloatingPoint())

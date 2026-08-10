@@ -25,7 +25,8 @@ namespace core {
 			scal_(ctx,dt)
 		{
 			wg_size_ = 8;
-				tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(ctx.device(), dt);
+			tart::DType dtt = data_type_to_tart_dtype(dt);
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(ctx.device(), dtt);
 			kernel_ = prog->getKernel("pooling");
 			bwd_kernel_ = prog->getKernel("pooling_bw");
 		}
@@ -146,7 +147,8 @@ namespace core {
 			else 
 				wg_size_ = 256;
 			items_per_wi_ = (sm_range + wg_size_ - 1) / wg_size_;
-			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().global_pooling(ctx.device(), dt);
+			tart::DType dtt = data_type_to_tart_dtype(dt);
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().global_pooling(ctx.device(), dtt);
 			kernel_ = prog->getKernel("global_pooling");
 			kernel_bwd_ = prog->getKernel("global_pooling_bwd");
 			sm_range_ = sm_range;

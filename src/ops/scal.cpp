@@ -13,8 +13,8 @@
 namespace dlprim {
     Scal::Scal(Context &ctx,DataType dt) : ctx_(ctx)
     {
-        DLPRIM_CHECK(dt==float_data);
-        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().scal(ctx.device(), dt);
+		tart::DType dtt = data_type_to_tart_dtype(dt);
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().scal(ctx.device(), dtt);
         k_ = prog->getKernel("sscal");
     }
     Scal::~Scal(){}

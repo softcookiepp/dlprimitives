@@ -24,7 +24,9 @@ namespace core {
         int dims = shape.size();
         tart::device_ptr device = src->getDevice();
         bool use_io_type = dtype_src == dtype_dst;
-        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy_strided(device, dtype_src, dtype_dst);
+        tart::DType dt_src = data_type_to_tart_dtype(dtype_src);
+        tart::DType dt_dst = data_type_to_tart_dtype(dtype_dst);
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy_strided(device, dt_src, dt_dst);
         std::vector<uint32_t> range;
         switch(dims)
         {

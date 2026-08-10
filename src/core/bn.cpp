@@ -45,9 +45,9 @@ namespace core {
 					second_reduce_ = 64;
 				ws_ += second_reduce_ * 2 * data_type_to_tart_dtype(dtype).size() * features_;
 			}
-			
-			tart::program_ptr sums = gpu::PerDeviceProgramCache::instance().bn_sums(ctx.device(), dtype);
-			tart::program_ptr utils = gpu::PerDeviceProgramCache::instance().bn_utils(ctx.device(), dtype);
+			tart::DType dt = data_type_to_tart_dtype(dtype);
+			tart::program_ptr sums = gpu::PerDeviceProgramCache::instance().bn_sums(ctx.device(), dt);
+			tart::program_ptr utils = gpu::PerDeviceProgramCache::instance().bn_utils(ctx.device(), dt);
 			if(second_reduce_ > 1)
 			{
 				sums_ = sums->getKernel("compute_reduce");

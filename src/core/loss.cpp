@@ -148,7 +148,7 @@ namespace core {
         
         int items_per_wi = (sm_range + wg_size - 1) / wg_size;
         
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().nll_loss_fwd(tensorDevice(x), x.dtype(), lbl.dtype());
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().nll_loss_fwd(tensorDevice(x), x.tDtype(), lbl.tDtype());
 		
         tart::kernel_ptr kernel = prog->getKernel("nll_loss_forward");
         Shape in_shape = x.shape();
@@ -170,7 +170,7 @@ namespace core {
         DLPRIM_CHECK(dy.shape()==(reduce ? Shape(1) : Shape(dx.shape()[0])));
         DLPRIM_CHECK(dy.dtype() == dx.dtype());
 
-        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().nll_loss_bwd(tensorDevice(dx), dx.dtype(), lbl.dtype());
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().nll_loss_bwd(tensorDevice(dx), dx.tDtype(), lbl.tDtype());
         tart::kernel_ptr kernel = prog->getKernel("nll_loss_backward");
         Shape in_shape = dx.shape();
         int p = 0;

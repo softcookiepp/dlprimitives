@@ -261,7 +261,11 @@ namespace dlprim {
         template<typename T>
         T *data()
         {
-            DLPRIM_CHECK(TypeTraits<T>::data_type == dtype());
+			#if 1
+				DLPRIM_CHECK(tart::getDType<T>() == tDtype());
+			#else
+				DLPRIM_CHECK(TypeTraits<T>::data_type == dtype());
+            #endif
             return static_cast<T*>(host_data());
         }
 

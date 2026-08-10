@@ -28,7 +28,8 @@ void im2col(const ExecutionContext& e,
 	const uint32_t data_col_offset, // new arg
 	const DataType dtype)
 {
-	tart::program_ptr prg = PerDeviceProgramCache::instance().im2col(data_im->getDevice(), dtype);
+	tart::DType dt = data_type_to_tart_dtype(dtype);
+	tart::program_ptr prg = PerDeviceProgramCache::instance().im2col(data_im->getDevice(), dt);
 	tart::kernel_ptr im2colKernel = prg->getKernel("im2col");
 	
 	const uint32_t num_kernels = channels * height_col * width_col;
@@ -89,7 +90,8 @@ void col2im(
 	uint32_t block_num = (num_kernels - 1) / 512 + 1;
 	
 	// get the kernel
-	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(data_im->getDevice(), dtype);
+	tart::DType dt = data_type_to_tart_dtype(dtype);
+	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(data_im->getDevice(), dt);
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im");
 
 	size_t p = 0;
@@ -145,7 +147,8 @@ void col2im_batched(
 	}
 	
 	// get the kernel
-	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(data_im->getDevice(), dtype);
+	tart::DType dt = data_type_to_tart_dtype(dtype);
+	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(data_im->getDevice(), dt);
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im_batched");
 	
 	size_t p = 0;

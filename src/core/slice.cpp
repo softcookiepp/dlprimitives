@@ -14,7 +14,8 @@ namespace core {
     SliceCopy::SliceCopy(Context &ctx,DataType dtype) :dtype_(dtype)
     {
 		mDevice = ctx.device();
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy(ctx.device(), dtype_);
+		tart::DType dt = data_type_to_tart_dtype(dtype);
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy(ctx.device(), dt);
         kernel_ = prog->getKernel("copy");
     }
     SliceCopy::~SliceCopy()
