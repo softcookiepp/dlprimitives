@@ -29,9 +29,9 @@ int main(int argc,char **argv)
                 Tensor y(ctx,Shape(4));
                 float yv[4];
                 x.to_device(q,xv);
-                core::copy_strided(Shape(4),x.device_buffer(),x.device_offset(),Shape(2),
-                                            y.device_buffer(),y.device_offset(),Shape(1),
-                                            float_data,float_data,q);
+                core::copy_strided(Shape(4),x.device_buffer(), x.device_offset(), Shape(2),
+					y.device_buffer(), y.device_offset(), Shape(1),
+					tart::dtypes::float32, tart::dtypes::float32,q);
                 y.to_host(q,yv);
                 TEST(yv[0]==1);
                 TEST(yv[1]==3);
@@ -45,7 +45,7 @@ int main(int argc,char **argv)
                 y.to_device(q,yv);
                 core::copy_strided(Shape(4),y.device_buffer(),y.device_offset(),Shape(1),
                                             x.device_buffer(),x.device_offset(),Shape(2),
-                                            float_data,float_data,q);
+                                            tart::dtypes::float32, tart::dtypes::float32,q);
                 x.to_host(q,xv);
                 TEST(memcmp(xv,xv2,sizeof(float)*8) == 0);
             }
@@ -84,7 +84,7 @@ int main(int argc,char **argv)
                         core::pointwise_operation_broadcast({x},{y_ref},{},"y0=x0;",q);
                         core::copy_strided(s,x.device_buffer(),x.device_offset(),strides_src,
                                              y.device_buffer(),y.device_offset(),strides_tgt,
-                                             int32_data,float_data,q);
+                                             tart::dtypes::int32, tart::dtypes::float32, q);
                         y.to_host(q,vals_y.data());
                         y_ref.to_host(q,vals_y_ref.data());
                         if(vals_y_ref != vals_y) {
