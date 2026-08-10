@@ -15,8 +15,7 @@ void copy_strided(Shape shape,
 	tart::buffer_ptr& src, uint32_t src_offset, Shape src_strides,
 	tart::buffer_ptr& dst, uint32_t dst_offset, Shape dst_strides,
 	const tart::DType& dt_src,
-	const tart::DType dt_dst,
-	ExecutionContext const &q);
+	const tart::DType dt_dst);
 	
 } // core
 } // dlprim
