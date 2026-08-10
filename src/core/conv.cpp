@@ -93,7 +93,7 @@ namespace core {
             int K = im2col_width_;
 
             auto gemm = gpu::GEMM::get_optimal_conv_gemm(
-                ctx,config_.dtype,GemmOpMode::forward,
+                ctx, data_type_to_tart_dtype(config_.dtype),GemmOpMode::forward,
                 false,true,
                 M,N,K,
                 config_.kernel,config_.dilate,config_.pad,config_.stride,config_.groups,
@@ -121,7 +121,8 @@ namespace core {
             int im2col_rows = out[2]*out[3]*out[0];
 
             auto bwd = gpu::GEMM::get_optimal_conv_gemm(
-                    ctx,config_.dtype,
+                    ctx,
+                    data_type_to_tart_dtype(config_.dtype),
                     GemmOpMode::backward_data,
                     true,false,
                     im2col_rows,kernel_cols,config_.channels_out / config_.groups,
@@ -175,7 +176,8 @@ namespace core {
             int im2col_rows = out[2]*out[3]*out[0];
 
             auto bwd = gpu::GEMM::get_optimal_conv_gemm(
-                    ctx,config_.dtype,
+                    ctx,
+                    data_type_to_tart_dtype(config_.dtype),
                     GemmOpMode::backward_filter,
                     false,false,
                     config_.channels_out / config_.groups,kernel_cols,im2col_rows,

@@ -126,19 +126,19 @@ namespace gpu
 
     std::unique_ptr<GEMM> GEMM::get_optimal_gemm(
             const tart::device_ptr& device,
-            DataType dtype,
+            const tart::DType& dtype,
             bool trans_a,bool trans_b,
             int M,int N,int K,
             int bias,
             StandardActivations act,
             int im2col_chan)
     {
-		DLPRIM_CHECK(dtype == float_data);
+		DLPRIM_CHECK(dtype == tart::dtypes::float32);
 		std::unique_ptr<GEMM> g = std::make_unique<BlasSGEMM>(device,trans_a,trans_b,M,N,K,bias,act,im2col_chan);
 		return g;
     }
     std::unique_ptr<GEMM> GEMM::get_optimal_conv_gemm(
-            Context &ctx,DataType dtype,
+            Context &ctx, const tart::DType& dtype,
             GemmOpMode op_mode,
             bool trans_a,bool trans_b,
             int M,int N,int K,
@@ -154,7 +154,7 @@ namespace gpu
 		return nullptr;
     }
 
-    void GEMM::batch_sgemm(DataType dt,
+    void GEMM::batch_sgemm(const tart::DType& dt,
                           bool trans_a,bool trans_b,
                           int Batch, // number of matrices
                           int M,int N,int K,
@@ -173,7 +173,7 @@ namespace gpu
                           float beta,
                           ExecutionContext const &e)
     {
-		DLPRIM_CHECK(dt == float_data);
+		DLPRIM_CHECK(dt == tart::dtypes::float32);
         
         StandardActivations act = StandardActivations::identity;
         BlasBatchSGEMM gemm_opt(e.queue(), trans_a,trans_b,M,N,K,act);

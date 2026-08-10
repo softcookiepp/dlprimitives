@@ -13,9 +13,9 @@
 
 namespace dlprim {
 
-AXPBY::AXPBY(Context &ctx,DataType dt) : ctx_(ctx)
+AXPBY::AXPBY(Context &ctx, const tart::DType& dtype) : ctx_(ctx)
 {
-    //DLPRIM_CHECK(dt == float_data);
+    DLPRIM_CHECK(dtype == tart::dtypes::float32);
     tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().axpby(ctx.device());
     kernel_ = prog->getKernel("axpby");
 }

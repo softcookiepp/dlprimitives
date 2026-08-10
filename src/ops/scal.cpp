@@ -11,10 +11,9 @@
 #include <dlprim/tensor.hpp>
 #include <my_cblas.hpp>
 namespace dlprim {
-    Scal::Scal(Context &ctx,DataType dt) : ctx_(ctx)
+    Scal::Scal(Context &ctx, const tart::DType& dt) : ctx_(ctx)
     {
-		tart::DType dtt = data_type_to_tart_dtype(dt);
-        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().scal(ctx.device(), dtt);
+        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().scal(ctx.device(), dt);
         k_ = prog->getKernel("sscal");
     }
     Scal::~Scal(){}

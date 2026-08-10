@@ -342,7 +342,8 @@ public:
 
     Metrics test_gemm(int warm,int calc,int m,int n,int k,bool ta,bool tb)
     {
-        std::unique_ptr<dp::gpu::GEMM> gemm(dp::gpu::GEMM::get_optimal_gemm(ctx_.device(),dt_,ta,tb,
+        std::unique_ptr<dp::gpu::GEMM> gemm(dp::gpu::GEMM::get_optimal_gemm(ctx_.device(),
+			dlprim::data_type_to_tart_dtype(dt_),ta,tb,
                                                                                  m,n,k));
         
 

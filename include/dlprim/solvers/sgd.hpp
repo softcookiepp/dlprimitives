@@ -16,10 +16,11 @@ namespace dlprim {
         public:
             float lr = 0.1;
             float momentum = 0.9;
-            float weight_decay = 0.0005; 
-            SGD(Context &ctx,DataType dtype = float_data) : 
+            float weight_decay = 0.0005;
+            SGD(Context &ctx, const tart::DType dtype = tart::dtypes::float32) : 
                 ctx_(ctx),
-                scal_(ctx,dtype),axpby_(ctx,dtype) 
+                scal_(ctx, dtype),
+                axpby_(ctx, dtype) 
             {
             }
             void init(Net &n,ExecutionContext const &q)

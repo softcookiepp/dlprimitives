@@ -26,10 +26,9 @@ void im2col(const ExecutionContext& e,
 	const uint32_t dilation_width,
 	const tart::buffer_ptr& data_col,
 	const uint32_t data_col_offset, // new arg
-	const DataType dtype)
+	const tart::DType& dtype)
 {
-	tart::DType dt = data_type_to_tart_dtype(dtype);
-	tart::program_ptr prg = PerDeviceProgramCache::instance().im2col(data_im->getDevice(), dt);
+	tart::program_ptr prg = PerDeviceProgramCache::instance().im2col(data_im->getDevice(), dtype);
 	tart::kernel_ptr im2colKernel = prg->getKernel("im2col");
 	
 	const uint32_t num_kernels = channels * height_col * width_col;
@@ -80,8 +79,8 @@ void col2im(
 		const uint32_t dilation_width,
 		const tart::buffer_ptr& data_im,
 		const uint32_t data_im_offset,
-		const DataType dtype,
-		const DataType accT)
+		const tart::DType& dtype,
+		const tart::DType& accT)
 {
 	uint32_t num_kernels = channels * height * width;
 	// To avoid involving atomic operations, we will launch one kernel per
@@ -90,8 +89,7 @@ void col2im(
 	uint32_t block_num = (num_kernels - 1) / 512 + 1;
 	
 	// get the kernel
-	tart::DType dt = data_type_to_tart_dtype(dtype);
-	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(data_im->getDevice(), dt);
+	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(data_im->getDevice(), dtype);
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im");
 
 	size_t p = 0;
@@ -138,7 +136,7 @@ void col2im_batched(
 		const tart::buffer_ptr& data_im,
 		const uint32_t data_im_offset,
 		const uint32_t im_batch_stride,
-		const DataType dtype)
+		const tart::DType& dtype)
 {
 	const uint32_t num_kernels = channels * height * width;
 	const uint32_t output_numel = nbatch * num_kernels;
@@ -147,8 +145,7 @@ void col2im_batched(
 	}
 	
 	// get the kernel
-	tart::DType dt = data_type_to_tart_dtype(dtype);
-	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(data_im->getDevice(), dt);
+	tart::program_ptr prg = PerDeviceProgramCache::instance().col2im(data_im->getDevice(), dtype);
 	tart::kernel_ptr col2im_kernel = prg->getKernel("col2im_batched");
 	
 	size_t p = 0;

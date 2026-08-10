@@ -12,7 +12,7 @@
 namespace dlprim {
     class Scal {
     public:
-        Scal(Context &ctx,DataType dt);
+        Scal(Context &ctx, const tart::DType& dt);
         ~Scal();
         void scale(float s,Tensor &t,ExecutionContext const &ec);
     private:

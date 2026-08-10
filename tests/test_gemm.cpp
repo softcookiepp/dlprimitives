@@ -42,7 +42,7 @@ void test_mm(int batch,int m,int n,int k,bool ta,bool tb,float beta,dp::Context 
     }
     if(use_batch) {
         dlprim::gpu::GEMM::batch_sgemm(
-            dp::float_data,ta,tb,batch,
+            tart::dtypes::float32,ta,tb,batch,
             m,n,k,
             A.device_buffer(),A.device_offset(),m*k,A.shape()[2],
             B.device_buffer(),B.device_offset(),n*k,B.shape()[2],
@@ -51,7 +51,7 @@ void test_mm(int batch,int m,int n,int k,bool ta,bool tb,float beta,dp::Context 
     }
     else {
         auto ptr = dlprim::gpu::GEMM::get_optimal_gemm(
-            ctx.device(),dp::float_data,
+            ctx.device(), tart::dtypes::float32,
             ta,tb,m,n,k);
         ptr->gemm(m,n,k,
             A.device_buffer(),A.device_offset(),A.shape()[2],

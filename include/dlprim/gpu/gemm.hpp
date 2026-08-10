@@ -40,7 +40,7 @@ namespace gpu {
                           ExecutionContext const &e) = 0;
 
         static void batch_sgemm(
-                          DataType dt,
+                          const tart::DType& dt,
                           bool trans_a,bool trans_b,
                           int Batch, // number of matrices
                           int M,int N,int K,
@@ -61,7 +61,7 @@ namespace gpu {
 
         static std::unique_ptr<GEMM> get_optimal_gemm(
             const tart::device_ptr& device,
-            DataType dtype,
+            const tart::DType& dtype,
             bool trans_a,bool trans_b,
             int M,int N,int K,
             int bias = 0,
@@ -69,7 +69,8 @@ namespace gpu {
             int im2col_chan = 0);
 
         static std::unique_ptr<GEMM> get_optimal_conv_gemm(
-            Context &ctx,DataType dtype,
+            Context &ctx,
+            const tart::DType& dtype,
             GemmOpMode op_mode,
             bool trans_a,bool trans_b,
             int M,int N,int K,

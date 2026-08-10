@@ -19,7 +19,7 @@ namespace core {
         {
             int batch = cfg.optimal_batch_size;
             gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
-                ctx.device(),cfg.dtype,false,true,
+                ctx.device(), data_type_to_tart_dtype(cfg.dtype),false,true,
                 batch,cfg.outputs,cfg.inputs,
                 (bias ? gpu::GEMM::bias_N : gpu::GEMM::no_bias),
                 activation            
@@ -58,7 +58,7 @@ namespace core {
         IPBackwardDataImpl(Context &ctx,IPSettings const &cfg)
         {
             gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
-                        ctx.device(),cfg.dtype,false,false,
+                        ctx.device(), data_type_to_tart_dtype(cfg.dtype),false,false,
                         cfg.optimal_batch_size,cfg.inputs,cfg.outputs,
                         gpu::GEMM::no_bias,
                         StandardActivations::identity            
@@ -98,7 +98,7 @@ namespace core {
         IPBackwardFilterImpl(Context &ctx,IPSettings const &config)
         {
             gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
-                        ctx.device(),config.dtype,true,false,
+                        ctx.device(), data_type_to_tart_dtype(config.dtype),true,false,
                         config.outputs,config.inputs,config.optimal_batch_size,
                         gpu::GEMM::no_bias,
                         StandardActivations::identity            
