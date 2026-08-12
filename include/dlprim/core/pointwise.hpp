@@ -14,7 +14,7 @@ namespace core {
     ///
     /// Bind a parameter to kernet casting it to apropriate opencl type dt
     ///
-    void bind_as_dtype(tart::kernel_ptr k,int &p,double value, const tart::DType& dr);
+    void bind_as_dtype(tart::kernel_ptr k,int &p,double value, const tart::DType& dt);
     ///
     /// per form operations function(xs,ws)->yw such that
     /// each tensor in xs and ys has same shape, ws are constant parameters
@@ -103,7 +103,8 @@ namespace core {
                         Context &ctx,
                         std::vector<TensorSpecs> xs,
                         std::vector<TensorSpecs> ys,
-                        int weights_count,DataType weights_type,
+                        int weights_count,
+                        const tart::DType& weights_type,
                         std::string const &compute_code,
                         std::string const &reduce_init,
                         std::string const &reduce);

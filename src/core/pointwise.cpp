@@ -19,7 +19,11 @@ namespace core {
        
 		if      (dt == tart::dtypes::float64) k->setArg(p++, double(value));
         else if (dt == tart::dtypes::float32) k->setArg(p++, (float)(value));
-        else if (dt == tart::dtypes::float16)    k->setArg(p++, float(value)); // half goes as float to kernel parameter
+        else if (dt == tart::dtypes::float16)
+        {
+			throw std::runtime_error("Binding as float16 not implemented yet");
+			k->setArg(p++, float(value)); // half goes as float to kernel parameter
+		}
         else if (dt == tart::dtypes::int64)   k->setArg(p++, int64_t(value));
         else if (dt == tart::dtypes::int32) k->setArg(p++, int(value));
         else if (dt == tart::dtypes::int16)   k->setArg(p++, int16_t(value));
@@ -406,7 +410,7 @@ namespace core {
             }
             
             for(double w: parameters) {
-                bind_as_dtype(kernel_,p,w, data_type_to_tart_dtype(target_type_));
+                bind_as_dtype(kernel_,p,w, target_type_);
             }
 
             if(second_stage_stride_ != 1) {
@@ -436,10 +440,16 @@ namespace core {
         PointwiseOperationBroadcastReduceImpl(  const tart::device_ptr& device,
                                                 std::vector<TensorSpecs> xs,
                                                 std::vector<TensorSpecs> ys,
-                                                int weights_count,DataType weights_type,
+                                                int weights_count,
+                                                #if 1
+													const tart::DType& weights_type,
+                                                #else
+													DataType weights_type,
+												#endif
                                                 std::string const &compute_code,
                                                 std::string const &reduce_init,
-                                                std::string const &reduce)
+                                                std::string const &reduce) :
+			target_type_(weights_type)
         {
             DLPRIM_CHECK(!xs.empty());
             DLPRIM_CHECK(!ys.empty());
@@ -461,7 +471,7 @@ namespace core {
                 DLPRIM_CHECK(shapes[xs.size()] == shapes[i]);
             }
 
-            target_type_ = weights_type;
+            //target_type_ = weights_type;
             params_count_ = weights_count;
             ws_size_ = 0;
 
@@ -534,9 +544,8 @@ namespace core {
             }
             
             REDUCE_INIT_ALL << format_code(reduce_init) << "\n";
-
             for(size_t i=0;i<params_count_;i++) {
-                std::string type = data_type_to_tart_dtype(target_type_, false, true).glsl();
+                std::string type = target_type_.glsl();
                 PARAMS << type << " w" << i <<"; ";
                 TYPE_DEFS << "#define typeof_w" << i << " " << type << "\n";
             }
@@ -593,7 +602,7 @@ namespace core {
                         ws_size_ += size;
                     }
                     second_stage_.reset(new PointwiseOperationBroadcastReduceImpl(
-                        device, big_ys,small_ys,0,float_data,
+                        device, big_ys,small_ys,0, tart::dtypes::float32,
                         code.str(),reduce_init,reduce));
                         
                 }
@@ -658,7 +667,7 @@ namespace core {
         std::vector<std::pair<size_t,size_t> > ws_offsets_;
         size_t params_count_;
         size_t second_stage_stride_;
-        DataType target_type_;
+        tart::DType target_type_;
         size_t wg_size_;
 		std::vector<uint32_t> range_,wg_range_;
         tart::kernel_ptr kernel_;
@@ -686,14 +695,15 @@ namespace core {
                     Context &ctx,
                     std::vector<TensorSpecs> xs,
                     std::vector<TensorSpecs> ys,
-                    int weights_count,DataType weights_type,
+                    int weights_count,
+                    const tart::DType& weights_type,
                     std::string const &compute_code,
                     std::string const &reduce_init,
                     std::string const &reduce)
     {
         std::unique_ptr<PointwiseOperationBroadcastReduce> r(new PointwiseOperationBroadcastReduceImpl(
                     ctx.device(),xs,ys,
-                    weights_count,weights_type,
+                    weights_count, weights_type,
                     compute_code,reduce_init,reduce));
         return r;
                                                                                                                 
@@ -720,7 +730,7 @@ namespace core {
         }
         auto op = PointwiseOperationBroadcastReduce::create(
                             ctx,xspec,yspec,
-                            ws.size(),ys[0].dtype(),compute,reduce_init,reduce);
+                            ws.size(),ys[0].tDtype(),compute,reduce_init,reduce);
         Tensor workspace;
         if(op->workspace() > 0)
             workspace = Tensor(ctx,Shape(op->workspace()),uint8_data);

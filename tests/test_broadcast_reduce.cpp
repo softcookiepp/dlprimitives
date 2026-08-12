@@ -204,17 +204,17 @@ bool equal(dp::Tensor a,dp::Tensor b,dp::ExecutionContext const &q,int eps = 0)
     }
     if(!res) {
            std::cout << "Failed for tensors " << a << "==" << b << std::endl;
-        if(a.dtype() == dlprim::float_data) {
+        if(a.tDtype() == tart::dtypes::float32) {
             for(size_t i=0;i<a.shape().total_size();i++) {
                 std::cout << i << ": " << a.data<float>()[i] << " " << b.data<float>()[i] << std::endl;
             }
         }
-        else if(a.dtype() == dlprim::int64_data) {
+        else if(a.tDtype() == tart::dtypes::int64) {
             for(size_t i=0;i<a.shape().total_size();i++) {
                 std::cout << i << ": " << a.data<int64_t>()[i] << " " << b.data<int64_t>()[i] << std::endl;
             }
         }
-        else if(a.dtype() == dlprim::int32_data) {
+        else if(a.tDtype() == tart::dtypes::int32) {
             for(size_t i=0;i<a.shape().total_size();i++) {
                 std::cout << i << ": " << a.data<int32_t>()[i] << " " << b.data<int32_t>()[i] << std::endl;
             }
@@ -418,7 +418,7 @@ void pointwise_operation_broadcast_reduce(  std::vector<dp::Tensor> xs,
     
     auto op = dlprim::core::PointwiseOperationBroadcastReduce::create(
                         ctx,xspec,yspec,
-                        ws.size(),ys[0].dtype(),compute,reduce_init,reduce);
+                        ws.size(),ys[0].tDtype(),compute,reduce_init,reduce);
     Tensor workspace;
     if(op->workspace() > 0)
         workspace = Tensor(ctx,Shape(op->workspace()),uint8_data);
@@ -579,7 +579,7 @@ void test_reduce(dp::ExecutionContext const &q)
 
         auto op = dp::core::PointwiseOperationBroadcastReduce::create(
             ctx,{a.specs()},{c0.specs(),c1.specs()},
-            0,dp::float_data,
+            0, tart::dtypes::float32,
             "y0=typeof_y0(x0); y1=typeof_y1(-x0);",
             "reduce_y0 = 0; reduce_y1 = 0;" ,
             "reduce_y0 += y0; reduce_y1 += y1;");
