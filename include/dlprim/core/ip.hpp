@@ -16,11 +16,12 @@ namespace core {
     ///
     /// Configuration of InnerProduct layer 
     ///
-    struct IPSettings {
+    struct IPSettings
+    {
         int inputs = -1;   /// number of input features 
         int outputs = -1;  /// output features
         int optimal_batch_size = -1;  /// Expected batch size the network is used with
-        DataType dtype=float_data;
+        tart::DType dtype = tart::dtypes::float32;
     };
     
     ///
