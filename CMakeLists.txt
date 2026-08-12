@@ -154,6 +154,9 @@ set(DLPRIM_CORE_SRC
         src/im2col.cpp
         src/softmax.cpp
         src/tiered_cache.cpp
+        # moving any stuff from dlprim to dlprim_core that contains useful functionality, prior to deletion
+        src/ops/initialization.cpp
+        
         ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp)
 
 set(DLPRIM_SRC 
@@ -171,7 +174,7 @@ set(DLPRIM_SRC
         src/ops/concat.cpp
         src/ops/nll_loss.cpp
         src/ops/mse_loss.cpp
-        src/ops/initialization.cpp
+        #src/ops/initialization.cpp
         src/ops/reshape.cpp
         src/ops/pointwise.cpp
         src/ops/reduction.cpp
@@ -244,7 +247,7 @@ if(NOT BUILD_CORE_ONLY)
     #target_link_libraries(image_predict dlprim)
     #target_link_libraries(dlprim_flops dlprim)
     #target_link_libraries(test_net dlprim)
-    target_link_libraries(test_random dlprim)
+    target_link_libraries(test_random dlprim_core)
     target_link_libraries(test_gemm dlprim)
     target_link_libraries(sanity_check dlprim)
 

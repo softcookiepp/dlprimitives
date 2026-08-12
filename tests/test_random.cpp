@@ -8,6 +8,7 @@
 #include <dlprim/random.hpp>
 #include <dlprim/tensor.hpp>
 #include <dlprim/ops/initialization.hpp>
+#include <dlprim/core/common.hpp>
 #include <cmath>
 #include <stdio.h>
 #include <iostream>
@@ -43,11 +44,11 @@ int main(int argc,char **argv)
         dp::Tensor t(ctx,dp::Shape(10000));
         dp::RandomState st(0xDEADBEEF);
         std::cout << "Testing zero" << std::endl;
-        dp::set_to_zero(t,e);
+        dp::core::fill_tensor(t, 0.0);
         t.to_host(e);
         test_values(t,0,0.0,0,0);
         std::cout << "Testing constant" << std::endl;
-        dp::set_to_constant(t,1.5,e);
+        dp::core::fill_tensor(t, 1.5);
         t.to_host(e);
         test_values(t,1.5,0.0,1.5,1.5);
         std::cout << "Testing uniform" << std::endl;

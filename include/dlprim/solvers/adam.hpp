@@ -30,15 +30,15 @@ namespace dlprim {
                 for(auto &p : n.param_diffs()) {
                     auto &v = v_[p.first] = Tensor(ctx_,p.second.shape(),p.second.dtype());
                     auto &m = m_[p.first] = Tensor(ctx_,p.second.shape(),p.second.dtype());
-                    set_to_zero(v,q);
-                    set_to_zero(m,q);
+                    core::fill_tensor(v, 0.0);
+                    core::fill_tensor(m, 0.0);
                 }
                 t_ = 0;
             }
             void zero_grad(Net &n,ExecutionContext const &e)
             {
                 for(auto &p : n.param_diffs()) {
-                    set_to_zero(p.second,e);
+                    core::fill_tensor(p.second, 0.0);
                 }
             }
             void apply(Net &n,ExecutionContext const &e)

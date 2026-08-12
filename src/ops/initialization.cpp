@@ -13,20 +13,6 @@
 
 namespace dlprim {
 
-void set_to_zero(Tensor &t,ExecutionContext const &e)
-{
-    {
-       core::fill_tensor(t,0);
-    }
-}
-
-void set_to_constant(Tensor &t,double value,ExecutionContext const &e)
-{
-    {
-        core::fill_tensor(t,value);
-    }
-}
-
 void get_seed_seq(size_t total,RandomState &state,RandomState::seed_type &seed,RandomState::sequence_type &seq)
 {
     size_t rounds = (total +  philox::result_items - 1) / philox::result_items;
