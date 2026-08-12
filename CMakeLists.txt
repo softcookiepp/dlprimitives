@@ -164,12 +164,11 @@ set(DLPRIM_CORE_SRC
 
 set(DLPRIM_SRC 
         src/activation.cpp
-        src/ops/inner_product.cpp
+        #src/ops/inner_product.cpp
         src/ops/batch_normalization.cpp
-        src/ops/conv2d.cpp
-        src/ops/activation.cpp
+        #src/ops/conv2d.cpp
+        #src/ops/activation.cpp
         src/ops/softmax.cpp
-        #src/ops/elementwise.cpp
         src/ops/pooling.cpp
         src/ops/bwd_bias.cpp
         src/ops/axpby.cpp
@@ -177,7 +176,6 @@ set(DLPRIM_SRC
         src/ops/concat.cpp
         src/ops/nll_loss.cpp
         src/ops/mse_loss.cpp
-        #src/ops/initialization.cpp
         src/ops/reshape.cpp
         src/ops/pointwise.cpp
         src/ops/reduction.cpp
