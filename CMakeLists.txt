@@ -169,7 +169,7 @@ set(DLPRIM_SRC
         src/ops/conv2d.cpp
         src/ops/activation.cpp
         src/ops/softmax.cpp
-        src/ops/elementwise.cpp
+        #src/ops/elementwise.cpp
         src/ops/pooling.cpp
         src/ops/bwd_bias.cpp
         src/ops/axpby.cpp
@@ -248,14 +248,6 @@ if(NOT BUILD_CORE_ONLY)
     add_executable(test_gemm tests/test_gemm.cpp)
     add_executable(sanity_check tests/sanity_check.cpp)
 
-    #target_link_libraries(test_from_template dlprim)
-    #target_link_libraries(mnist dlprim)
-    #target_link_libraries(train_mnist dlprim)
-    
-    #target_link_libraries(dlprim_benchmark dlprim)
-    #target_link_libraries(image_predict dlprim)
-    #target_link_libraries(dlprim_flops dlprim)
-    #target_link_libraries(test_net dlprim)
     target_link_libraries(test_random dlprim_core)
     target_link_libraries(test_gemm dlprim_core)
     target_link_libraries(sanity_check dlprim)
