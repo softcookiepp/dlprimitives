@@ -197,8 +197,13 @@ else()
 	add_library(dlprim_core SHARED ${DLPRIM_CORE_SRC})
 endif()
 
-target_link_libraries(dlprim_core PUBLIC tart clblast ${BLAS_LIB})
-target_include_directories(dlprim_core PUBLIC ${CBLAS_INCLUDE_DIRS})
+
+if(NOT BUILD_CORE_ONLY)
+	target_link_libraries(dlprim_core PUBLIC tart clblast ${BLAS_LIB})
+	target_include_directories(dlprim_core PUBLIC ${CBLAS_INCLUDE_DIRS})
+else()
+	target_link_libraries(dlprim_core PUBLIC tart clblast)
+endif()
 
 
 target_compile_definitions(dlprim_core PUBLIC VULKAN_API)
