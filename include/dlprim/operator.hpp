@@ -176,13 +176,4 @@ namespace dlprim {
         CalculationsMode mode_; ///< computaions mode
         std::shared_ptr<SharedResource> shared_resource_;
     };
-   
-    ///
-    /// Factory - generate operator by its name (type) with parameters needed
-    /// 
-    std::unique_ptr<Operator> create_by_name(Context &ctx,
-                                             std::string const &name,
-                                             json::value const &parameters);
-
-
 } // dlprim

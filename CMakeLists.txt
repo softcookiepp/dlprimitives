@@ -197,7 +197,6 @@ set(DLPRIM_CORE_SRC
         ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp)
 
 set(DLPRIM_SRC 
-        src/operators_factory.cpp
         src/json.cpp
         src/activation.cpp
         src/ops/inner_product.cpp
