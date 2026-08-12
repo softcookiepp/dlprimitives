@@ -8,7 +8,6 @@
 #include <dlprim/ops/mse_loss.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/core/pointwise.hpp>
-#include <dlprim/json.hpp>
 #include <math.h>
 
 namespace dlprim {
