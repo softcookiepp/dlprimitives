@@ -22,7 +22,7 @@ namespace core {
 			mPadSize({p[0], p[1]}),
 			mPoolMode(static_cast<uint32_t>(avg)),
 			mIncludePad(inc_pad),
-			scal_(ctx,dt)
+			scal_(ctx, data_type_to_tart_dtype(dt))
 		{
 			wg_size_ = 8;
 			tart::DType dtt = data_type_to_tart_dtype(dt);

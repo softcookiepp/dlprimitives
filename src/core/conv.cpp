@@ -321,7 +321,7 @@ namespace core {
         }
         Conv2DBackwardDataWinograd(Context &ctx,Conv2DSettings const &config) :
             config_(config),
-            s_(ctx,config.dtype)
+            s_(ctx, data_type_to_tart_dtype(config.dtype))
         {
             int off = 1;
             int toff = 1;
@@ -395,7 +395,7 @@ namespace core {
 
         Conv2DBackwardFilterWinograd(Context &ctx,Conv2DSettings const &config) : 
             config_(config),
-            s_(ctx,config.dtype)
+            s_(ctx, data_type_to_tart_dtype(config.dtype))
         {
             int h = config.shape[2];
             int w = config.shape[3];
@@ -576,7 +576,7 @@ namespace core {
 
         Conv2DBackwardDataDepthwiseSeparable(Context &ctx,Conv2DSettings const &config) :
             config_(config),
-            s_(ctx,config.dtype)
+            s_(ctx, data_type_to_tart_dtype(config.dtype))
         {
 			#if 1
 				throw std::runtime_error("Conv2DBackwardDataDepthwiseSeparable has not been ported to Vulkan");

@@ -21,10 +21,10 @@ enum class RandomType
 
 namespace dlprim {
 namespace core {
-    Scale::Scale(Context &ctx, DataType dt)
+    Scale::Scale(Context &ctx, const tart::DType& dt)
     {
 		// TODO: make this not just float
-        DLPRIM_CHECK(dt==float_data);
+        DLPRIM_CHECK(dt == tart::dtypes::float32);
     }
     void Scale::enqueue(float s,Tensor &t,ExecutionContext const &ec)
     {
@@ -34,7 +34,7 @@ namespace core {
     void scale_tensor(float s,Tensor &t,ExecutionContext const &ec)
     {
         Context ctx(ec);
-		Scale sc(ctx,t.dtype());
+		Scale sc(ctx, t.tDtype());
 		sc.enqueue(s,t,ec);
     }
 

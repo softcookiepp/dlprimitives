@@ -21,7 +21,7 @@ namespace core {
 			mDType(data_type_to_tart_dtype(dtype))
 		{
 			dt_ = dtype;
-			DLPRIM_CHECK(dtype == float_data);
+			DLPRIM_CHECK(mDType == tart::dtypes::float32);
 			DLPRIM_CHECK(s.size() >= 2);
 			features_ = s[1];
 			int total = s.total_size() / features_;

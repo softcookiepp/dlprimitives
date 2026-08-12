@@ -17,7 +17,7 @@ namespace core {
 	///
 	class Scale {
 	public:
-		Scale(Context &ctx,DataType dtype=float_data);
+		Scale(Context &ctx, const tart::DType& dt = tart::dtypes::float32);
 		void enqueue(float s,Tensor &t,ExecutionContext const &ec);
 	private:
 		tart::kernel_ptr k_;

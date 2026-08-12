@@ -214,7 +214,7 @@ namespace dlprim {
         parameters.clear();
         {
             copy_.reset(new core::SliceCopy(ctx_,dtype_));
-            scale_.reset(new core::Scale(ctx_,dtype_));
+            scale_.reset(new core::Scale(ctx_, data_type_to_tart_dtype(dtype_)));
         }
         workspace = 0;
     }
