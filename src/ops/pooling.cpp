@@ -7,34 +7,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/ops/pooling.hpp>
 #include <dlprim/gpu/program_cache.hpp>
-#include <dlprim/json.hpp>
-#include <dlprim/utils/json_helpers.hpp>
 #include <math.h>
 #include <dlprim/ops/scal.hpp>
 #include <dlprim/core/pool.hpp>
 #include <my_cblas.hpp>
 
 namespace dlprim {
-PoolingBase PoolingBase::from_json(json::value const &v)
-{
-    PoolingBase cfg;
-    char const *names[] = { "max", "avg" };
-    cfg.mode = utils::parse_enum(v,"mode",names,cfg.mode);
-    return cfg;
-}
-
-Pooling2DConfig Pooling2DConfig::from_json(json::value const &v)
-{
-    Pooling2DConfig cfg;
-    static_cast<PoolingBase &>(cfg) = PoolingBase::from_json(v);
-    utils::get_1dNd_from_json(v,"kernel",cfg.kernel,true);
-    utils::get_1dNd_from_json(v,"stride",cfg.stride);
-    utils::get_1dNd_from_json(v,"pad",cfg.pad);
-    cfg.ceil_mode = v.get("ceil_mode",cfg.ceil_mode);
-    cfg.count_include_pad = v.get("count_include_pad",cfg.count_include_pad);
-    return cfg;
-}
-
 
 Pooling2D::Pooling2D(Context &ctx,Pooling2DConfig config) :
     Operator(ctx),

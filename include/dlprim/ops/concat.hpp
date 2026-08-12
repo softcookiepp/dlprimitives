@@ -8,12 +8,10 @@
 #pragma once
 #include <dlprim/operator.hpp>
 namespace dlprim {	
-    namespace json { class value; }
     namespace core { class SliceCopy; class Scale; }
 
     struct ConcatConfig {
         int dim = 1;
-        static ConcatConfig from_json(json::value const &v);
     };
 
 
@@ -21,7 +19,6 @@ namespace dlprim {
         int dim = 1;
         int begin = 0;
         int end = -1;
-        static SliceConfig from_json(json::value const &v);
     };
 
     class ConcatSliceBase  {

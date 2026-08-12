@@ -23,7 +23,6 @@ namespace dlprim {
         std::string bwd_filter_algo="auto";
 
         StandardActivations activation=StandardActivations::identity;
-        static Convolution2DConfig from_json(json::value const &v);
     };
 
     class Convolution2DBase {
@@ -92,8 +91,6 @@ namespace dlprim {
 
     struct TransposedConvolution2DConfig : public Convolution2DConfig {
         int output_pad[2] = {0,0}; // Output padding - due to possible ambiguity of input/output size calcuulations
-
-        static TransposedConvolution2DConfig from_json(json::value const &v);
     };
 
     class TransposedConvolution2D : public Operator, public Convolution2DBase {

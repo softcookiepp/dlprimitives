@@ -8,31 +8,10 @@
 #include <dlprim/ops/interpolation.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/core/interpolate.hpp>
-#include <dlprim/json.hpp>
-#include <dlprim/utils/json_helpers.hpp>
 #include <math.h>
 #include <my_cblas.hpp>
 
 namespace dlprim {
-InterpolationConfig InterpolationConfig::from_json(json::value const &v)
-{
-    InterpolationConfig cfg;
-    cfg.out_h = v.get<int>("out_h",-1);
-    cfg.out_w = v.get<int>("out_w",-1);
-    cfg.scale_y = v.get<double>("scale_y",-1.0);
-    cfg.scale_x = v.get<double>("scale_x",-1.0);
-    cfg.align_corners = v.get<bool>("align_corners",false);
-    std::string method = v.get<std::string>("method");
-    if(method == "nearest")
-        cfg.method = InterpolateType::nearest;
-    else if(method == "nearest-exact")
-        cfg.method = InterpolateType::nearest_exact;
-    else if(method == "bilinear")
-        cfg.method = InterpolateType::bilinear;
-    else
-       throw ValidationError("Unsupported interpolation method " + method); 
-    return cfg;
-}
 
 Interpolation::Interpolation(Context &ctx,InterpolationConfig config) :
     Operator(ctx),

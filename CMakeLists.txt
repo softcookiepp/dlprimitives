@@ -197,7 +197,6 @@ set(DLPRIM_CORE_SRC
         ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp)
 
 set(DLPRIM_SRC 
-        src/json.cpp
         src/activation.cpp
         src/ops/inner_product.cpp
         src/ops/batch_normalization.cpp
@@ -268,7 +267,6 @@ if(NOT BUILD_CORE_ONLY)
 
     #add_executable(test_from_template tests/test_from_template.cpp)
     #add_executable(test_net tests/test_net.cpp)
-    #add_executable(test_json tests/json_test.cpp)
     
     # benchmark uses DLPrim's OpenCL-dependent timing utility, which does not play nicely with Vulkan whatsoever.
     # As such, it is being temporarily disabled until a replacement can be made.
@@ -288,7 +286,6 @@ if(NOT BUILD_CORE_ONLY)
     
     #target_link_libraries(dlprim_benchmark dlprim)
     #target_link_libraries(image_predict dlprim)
-    #target_link_libraries(test_json dlprim)
     target_link_libraries(dlprim_flops dlprim)
     #target_link_libraries(test_net dlprim)
     target_link_libraries(test_random dlprim)

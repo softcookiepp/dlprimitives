@@ -6,20 +6,10 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/ops/parameter.hpp>
-#include <dlprim/json.hpp>
 #include <my_cblas.hpp>
 #include <dlprim/core/pointwise.hpp>
-namespace dlprim {
-    ParameterConfig ParameterConfig::from_json(json::value const &v)
-    {
-        std::vector<int> dims = v.get<std::vector<int> >("shape");
-        DataType dtype = string_to_data_type(v.get("dtype","float"));
-        bool is_trainable = v.get("is_trainable",true);
-        ParameterConfig cfg;
-        cfg.spec = TensorSpecs(Shape::from_range(dims.begin(),dims.end()),dtype,is_trainable);
-        return cfg;
-    }
-
+namespace dlprim
+{
     void Parameter::copy_and_scale(Tensor &tgt,Tensor &src,float accum,ExecutionContext const &q)
     {
         DLPRIM_CHECK(tgt.specs() == src.specs());

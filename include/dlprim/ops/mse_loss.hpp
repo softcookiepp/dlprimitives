@@ -9,7 +9,6 @@
 #include <dlprim/operator.hpp>
 
 namespace dlprim {	
-    namespace json { class value; }
     namespace core { class PointwiseOperationBroadcastReduce; }
 
     struct MSELossConfig {
@@ -19,7 +18,6 @@ namespace dlprim {
             reduce_mean
         };
         Reduction reduce = reduce_mean;
-        static MSELossConfig from_json(json::value const &v);
     };
 
     class MSELoss : public Operator {

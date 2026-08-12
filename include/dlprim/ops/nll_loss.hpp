@@ -9,7 +9,6 @@
 #include <dlprim/operator.hpp>
 
 namespace dlprim {	
-    namespace json { class value; }
 
     struct NLLLossConfig {
         enum Reduction {
@@ -18,7 +17,6 @@ namespace dlprim {
             reduce_mean
         };
         Reduction reduce = reduce_mean;
-        static NLLLossConfig from_json(json::value const &v);
     };
 
     class NLLLoss : public Operator {

@@ -9,18 +9,9 @@
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/core/pointwise.hpp>
 #include <dlprim/json.hpp>
-#include <dlprim/utils/json_helpers.hpp>
 #include <math.h>
 
 namespace dlprim {
-
-MSELossConfig MSELossConfig::from_json(json::value const &v)
-{
-    MSELossConfig cfg;
-    char const *names[] = { "none", "sum", "mean" };
-    cfg.reduce = utils::parse_enum(v,"reduce",names,cfg.reduce);
-    return cfg;
-}
 
 MSELoss::MSELoss(Context &ctx,MSELossConfig const &cfg) : 
     Operator(ctx),

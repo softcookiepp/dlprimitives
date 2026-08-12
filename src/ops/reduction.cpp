@@ -6,35 +6,12 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/ops/reduction.hpp>
-#include <dlprim/utils/json_helpers.hpp>
 #include <dlprim/core/pointwise.hpp>
 #include <my_cblas.hpp>
 #include <cmath>
 
 namespace dlprim {
-    ReductionConfig ReductionConfig::from_json(json::value const &v)
-    {
-        ReductionConfig cfg;
-        char const *names[] = { "sum", "sumsq", "abssum","mean"};
-        cfg.method = utils::parse_enum(v,"method",names,cfg.method);
-        cfg.output_scale = v.get("output_scale",cfg.output_scale);
-        cfg.keep_dim = v.get("keep_dim",cfg.keep_dim);
-        if(v.find("dims").is_undefined()) {
-            cfg.start_axis = v.get("start_axis",cfg.start_axis);
-        }
-        else if (v.find("start_axis").is_undefined()){
-            cfg.dims = v.get("dims",cfg.dims);
-            if(cfg.dims.empty()) {
-                throw ValidationError("Using dims in Reduction requires providing at least 1 dimension");
-            }
-        }
-        else {
-            throw ValidationError("Can't use both dims and start_axis in Reduction");
-        }
-        return cfg;
-    }
 
-    
     Reduction::Reduction(Context &ctx,ReductionConfig const &cfg) : Operator(ctx), cfg_(cfg)
     {
     }

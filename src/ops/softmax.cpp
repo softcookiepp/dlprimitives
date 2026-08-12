@@ -9,8 +9,6 @@
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/ops/scal.hpp>
 #include <dlprim/core/loss.hpp>
-#include <dlprim/json.hpp>
-#include <dlprim/utils/json_helpers.hpp>
 #include <math.h>
 #include <my_cblas.hpp>
 
@@ -34,15 +32,6 @@ bool SoftmaxBase::setup_kernel_params(int sm_range)
     nd_range_ = (sm_range_ + mpl - 1) / mpl * wg_size_;
     return true;
 }
-
-
-SoftmaxConfig SoftmaxConfig::from_json(json::value const &v) 
-{ 
-    SoftmaxConfig cfg;
-    cfg.log = v.get<bool>("log",cfg.log);
-    return cfg;
-}
-
 
 Softmax::~Softmax() {}
 SoftmaxWithLoss::~SoftmaxWithLoss() {}

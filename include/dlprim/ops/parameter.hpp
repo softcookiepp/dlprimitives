@@ -11,7 +11,6 @@
 namespace dlprim {
     struct ParameterConfig {
         TensorSpecs spec;
-        static ParameterConfig from_json(json::value const &v);
     };
 
     class Parameter : public Operator {

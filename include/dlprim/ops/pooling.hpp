@@ -9,7 +9,6 @@
 #include <dlprim/operator.hpp>
 
 namespace dlprim {	
-    namespace json { class value; }
     namespace core { 
         class Pooling2DBackwardBase;
         class Pooling2DForward;
@@ -21,8 +20,6 @@ namespace dlprim {
         };
 
         Mode mode = max;
-
-        static PoolingBase from_json(json::value const &v);
     };
 
     struct Pooling2DConfig : public PoolingBase {
@@ -31,7 +28,6 @@ namespace dlprim {
         int stride[2]={1,1};
         bool ceil_mode=false;
         bool count_include_pad = false;
-        static Pooling2DConfig from_json(json::value const &v);
     };
 
     class Pooling2D : public Operator {
@@ -93,12 +89,6 @@ namespace dlprim {
     };
 
     struct GlobalPoolingConfig : public PoolingBase {
-        static GlobalPoolingConfig from_json(json::value const &v)
-        {
-            GlobalPoolingConfig cfg;
-            static_cast<PoolingBase &>(cfg) = PoolingBase::from_json(v);
-            return cfg;
-        }
     };
 
     class GlobalPooling : public Operator {

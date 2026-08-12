@@ -7,15 +7,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/ops/concat.hpp>
 #include <dlprim/core/common.hpp>
-#include <dlprim/json.hpp>
 #include <my_cblas.hpp>
 namespace dlprim {
-    ConcatConfig ConcatConfig::from_json(json::value const &v)
-    {
-        ConcatConfig cfg;
-        cfg.dim = v.get<int>("dim",cfg.dim);
-        return cfg;
-    }
     Concat::Concat(Context &ctx,ConcatConfig const &config) : Operator(ctx), cfg_(config)
     {
     }
@@ -178,14 +171,6 @@ namespace dlprim {
         DLPRIM_CHECK(offset == output[0].diff.shape()[cfg_.dim]);
     }
 
-    SliceConfig SliceConfig::from_json(json::value const &v)
-    {
-        SliceConfig cfg;
-        cfg.dim = v.get<int>("dim",cfg.dim);
-        cfg.begin = v.get<int>("begin",cfg.begin);
-        cfg.end = v.get<int>("end",cfg.end);
-        return cfg;
-    }
     Slice::Slice(Context &ctx,SliceConfig const &config) : Operator(ctx), cfg_(config)
     {
     }

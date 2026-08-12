@@ -8,19 +8,9 @@
 #include <dlprim/ops/nll_loss.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/core/loss.hpp>
-#include <dlprim/json.hpp>
-#include <dlprim/utils/json_helpers.hpp>
 #include <math.h>
 
 namespace dlprim {
-
-NLLLossConfig NLLLossConfig::from_json(json::value const &v)
-{
-    NLLLossConfig cfg;
-    char const *names[] = { "none", "sum", "mean" };
-    cfg.reduce = utils::parse_enum(v,"reduce",names,cfg.reduce);
-    return cfg;
-}
 
 NLLLoss::NLLLoss(Context &ctx,NLLLossConfig const &cfg) : 
     Operator(ctx),

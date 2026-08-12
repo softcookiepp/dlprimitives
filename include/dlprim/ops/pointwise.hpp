@@ -43,7 +43,6 @@ namespace dlprim {
 
     struct ThresholdConfig {
         float threshold = 0.0f;
-        static ThresholdConfig from_json(json::value const &v);
     };
 
     class Threshold : public PointwiseBase {
@@ -63,7 +62,6 @@ namespace dlprim {
     struct HardtanhConfig {
         float min_val = -1.0f;
         float max_val =  1.0f;
-        static HardtanhConfig from_json(json::value const &v);
     };
 
     class Hardtanh : public PointwiseBase {
@@ -81,7 +79,6 @@ namespace dlprim {
     };
 
     struct AbsConfig {
-        static AbsConfig from_json(json::value const &) { return AbsConfig(); }
     };
 
     class Abs : public PointwiseBase {

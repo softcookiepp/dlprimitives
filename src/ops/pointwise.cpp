@@ -7,7 +7,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/ops/pointwise.hpp>
 #include <dlprim/core/pointwise.hpp>
-#include <dlprim/json.hpp>
 #include <cmath>
 #include <my_cblas.hpp>
 namespace dlprim {
@@ -63,12 +62,6 @@ namespace dlprim {
         }
     }
 
-    ThresholdConfig ThresholdConfig::from_json(json::value const &v)
-    {
-        ThresholdConfig r;
-        r.threshold = v.get("threshold",r.threshold);
-        return r;
-    }
     void Threshold::forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q)
     {
         core::pointwise_operation({x},{y},{cfg_.threshold},"y0 = typeof_y0(cmp_gt(x0, w0) ? 1 : 0);");
@@ -78,14 +71,6 @@ namespace dlprim {
         core::pointwise_operation({dx},{dx},{beta},"y0 = cmp_gt(w0, 0) ? x0 * w0 : 0;");
     }
 
-
-    HardtanhConfig HardtanhConfig::from_json(json::value const &v)
-    {
-        HardtanhConfig r;
-        r.min_val = v.get("min_val",r.min_val);
-        r.max_val = v.get("max_val",r.max_val);
-        return r;
-    }
     void Hardtanh::forward_gpu(Tensor &x,Tensor &y,ExecutionContext const &q)
     {
         core::pointwise_operation({x},{y},{cfg_.min_val,cfg_.max_val},

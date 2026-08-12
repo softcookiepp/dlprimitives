@@ -8,10 +8,8 @@
 #pragma once
 #include <dlprim/operator.hpp>
 namespace dlprim {	
-    namespace json { class value; }
     struct ActivationConfig {
         StandardActivations activation = StandardActivations::identity;
-        static ActivationConfig from_json(json::value const &v);
     };
 
 

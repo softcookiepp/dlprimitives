@@ -9,8 +9,6 @@
 #include <dlprim/ops/scal.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/gpu/gemm.hpp>
-#include <dlprim/utils/json_helpers.hpp>
-#include <dlprim/json.hpp>
 #include <dlprim/ops/bwd_bias.hpp>
 #include <dlprim/ops/initialization.hpp>
 #include <dlprim/shared_resource.hpp>
@@ -21,25 +19,6 @@
 #include <my_cblas.hpp>
 
 namespace dlprim {
-   
-
-	Convolution2DConfig Convolution2DConfig::from_json(json::value const &v)
-	{
-		Convolution2DConfig cfg;
-		cfg.channels_in = v.get("channels_in",cfg.channels_in);
-		cfg.channels_out = v.get<int>("channels_out");
-		utils::get_1dNd_from_json(v,"kernel",cfg.kernel,true);
-		utils::get_1dNd_from_json(v,"stride",cfg.stride);
-		utils::get_1dNd_from_json(v,"dilate",cfg.dilate);
-		utils::get_1dNd_from_json(v,"pad",cfg.pad);
-		cfg.groups = v.get("groups",cfg.groups);
-		cfg.bias = v.get("bias",cfg.bias);
-		cfg.activation = utils::activation_from_json(v); 
-		cfg.fwd_algo = v.get("fwd_algo",cfg.fwd_algo);
-		cfg.bwd_data_algo = v.get("bwd_data_algo",cfg.bwd_data_algo);
-		cfg.bwd_filter_algo = v.get("bwd_filter_algo",cfg.bwd_filter_algo);
-		return cfg;
-	}
 	
 
 	Shape Convolution2D::get_output_shape(Shape const &in)
@@ -440,18 +419,6 @@ namespace dlprim {
 										input[0].accumulate_gradient, e);
 			}
 		}
-	}
-
-
-
-
-	TransposedConvolution2DConfig TransposedConvolution2DConfig::from_json(json::value const &v)
-	{
-		Convolution2DConfig src_cfg = Convolution2DConfig::from_json(v);
-		TransposedConvolution2DConfig cfg;
-		static_cast<Convolution2DConfig&>(cfg) = src_cfg;
-		utils::get_1dNd_from_json(v,"output_pad",cfg.output_pad);
-		return cfg;
 	}
 
 	Shape TransposedConvolution2D::get_output_shape(Shape const &in)

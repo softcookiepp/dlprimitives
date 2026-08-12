@@ -8,7 +8,6 @@
 #pragma once
 #include <dlprim/operator.hpp>
 namespace dlprim {	
-    namespace json { class value; }
     namespace core { class BatchNormFwdBwd; }
 
     struct BatchNormConfig {
@@ -17,7 +16,6 @@ namespace dlprim {
         float momentum = 0.1;
         bool affine = true;
         bool use_global_stats = false;
-        static BatchNormConfig from_json(json::value const &v);
     };
 
 

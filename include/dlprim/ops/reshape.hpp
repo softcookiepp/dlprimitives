@@ -7,9 +7,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include <dlprim/operator.hpp>
-namespace dlprim {	
-    namespace json { class value; }
-
+namespace dlprim
+{
     class ReshapeBase : public Operator {
     public:
         ReshapeBase(Context const &);
@@ -51,9 +50,7 @@ namespace dlprim {
 
     };
    
-    struct FlattenConfig {
-        static FlattenConfig from_json(json::value const &) { return FlattenConfig(); }
-    };
+    struct FlattenConfig {};
 
     class Flatten : public ReshapeBase {
     public:
@@ -74,7 +71,6 @@ namespace dlprim {
     struct SqueezeConfig {
         std::vector<int> dims;
         bool all=false;
-        static SqueezeConfig from_json(json::value const &);
     };
 
     class Squeeze : public ReshapeBase {
@@ -99,7 +95,6 @@ namespace dlprim {
 
     struct ReshapeConfig {
         std::vector<int> dims;
-        static ReshapeConfig from_json(json::value const &);
     };
 
     class Reshape : public ReshapeBase {

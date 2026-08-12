@@ -6,7 +6,6 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/ops/batch_normalization.hpp>
-#include <dlprim/json.hpp>
 #include <dlprim/core/common.hpp>
 #include <dlprim/core/bn.hpp>
 #include <dlprim/ops/initialization.hpp>
@@ -20,17 +19,6 @@ namespace dlprim {
             config_(config),
             dtype_(dt)
         {
-        }
-
-        BatchNormConfig BatchNormConfig::from_json(json::value const &v) 
-        {
-            BatchNormConfig cfg;
-            cfg.features = v.get<int>("features",cfg.features);
-            cfg.eps = v.get<float>("eps",cfg.eps);
-            cfg.momentum = v.get<float>("momentum",cfg.momentum);
-            cfg.affine = v.get<bool>("affine",cfg.affine);
-            cfg.use_global_stats = v.get<bool>("use_global_stats",cfg.use_global_stats);
-            return cfg;
         }
 
         BatchNorm::~BatchNorm() {}

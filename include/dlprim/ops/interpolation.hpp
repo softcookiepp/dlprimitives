@@ -9,13 +9,11 @@
 #include <dlprim/operator.hpp>
 #include <tuple>
 namespace dlprim {	
-    namespace json { class value; }
     struct InterpolationConfig {
         double scale_y,scale_x;
         int out_h,out_w;
         bool align_corners;
         InterpolateType method;
-        static InterpolationConfig from_json(json::value const &v);
     };
 
 

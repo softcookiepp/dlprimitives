@@ -7,31 +7,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/ops/elementwise.hpp>
 #include <dlprim/gpu/program_cache.hpp>
-#include <dlprim/json.hpp>
-#include <dlprim/utils/json_helpers.hpp>
 #include <dlprim/core/pointwise.hpp>
 #include <math.h>
 
 #include <my_cblas.hpp>
 
-namespace dlprim {
-ElementwiseConfig ElementwiseConfig::from_json(json::value const &v)
+namespace dlprim
 {
-	ElementwiseConfig cfg;
-	std::string op = v.get<std::string>("operation","sum");
-	if(op == "sum")
-		cfg.op = elementwise_sum;
-	else if(op == "prod")
-		cfg.op = elementwise_prod;
-	else if(op == "max")
-		cfg.op = elementwise_max;
-	else
-		throw ValidationError("Unsupported Elementwise operation " + op);
-	cfg.coeff[0] = v.get("coef1",1.0f);
-	cfg.coeff[1] = v.get("coef2",1.0f);
-	cfg.activation = utils::activation_from_json(v);
-	return cfg;
-}
 
 Elementwise::Elementwise(Context &ctx,ElementwiseConfig config) :
 	Operator(ctx),

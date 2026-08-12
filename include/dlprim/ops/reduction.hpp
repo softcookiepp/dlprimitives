@@ -10,7 +10,6 @@
 
 namespace dlprim {	
     namespace core { class PointwiseOperationBroadcastReduce; }
-    namespace json { class value; }
 
     struct ReductionConfig {
         enum Method {
@@ -24,7 +23,6 @@ namespace dlprim {
         bool keep_dim = true;
         int start_axis = 0;
         std::vector<int> dims;
-        static ReductionConfig from_json(json::value const &v);
     };
 
     

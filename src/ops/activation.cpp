@@ -8,18 +8,10 @@
 #include <dlprim/ops/activation.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/core/activation.hpp>
-#include <dlprim/json.hpp>
-#include <dlprim/utils/json_helpers.hpp>
 #include <math.h>
 #include <my_cblas.hpp>
 
 namespace dlprim {
-ActivationConfig ActivationConfig::from_json(json::value const &v)
-{
-    ActivationConfig cfg;
-    cfg.activation = utils::activation_from_json(v);
-    return cfg;
-}
 
 Activation::Activation(Context &ctx,ActivationConfig config) :
     Operator(ctx),

@@ -8,7 +8,6 @@
 #pragma once
 #include <dlprim/operator.hpp>
 namespace dlprim {	
-    namespace json { class value; }
     namespace core {
         class PointwiseOperationBroadcastReduce;
     }
@@ -22,8 +21,6 @@ namespace dlprim {
         Operation op = elementwise_sum;
         float coeff[2] = {1.0f,1.0f};
         StandardActivations activation = StandardActivations::identity;
-
-        static ElementwiseConfig from_json(json::value const &v);
     };
    
     class Elementwise : public Operator {

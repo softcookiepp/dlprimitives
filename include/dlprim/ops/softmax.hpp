@@ -9,12 +9,10 @@
 #include <dlprim/operator.hpp>
 
 namespace dlprim {	
-    namespace json { class value; }
     class Scal;
 
     struct SoftmaxConfig {
         bool log=false;
-        static SoftmaxConfig from_json(json::value const &v);
     };
 
     class SoftmaxBase {

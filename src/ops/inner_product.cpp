@@ -12,23 +12,12 @@
 #include <dlprim/core/common.hpp>
 #include <dlprim/core/ip.hpp>
 #include <dlprim/core/bias.hpp>
-#include <dlprim/utils/json_helpers.hpp>
 #include <dlprim/ops/initialization.hpp>
 #include <dlprim/shared_resource.hpp>
-#include <dlprim/json.hpp>
 #include <my_cblas.hpp>
 
 namespace dlprim {
    
-    InnerProductConfig InnerProductConfig::from_json(json::value const &v)
-    {
-        InnerProductConfig cfg;
-        cfg.inputs = v.get("inputs",cfg.inputs);
-        cfg.outputs = v.get<int>("outputs");
-        cfg.bias = v.get("bias",cfg.bias);
-        cfg.activation = utils::activation_from_json(v); 
-        return cfg;
-    }
     InnerProduct::~InnerProduct()
     {
     }

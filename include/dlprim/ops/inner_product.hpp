@@ -9,7 +9,6 @@
 #include <dlprim/operator.hpp>
 namespace dlprim {
     namespace gpu { class GEMM; }
-    namespace json { class value; }
     namespace core { class IPForward; class IPBackwardData; class IPBackwardFilter; }
     class BWBias;
 
@@ -18,7 +17,6 @@ namespace dlprim {
 		int outputs = -1;
 		bool bias = true;
 		StandardActivations activation = StandardActivations::identity;
-        static InnerProductConfig from_json(json::value const &v);
 	};
 
 
