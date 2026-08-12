@@ -14,7 +14,8 @@ namespace dlprim {
 
 
    
-    class Activation : public Operator {
+    class Activation : public Operator
+    {
     public:
         
         Activation(Context &ctx,ActivationConfig config = ActivationConfig());
