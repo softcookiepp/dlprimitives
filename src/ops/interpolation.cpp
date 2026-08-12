@@ -148,7 +148,7 @@ void Interpolation::backward(std::vector<TensorAndGradient> &input,
                           ExecutionContext const &e)
 {
     DLPRIM_CHECK(input.size()==1);
-    DLPRIM_CHECK(output.size()==1); 
+    DLPRIM_CHECK(output.size()==1);
     if(!input[0].requires_gradient)
         return;
  

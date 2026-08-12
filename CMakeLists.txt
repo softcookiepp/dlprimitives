@@ -180,8 +180,8 @@ set(DLPRIM_SRC
         #src/ops/reshape.cpp
         #src/ops/pointwise.cpp
         #src/ops/reduction.cpp
-        src/ops/parameter.cpp
-        src/ops/interpolation.cpp
+        #src/ops/parameter.cpp
+        #src/ops/interpolation.cpp
         ${EXTRA_SRC}
         )
 
@@ -209,20 +209,21 @@ target_compile_definitions(dlprim_core PUBLIC VULKAN_API)
 target_include_directories(dlprim_core PUBLIC CLBlast/tart/include CLBlast/tart/xxhashct)
 
 if(NOT BUILD_CORE_ONLY)
+	if(0)
+		if(WIN32)
+			add_library(dlprim STATIC ${DLPRIM_SRC})
+		else()
+			add_library(dlprim SHARED ${DLPRIM_SRC})
+		endif()
 		
-    if(WIN32)
-        add_library(dlprim STATIC ${DLPRIM_SRC})
-    else()
-        add_library(dlprim SHARED ${DLPRIM_SRC})
-    endif()
-	
-	target_link_libraries(dlprim dlprim_core ${BLAS_LIB})
-    if(HDF5_FOUND)
-        target_link_libraries(dlprim ${HDF5_LIBRARIES} hdf5_cpp) 
-    endif()
-
-    set_target_properties(dlprim PROPERTIES 
-                PUBLIC_HEADER "${DLPRIM_PUBLIC_HEADERS}")
+		target_link_libraries(dlprim dlprim_core ${BLAS_LIB})
+		if(HDF5_FOUND)
+			target_link_libraries(dlprim ${HDF5_LIBRARIES} hdf5_cpp) 
+		endif()
+		
+		set_target_properties(dlprim PROPERTIES 
+					PUBLIC_HEADER "${DLPRIM_PUBLIC_HEADERS}")
+	endif()
 
     add_executable(test_context tests/test_context.cpp)
     add_executable(test_broadcast_reduce tests/test_broadcast_reduce.cpp)
@@ -275,10 +276,6 @@ endif()
 #################
 # Installation
 #################
-
-if(NOT BUILD_CORE_ONLY)
-    set(EXTRA_INSTALL dlprim ${EXTRA_INSTALL})
-endif()
 
 
 install(TARGETS 
