@@ -13,7 +13,6 @@ option(USE_CL2_HPP "Use older CL/cl2.hpp instead of CL/opencl.hpp" OFF)
 option(USE_INTERNAL_BLAS "Use Internal Blas" OFF)
 option(USE_HDF "Compile with HDF support" OFF)
 option(USE_SQLITE3 "Compile with sqlite3 support for kernel caching" OFF)
-option(USE_ONNX "Compile with ONNX support" OFF)
 option(USE_PYDLPRIM "Compile python interface for dlprimitives" OFF)
 option(BUILD_CORE_ONLY "Build only dlprimitives core" OFF)
 option(DLPRIM_STATIC_BUILD "Build static version only" OFF)
@@ -22,7 +21,6 @@ option(USE_VULKAN_API "Build with Vulkan API" ON)
 if(BUILD_CORE_ONLY)
     SET(USE_CL_HPP OFF)
     SET(USE_HDF OFF)
-    SET(USE_ONNX OFF)
     set(USE_PYDLPRIM OFF)
 endif()
 
@@ -39,19 +37,6 @@ if (USE_SQLITE3)
         include_directories(${SQLITE3_PATH})
         set(WITH_SQLITE3 ON)
     endif()
-endif()
-
-if(USE_ONNX)
-    find_package(Protobuf)
-    if(PROTOBUF_FOUND)
-        if(USE_ONNX)
-            set(WITH_ONNX ON)
-        endif()
-    else()
-        set(WITH_ONNX OFF)
-    endif()
-else()
-    set(WITH_ONNX OFF)
 endif()
 
 configure_file(config.cmake.hpp dlprim/config.hpp)
@@ -164,12 +149,6 @@ else()
     message("  Sqlite3: disabled")
 endif()
 
-if(WITH_ONNX)
-    message("  Protobuf: ${PROTOBUF_VERSION}, ${Protobuf_VERSION}")
-else()
-    message("  Protobuf (onnx): disabled")
-endif()
-
 if(BUILD_PYDLPRIM)
     message("  Python dlprim: enabled")
     message("  Python version: ${PLIB_VER}")
@@ -221,7 +200,6 @@ set(DLPRIM_SRC
         src/operators_factory.cpp
         src/json.cpp
         src/activation.cpp
-        src/net.cpp
         src/ops/inner_product.cpp
         src/ops/batch_normalization.cpp
         src/ops/conv2d.cpp
@@ -322,18 +300,6 @@ endif()
 
 set(EXTRA_INSTALL )
 
-if(WITH_ONNX)
-    include_directories(${PROTOBUF_INCLUDE_DIRS})
-    include_directories(${CMAKE_CURRENT_BINARY_DIR})
-    protobuf_generate_cpp(ONNX_PROTO_SRCS ONNX_PROTO_HDRS proto/onnx.proto)
-    add_library(dlprim_onnx SHARED src/importers/onnx.cpp ${ONNX_PROTO_SRCS} ${ONNX_PROTO_HDRS}) 
-    set_target_properties(dlprim_onnx PROPERTIES CXX_VISIBILITY_PRESET hidden)
-    target_link_libraries(dlprim_onnx dlprim ${PROTOBUF_LITE_LIBRARIES})
-    add_executable(onnx_predict examples/cpp/onnx_predict.cpp)
-    target_link_libraries(onnx_predict dlprim dlprim_onnx)
-    set(EXTRA_INSTALL ${EXTRA_INSTALL} dlprim_onnx)
-endif()
-
 if(BUILD_PYDLPRIM)
     add_library(pydlprim SHARED python/python_interface.cpp)
     set_target_properties(pydlprim PROPERTIES PREFIX "" OUTPUT_NAME "_pydlprim")
@@ -344,9 +310,6 @@ if(BUILD_PYDLPRIM)
     include_directories(${Boost_INCLUDE_DIRS})
     include_directories(${PYTHON_INCLUDE_DIRS})
     target_link_libraries(pydlprim dlprim ${BNUMPY_LIB} ${BPYTHON_LIB} ${PYTHON_LIBRARIES})
-    if(WITH_ONNX)
-        target_link_libraries(pydlprim dlprim_onnx)
-    endif()
     file(GLOB PY_SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/python/dlprim/*.py)
     install(FILES ${PY_SOURCES} DESTINATION python/dlprim)
     install(TARGETS pydlprim
