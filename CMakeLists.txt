@@ -275,7 +275,7 @@ if(NOT BUILD_CORE_ONLY)
     # same reason as above
     #add_executable(mnist tests/mnist.cpp)
     #add_executable(train_mnist examples/cpp/train_mnist.cpp)
-    add_executable(dlprim_flops tools/flops.cpp)
+    #add_executable(dlprim_flops tools/flops.cpp)
     add_executable(test_random tests/test_random.cpp)
     add_executable(test_gemm tests/test_gemm.cpp)
     add_executable(sanity_check tests/sanity_check.cpp)
@@ -286,7 +286,7 @@ if(NOT BUILD_CORE_ONLY)
     
     #target_link_libraries(dlprim_benchmark dlprim)
     #target_link_libraries(image_predict dlprim)
-    target_link_libraries(dlprim_flops dlprim)
+    #target_link_libraries(dlprim_flops dlprim)
     #target_link_libraries(test_net dlprim)
     target_link_libraries(test_random dlprim)
     target_link_libraries(test_gemm dlprim)
@@ -335,7 +335,7 @@ endif()
 #################
 
 if(NOT BUILD_CORE_ONLY)
-    set(EXTRA_INSTALL dlprim dlprim_flops ${EXTRA_INSTALL})
+    set(EXTRA_INSTALL dlprim ${EXTRA_INSTALL})
 endif()
 
 
