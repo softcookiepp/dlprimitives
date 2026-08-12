@@ -176,10 +176,10 @@ set(DLPRIM_SRC
         #src/ops/scal.cpp
         #src/ops/concat.cpp
         #src/ops/nll_loss.cpp
-        src/ops/mse_loss.cpp
-        src/ops/reshape.cpp
-        src/ops/pointwise.cpp
-        src/ops/reduction.cpp
+        #src/ops/mse_loss.cpp
+        #src/ops/reshape.cpp
+        #src/ops/pointwise.cpp
+        #src/ops/reduction.cpp
         src/ops/parameter.cpp
         src/ops/interpolation.cpp
         ${EXTRA_SRC}
@@ -249,7 +249,7 @@ if(NOT BUILD_CORE_ONLY)
 
     target_link_libraries(test_random dlprim_core)
     target_link_libraries(test_gemm dlprim_core)
-    target_link_libraries(sanity_check dlprim)
+    target_link_libraries(sanity_check dlprim_core)
 
 endif()
 
