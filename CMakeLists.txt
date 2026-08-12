@@ -159,22 +159,23 @@ set(DLPRIM_CORE_SRC
         src/tiered_cache.cpp
         # moving any stuff from dlprim to dlprim_core that contains useful functionality, prior to deletion
         src/ops/initialization.cpp
+        src/ops/axpby.cpp
         
         ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp)
 
 set(DLPRIM_SRC 
-        src/activation.cpp
+        #src/activation.cpp
         #src/ops/inner_product.cpp
-        src/ops/batch_normalization.cpp
+        #src/ops/batch_normalization.cpp
         #src/ops/conv2d.cpp
         #src/ops/activation.cpp
-        src/ops/softmax.cpp
-        src/ops/pooling.cpp
-        src/ops/bwd_bias.cpp
-        src/ops/axpby.cpp
-        src/ops/scal.cpp
-        src/ops/concat.cpp
-        src/ops/nll_loss.cpp
+        #src/ops/softmax.cpp
+        #src/ops/pooling.cpp
+        #src/ops/bwd_bias.cpp
+        
+        #src/ops/scal.cpp
+        #src/ops/concat.cpp
+        #src/ops/nll_loss.cpp
         src/ops/mse_loss.cpp
         src/ops/reshape.cpp
         src/ops/pointwise.cpp
