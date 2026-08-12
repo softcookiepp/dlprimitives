@@ -62,7 +62,7 @@ void SpatialSoftMax_getLaunchSizes(
 
 void spatial_softmax(
 	const ExecutionContext& e,
-	const DataType dtype,
+	const tart::DType& dt,
 	const SoftmaxEpilogue epilogue,
 	const tart::buffer_ptr& output_buffer,
 	const uint32_t output_offset,
@@ -82,7 +82,6 @@ void spatial_softmax(
 				e.queue(),
 				outer_size, dim_size, inner_size,
 				grid, block, smem_size);
-		tart::DType dt = data_type_to_tart_dtype(dtype);
 		tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().spatial_softmax(output_buffer->getDevice(), dt);
 		tart::kernel_ptr k = prg->getKernel("softmax_forward");
 		
@@ -117,7 +116,7 @@ void spatial_softmax(
 
 void spatial_softmax_backward(
 	const ExecutionContext& e,
-	const DataType dtype,
+	const tart::DType& dt,
 	const SoftmaxEpilogue epilogue,
 	const tart::buffer_ptr& gI,
 	uint32_t gI_offset,
@@ -136,7 +135,6 @@ void spatial_softmax_backward(
 	if (!half_to_float)
 	{
 		SpatialSoftMax_getLaunchSizes(e.queue(), outer_size, dim_size, inner_size, grid, block, smem_size);
-		tart::DType dt = data_type_to_tart_dtype(dtype);
 		tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().spatial_softmax(gI->getDevice(), dt);
 		tart::kernel_ptr k = prg->getKernel("softmax_backward");
 		

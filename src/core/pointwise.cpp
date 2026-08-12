@@ -14,22 +14,21 @@
 
 namespace dlprim {
 namespace core {
-    void bind_as_dtype(tart::kernel_ptr k,int &p,double value,DataType dt)
+    void bind_as_dtype(tart::kernel_ptr k,int &p,double value, const tart::DType& dt)
     {
-        switch(dt) {
-		case  double_data:  k->setArg(p++, double(value)); break;
-        case  float_data:   k->setArg(p++, (float)(value)); break;
-        case  half_data:    k->setArg(p++, float(value)); break; // half goes as float to kernel parameter
-        case  int64_data:   k->setArg(p++, int64_t(value)); break;
-        case  int32_data:   k->setArg(p++, int(value)); break;
-        case  int16_data:   k->setArg(p++, int16_t(value)); break;
-        case  int8_data:    k->setArg(p++, int8_t(value)); break;
-        case  uint64_data:  k->setArg(p++, uint64_t(value)); break;
-        case  uint32_data:  k->setArg(p++, uint32_t(value)); break;
-        case  uint8_data:   k->setArg(p++, uint8_t(value)); break;
-        default:
-            throw  NotImplementedError("Unsupported bind as type:" + data_type_to_tart_dtype(dt).glsl());
-        }
+       
+		if      (dt == tart::dtypes::float64) k->setArg(p++, double(value));
+        else if (dt == tart::dtypes::float32) k->setArg(p++, (float)(value));
+        else if (dt == tart::dtypes::float16)    k->setArg(p++, float(value)); // half goes as float to kernel parameter
+        else if (dt == tart::dtypes::int64)   k->setArg(p++, int64_t(value));
+        else if (dt == tart::dtypes::int32) k->setArg(p++, int(value));
+        else if (dt == tart::dtypes::int16)   k->setArg(p++, int16_t(value));
+        else if (dt == tart::dtypes::int8)   k->setArg(p++, int8_t(value));
+        else if (dt == tart::dtypes::uint64)   k->setArg(p++, uint64_t(value));
+        else if (dt == tart::dtypes::uint32) k->setArg(p++, uint32_t(value));
+        else if (dt == tart::dtypes::uint16) k->setArg(p++, uint16_t(value));
+        else if (dt == tart::dtypes::uint8)   k->setArg(p++, uint8_t(value));
+		else throw std::runtime_error("Unsupported type");
     }
 
     void pointwise_operation(std::vector<Tensor> xs,
@@ -122,7 +121,7 @@ namespace core {
         for(Tensor &y:ys)
             y.set_arg(k,p);
         for(double w:ws)
-            bind_as_dtype(k,p,w,ref_type);
+            bind_as_dtype(k,p,w, refT);
             
 		// this should at least keep things safe. There is almost certainly a better way to do this.
 		std::vector<uint32_t> local({device->getMetadata().maxComputeWorkGroupSize[0], 1, 1});
@@ -310,7 +309,7 @@ namespace core {
             y.set_arg(k,p);
         
         for(size_t i=0;i<ws.size();i++) { 
-            bind_as_dtype(k,p,ws[i],dts[i]);
+            bind_as_dtype(k,p,ws[i], data_type_to_tart_dtype(dts[i]));
         }
         std::vector<uint32_t> range = get_broadcast_ndrange(ref);
         std::vector<uint32_t> local(3, 1);
@@ -389,8 +388,8 @@ namespace core {
                     Tensor &y=ys[i];
                     y.set_arg(kernel_,p);
                     bind_shape(kernel_,p,strides_[stride_id++]);
-                    bind_as_dtype(kernel_,p,alpha.at(i),ys[i].dtype());
-                    bind_as_dtype(kernel_,p,beta.at(i),ys[i].dtype());
+                    bind_as_dtype(kernel_,p,alpha.at(i), ys[i].tDtype());
+                    bind_as_dtype(kernel_,p,beta.at(i), ys[i].tDtype());
                 }
                 else {
                     Tensor temp_y = workspace
@@ -407,7 +406,7 @@ namespace core {
             }
             
             for(double w: parameters) {
-                bind_as_dtype(kernel_,p,w,target_type_);
+                bind_as_dtype(kernel_,p,w, data_type_to_tart_dtype(target_type_));
             }
 
             if(second_stage_stride_ != 1) {

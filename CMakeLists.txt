@@ -163,6 +163,8 @@ set(DLPRIM_CORE_SRC
         
         ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp)
 
+# All of this is disabled, but some code may be useful later for writing more lightweight equivalents of their original implementation.
+# So I am keeping it here for now!
 set(DLPRIM_SRC 
         #src/activation.cpp
         #src/ops/inner_product.cpp

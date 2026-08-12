@@ -14,7 +14,7 @@ namespace core {
     ///
     /// Bind a parameter to kernet casting it to apropriate opencl type dt
     ///
-    void bind_as_dtype(tart::kernel_ptr k,int &p,double value,DataType dt);
+    void bind_as_dtype(tart::kernel_ptr k,int &p,double value, const tart::DType& dr);
     ///
     /// per form operations function(xs,ws)->yw such that
     /// each tensor in xs and ys has same shape, ws are constant parameters

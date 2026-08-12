@@ -44,7 +44,7 @@ namespace core {
         kernel_->setArg(p++,uint32_t(s[2]));
         target.set_arg(kernel_,p);
         source.set_arg(kernel_,p);
-        bind_as_dtype(kernel_,p,scale,dtype_);
+        bind_as_dtype(kernel_,p,scale, data_type_to_tart_dtype(dtype_));
         
         std::vector<uint32_t> totalInvocations({s[2], slice, s[0]});
         auto glPair = mDevice.lock()->chooseGlobalAndLocalSize(totalInvocations);

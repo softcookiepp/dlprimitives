@@ -19,7 +19,7 @@ enum class SoftmaxEpilogue
 
 void spatial_softmax(
 	const ExecutionContext& e,
-	const DataType dtype,
+	const tart::DType& dtype,
 	const SoftmaxEpilogue epilogue,
 	const tart::buffer_ptr& output_buffer,
 	const uint32_t output_offset,
@@ -32,7 +32,7 @@ void spatial_softmax(
 
 void spatial_softmax_backward(
 	const ExecutionContext& e,
-	const DataType dtype,
+	const tart::DType& dtype,
 	const SoftmaxEpilogue epilogue,
 	const tart::buffer_ptr& gI,
 	uint32_t gI_offset,
