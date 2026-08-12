@@ -16,17 +16,16 @@ namespace core {
 	class Pooling2DFWBDImpl {
 	public:
 		size_t workspace() { return 0; }
-		Pooling2DFWBDImpl(Context &ctx,bool avg,int k[2],int p[2],int s[2],bool inc_pad,DataType dt) :
+		Pooling2DFWBDImpl(Context &ctx,bool avg,int k[2],int p[2],int s[2],bool inc_pad, const tart::DType& dt) :
 			mPoolSize({k[0], k[1]}),
 			mStrideSize({s[0], s[1]}),
 			mPadSize({p[0], p[1]}),
 			mPoolMode(static_cast<uint32_t>(avg)),
 			mIncludePad(inc_pad),
-			scal_(ctx, data_type_to_tart_dtype(dt))
+			scal_(ctx, dt)
 		{
 			wg_size_ = 8;
-			tart::DType dtt = data_type_to_tart_dtype(dt);
-			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(ctx.device(), dtt);
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(ctx.device(), dt);
 			kernel_ = prog->getKernel("pooling");
 			bwd_kernel_ = prog->getKernel("pooling_bw");
 		}
@@ -241,9 +240,9 @@ namespace core {
 		}
 	};
 
-	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_max_pooling(Context &ctx,int k[2],int p[2],int s[2],DataType dt)
+	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_max_pooling(Context &ctx,int k[2],int p[2],int s[2], const tart::DType dt)
 	{
-		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<Pooling2DFWBDImpl>(ctx,false,k,p,s,false,dt));
+		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<Pooling2DFWBDImpl>(ctx,false,k,p,s,false, dt));
 		return r;
 	}
 	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_avg_pooling(Context &ctx,int k[2],int p[2],int s[2],bool cip,DataType dt)
