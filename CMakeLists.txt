@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(dlprimitives)
 
+# taken from CLBlast hehe
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules/")
 
 enable_testing()
 
@@ -15,11 +17,6 @@ option(USE_HDF "Compile with HDF support" OFF)
 option(BUILD_CORE_ONLY "Build only dlprimitives core" OFF)
 option(DLPRIM_STATIC_BUILD "Build static version only" OFF)
 option(USE_VULKAN_API "Build with Vulkan API" ON)
-
-if(BUILD_CORE_ONLY)
-    SET(USE_CL_HPP OFF)
-    SET(USE_HDF OFF)
-endif()
 
 if(NOT USE_VULKAN_API)
 	message(FATAL_ERROR "OpenCL API is being removed, do not use it")
@@ -56,8 +53,9 @@ endif()
 SET(TEST_DEV "0:0" CACHE STRING "OpenCL platform:device, default 0:0")
 
 if(NOT USE_INTERNAL_BLAS)
-    find_path(CBLAS_PATH cblas.h)
-    find_library(CBLAS_LIB openblas blas) 
+	find_package(CBLAS)
+    #find_path(CBLAS_PATH cblas.h)
+    #find_library(CBLAS_LIB openblas blas) 
 endif()
 
 
@@ -78,16 +76,21 @@ else()
 endif()
 
 if(NOT BUILD_CORE_ONLY)
-
-    if(NOT CBLAS_LIB OR NOT CBLAS_PATH) 
+	find_package(CBLAS)
+    if(NOT CBLAS_FOUND)#NOT CBLAS_LIB OR NOT CBLAS_PATH) 
         set(EXTRA_SRC src/my_blas/my_cblas.cpp)
         set(BLAS_LIB )
         set(EXTRA_DEFS -DUSE_INTERNAL_BLAS)
     else()
-        set(EXTRA_SRC )
-        set(BLAS_LIB ${CBLAS_LIB})
-        include_directories("${CBLAS_PATH}")
-        set(EXTRA_DEFS )
+		if(1)
+			include_directories(CBLAS_INCLUDE_DIRS)
+			set(BLAS_LIB ${CBLAS_LIBRARIES})
+		else()
+			set(EXTRA_SRC )
+			set(BLAS_LIB ${CBLAS_LIB})
+			include_directories("${CBLAS_PATH}")
+			set(EXTRA_DEFS )
+		endif()
     endif()
 
     add_definitions(${EXTRA_DEFS})
@@ -95,9 +98,9 @@ endif()
 
 message("=== Status ===")
 message("  Python: ${PYTHON}")
-if(BLAS_LIB)
-    message("  BLAS: include ${CBLAS_PATH}")
-    message("        lib ${CBLAS_LIB}")
+if(CBLAS_LIB)
+    message("  BLAS: include ${CBLAS_INCLUDE_DIRS}")
+    message("        lib ${BLAS_LIB}")
 else()
     message("  BLAS: None")
 endif()
@@ -194,7 +197,8 @@ else()
 	add_library(dlprim_core SHARED ${DLPRIM_CORE_SRC})
 endif()
 
-target_link_libraries(dlprim_core PUBLIC tart clblast)
+target_link_libraries(dlprim_core PUBLIC tart clblast ${BLAS_LIB})
+target_include_directories(dlprim_core PUBLIC ${CBLAS_INCLUDE_DIRS})
 
 
 target_compile_definitions(dlprim_core PUBLIC VULKAN_API)
@@ -248,7 +252,7 @@ if(NOT BUILD_CORE_ONLY)
     #target_link_libraries(dlprim_flops dlprim)
     #target_link_libraries(test_net dlprim)
     target_link_libraries(test_random dlprim_core)
-    target_link_libraries(test_gemm dlprim)
+    target_link_libraries(test_gemm dlprim_core)
     target_link_libraries(sanity_check dlprim)
 
 endif()
