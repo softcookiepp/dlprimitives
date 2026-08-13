@@ -39,20 +39,20 @@ namespace dlprim {
 			tart::buffer_ptr
 			buffer,
 			uint64_t offset, 
-			Shape const &s, DataType d, bool is_train) :
+			Shape const &s, const tart::DType& d, bool is_train) :
         specs_(new TensorSpecs(s,d,is_train)),
 		host_(new Tensor::HostMem()),
         offset_(offset),
-        capacity_(s.total_size()*data_type_to_tart_dtype(d).size()),
-        full_capacity_(capacity_ + offset * data_type_to_tart_dtype(d).size())
+        capacity_(s.total_size()*d.size()),
+        full_capacity_(capacity_ + offset * d.size())
     {
         buffer_ = buffer;
     }
-    Tensor::Tensor(Context &ctx, Shape const &s,DataType d,bool is_train):
+    Tensor::Tensor(Context &ctx, Shape const &s,const tart::DType& d,bool is_train):
         specs_(new TensorSpecs(s,d,is_train)),
 		host_(new Tensor::HostMem()),
         offset_(0),
-        capacity_(s.total_size()*data_type_to_tart_dtype(d).size()),
+        capacity_(s.total_size()*d.size()),
         full_capacity_(capacity_)
     {
         size_t size = memory_size();
@@ -96,18 +96,18 @@ namespace dlprim {
 		buffer_->copyOut(host_data(), memory_size(), offset_ * tDtype().size());
     }
 
-    Tensor Tensor::sub_tensor(size_t offset,Shape const &s,DataType d,bool trainable) const
+    Tensor Tensor::sub_tensor(size_t offset,Shape const &s,const tart::DType& d,bool trainable) const
     {
         size_t offset_bytes = offset * tDtype().size();
-        DLPRIM_CHECK(shape().total_size()*tDtype().size() >= s.total_size() * data_type_to_tart_dtype(d).size());
-        DLPRIM_CHECK((offset_ * tDtype().size() + offset_bytes) % data_type_to_tart_dtype(d).size() == 0);
+        DLPRIM_CHECK(shape().total_size()*tDtype().size() >= s.total_size() * d.size());
+        DLPRIM_CHECK((offset_ * tDtype().size() + offset_bytes) % d.size() == 0);
         Tensor r;
         r.specs_.reset(new TensorSpecs(s,d,trainable));
         r.host_ = host_;
         r.buffer_ = buffer_;
         r.capacity_ = r.memory_size();
         r.full_capacity_ = full_capacity_;
-        r.offset_ = (offset_ * tDtype().size()  + offset_bytes) / data_type_to_tart_dtype(d).size();
+        r.offset_ = (offset_ * tDtype().size()  + offset_bytes) / d.size();
         return r;
     }
 

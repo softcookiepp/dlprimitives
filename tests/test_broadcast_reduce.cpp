@@ -184,7 +184,7 @@ bool equal(dp::Tensor a,dp::Tensor b,dp::ExecutionContext const &q,int eps = 0)
     a.to_host(q);
     b.to_host(q);
     bool res;
-    if(eps == 0 || a.dtype() != dlprim::half_data) {
+    if(eps == 0 || a.dtype() != tart::dtypes::float16) {
         res = memcmp(a.host_data(),b.host_data(),a.memory_size())==0;
     }
     else  {
@@ -219,7 +219,7 @@ bool equal(dp::Tensor a,dp::Tensor b,dp::ExecutionContext const &q,int eps = 0)
                 std::cout << i << ": " << a.data<int32_t>()[i] << " " << b.data<int32_t>()[i] << std::endl;
             }
         }
-        /*else if(a.dtype() == dlprim::half_data) {
+        /*else if(a.dtype() == tart::dtypes::float16) {
             for(size_t i=0;i<a.shape().total_size();i++) {
                 std::cout << i << ": " << a.data<my_half>()[i].to_int() << " " << b.data<my_half>()[i].to_int() << std::endl;
             }
@@ -421,7 +421,7 @@ void pointwise_operation_broadcast_reduce(  std::vector<dp::Tensor> xs,
                         ws.size(),ys[0].tDtype(),compute,reduce_init,reduce);
     Tensor workspace;
     if(op->workspace() > 0)
-        workspace = Tensor(ctx,Shape(op->workspace()),uint8_data);
+        workspace = Tensor(ctx,Shape(op->workspace()),tart::dtypes::uint8);
     op->enqueue(xs,ys,workspace,ws,alpha,beta,e);
 }
 
@@ -585,7 +585,7 @@ void test_reduce(dp::ExecutionContext const &q)
             "reduce_y0 += y0; reduce_y1 += y1;");
         dp::Tensor ws;
         if(op->workspace() > 0)
-            ws = dp::Tensor(ctx,dp::Shape(op->workspace()),dp::uint8_data);
+            ws = dp::Tensor(ctx,dp::Shape(op->workspace()),tart::dtypes::uint8);
 
         op->enqueue({a},{c0,c1},ws,{},{1,2},{0,0},q);
         op->enqueue({a},{c0,c1},ws,{},{1,2},{4,1},q);

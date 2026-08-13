@@ -139,17 +139,17 @@ namespace core {
     ///
     class BiasBackwardFilterImpl : public BiasBackwardFilter {
     public:
-        BiasBackwardFilterImpl(Context &ctx,Shape const &shape,DataType dt=float_data) :
+        BiasBackwardFilterImpl(Context &ctx,Shape const &shape,DataType dt = float_data) :
             batch_(shape[0]),
             features_(shape[1]),
             rows_columns_(shape.size_no_batch() / shape[1]),
             two_stage_reduction_(false),
-            dt_(dt)
+            dt_(dt),
+            mDtype(data_type_to_tart_dtype(dt))
         {
             int total_size = batch_ * rows_columns_;
             two_stage_reduction_ = false;
-			tart::DType dtt = data_type_to_tart_dtype(dt);
-			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().bwd_bias(ctx.device(), dtt);
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().bwd_bias(ctx.device(), mDtype);
             if(total_size > 256 * 16) {
                 two_stage_reduction_ = true;
                 wg_ = 256;
@@ -196,7 +196,7 @@ namespace core {
 				rows_columns_ // SIZE_2D
 			};
             if(two_stage_reduction_) {
-                Tensor float_ws = ws.workspace_as_type(dt_);
+                Tensor float_ws = ws.workspace_as_type(mDtype);
 				std::vector<uint32_t> l({wg_, 1});
 				std::vector<uint32_t> g = gpu::round_range(wg_ * size2_,features_,l);
 				g[0] = g[0]/l[0];
@@ -257,6 +257,7 @@ namespace core {
 		tart::kernel_ptr kernel_ = nullptr;
 		tart::kernel_ptr kernel2_ = nullptr;
         DataType dt_;
+        tart::DType mDtype;
     };
     std::unique_ptr<BiasBackwardFilter> BiasBackwardFilter::create(Context &ctx,Shape const &sp,DataType dt)
     {

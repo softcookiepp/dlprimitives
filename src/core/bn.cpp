@@ -106,9 +106,9 @@ namespace core {
 				sums_->enqueue({1, features_}, {wg_, second_reduce_});
 			}
 			else {
-				Tensor x_sum = ws.sub_tensor(0,Shape(second_reduce_,features_),dt_);
+				Tensor x_sum = ws.sub_tensor(0,Shape(second_reduce_,features_), mDType);
 				Tensor x2_sum = ws.sub_tensor_target_offset(second_reduce_ * features_,
-											  Shape(second_reduce_,features_),dt_);
+											  Shape(second_reduce_,features_),mDType);
 				x_sum.set_arg(sums_,p);
 				x2_sum.set_arg(sums_,p);
 				p=0;
@@ -172,14 +172,14 @@ namespace core {
 		{
 			split_ws_to_a_b(ws,a,b);
 
-			size_t msize = ws.shape().total_size() * data_type_to_tart_dtype(ws.dtype()).size();
+			size_t msize = ws.shape().total_size() * ws.tDtype().size();
 			size_t items = msize / mDType.size();
-			rest = ws.sub_tensor_target_offset(features_ * 2,Shape(items - features_ * 2),dt_);
+			rest = ws.sub_tensor_target_offset(features_ * 2,Shape(items - features_ * 2),mDType);
 		}
 		void split_ws_to_a_b(Tensor &ws,Tensor &a,Tensor &b)
 		{
-			a = ws.sub_tensor_target_offset(0,Shape(features_),dt_);
-			b = ws.sub_tensor_target_offset(features_,Shape(features_),dt_);
+			a = ws.sub_tensor_target_offset(0,Shape(features_),mDType);
+			b = ws.sub_tensor_target_offset(features_,Shape(features_),mDType);
 		}
 
 		virtual void enqueue_forward_get_rstd(
@@ -188,7 +188,7 @@ namespace core {
 											Tensor &ws,ExecutionContext const &e)
 		{
 			DLPRIM_CHECK(ws.memory_size() >= ws_);
-			Tensor b = ws.sub_tensor_target_offset(0,Shape(features_),dt_);
+			Tensor b = ws.sub_tensor_target_offset(0,Shape(features_),mDType);
 			int p = 0;
 			mean_var_to_a_b_->setArg(p++,features_);
 			mean_var_to_a_b_->setArg(p++,eps);
@@ -321,9 +321,9 @@ namespace core {
 				dyx_sums_->enqueue({1, features_}, {wg_, second_reduce_});
 			}
 			else {
-				Tensor s1 = ws.sub_tensor(0,Shape(second_reduce_,features_),dt_);
+				Tensor s1 = ws.sub_tensor(0,Shape(second_reduce_,features_),mDType);
 				Tensor s2 = ws.sub_tensor_target_offset(features_ * second_reduce_,
-											  Shape(second_reduce_,features_),dt_);
+											  Shape(second_reduce_,features_),mDType);
 				s1.set_arg(dyx_sums_,p);
 				s2.set_arg(dyx_sums_,p);
 				p=0;
@@ -341,7 +341,7 @@ namespace core {
 		void backward_data_test(Tensor &dx,Tensor &dy,Tensor &var,Tensor &gamma,
 								Tensor &ws,float eps,float dx_factor,ExecutionContext const &e)
 		{
-			Tensor  dy_factor = ws.sub_tensor_target_offset(0*features_,Shape(features_),dt_);
+			Tensor  dy_factor = ws.sub_tensor_target_offset(0*features_,Shape(features_),mDType);
 			int batches = dx.shape()[0];
 			int hw = get_plane_size(dx.shape());
 			int p=0;
@@ -370,9 +370,9 @@ namespace core {
 								 Tensor &gamma,Tensor &ws,
 								 float eps,float scale,ExecutionContext const &e)
 		{
-			Tensor  x_factor = ws.sub_tensor_target_offset(0*features_,Shape(features_),dt_);
-			Tensor dy_factor = ws.sub_tensor_target_offset(1*features_,Shape(features_),dt_);
-			Tensor  b_offset = ws.sub_tensor_target_offset(2*features_,Shape(features_),dt_);
+			Tensor  x_factor = ws.sub_tensor_target_offset(0*features_,Shape(features_),mDType);
+			Tensor dy_factor = ws.sub_tensor_target_offset(1*features_,Shape(features_),mDType);
+			Tensor  b_offset = ws.sub_tensor_target_offset(2*features_,Shape(features_),mDType);
 			int batches = dx.shape()[0];
 			int hw = get_plane_size(dx.shape());
 			int total = batches*hw;
@@ -474,9 +474,9 @@ namespace core {
 								 Tensor &ws,
 								 float scale,ExecutionContext const &e)
 		{   
-			Tensor  x_factor = ws.sub_tensor_target_offset(0*features_,Shape(features_),dt_);
-			Tensor dy_factor = ws.sub_tensor_target_offset(1*features_,Shape(features_),dt_);
-			Tensor  b_offset = ws.sub_tensor_target_offset(2*features_,Shape(features_),dt_);
+			Tensor  x_factor = ws.sub_tensor_target_offset(0*features_,Shape(features_),mDType);
+			Tensor dy_factor = ws.sub_tensor_target_offset(1*features_,Shape(features_),mDType);
+			Tensor  b_offset = ws.sub_tensor_target_offset(2*features_,Shape(features_),mDType);
 			int batches = dx.shape()[0];
 			int hw = get_plane_size(dx.shape());
 			int total = batches*hw;

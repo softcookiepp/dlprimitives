@@ -114,7 +114,8 @@ set(DLPRIM_CORE_SRC
         src/shape.cpp
         src/core/ip.cpp
         src/core/init.cpp
-        src/core/conv.cpp
+        # disabled for now; I can't port the kernels correctly to save my life
+        #src/core/conv.cpp
         src/core/bn.cpp
         src/core/slice.cpp
         src/core/pool.cpp

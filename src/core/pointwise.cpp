@@ -395,8 +395,8 @@ namespace core {
                 }
                 else {
                     Tensor temp_y = workspace
-                        .workspace_as_type(uint8_data)
-                        .sub_tensor(ws_offsets_[i].first,Shape(ws_offsets_[i].second),uint8_data)
+                        .workspace_as_type(tart::dtypes::uint8)
+                        .sub_tensor(ws_offsets_[i].first,Shape(ws_offsets_[i].second),tart::dtypes::uint8)
                         .workspace_as_type(ys[i].dtype());
                     temp_y.reshape(Shape(ys[i].shape().total_size(),second_stage_stride_));
                     temp_ys.push_back(temp_y);
@@ -508,7 +508,7 @@ namespace core {
             std::stringstream REDUCE_INIT_SHARED;
             size_t bindIndex = 0;
             for(size_t i=0;i<xs.size();i++) {
-                std::string type = data_type_to_tart_dtype(xs[i].dtype()).glsl();
+                std::string type = xs[i].dtype().glsl();
                 std::string suffix = "(" + type + "," + std::to_string(i) + ") ";
                 std::string suffix_buf = "(" + type + "," + std::to_string(i) + ", " + std::to_string(bindIndex) + ") ";
                 TYPE_DEFS << "#define typeof_x" << i << " " << type << "\n";
@@ -521,8 +521,8 @@ namespace core {
             }
 
             for(size_t i=0;i<ys.size();i++) {
-                std::string type = data_type_to_tart_dtype(ys[i].dtype()).glsl();
-                std::string ptype = data_type_to_tart_dtype(ys[i].dtype(), false, true).glsl();
+                std::string type = ys[i].dtype().glsl();
+                std::string ptype = ys[i].dtype().glsl();
                 std::string suffix_out = "(" + type + "," + ptype + "," + std::to_string(i) + ") ";
                 std::string suffix_out_buf = "(" + type + "," + ptype + "," + std::to_string(i) + ", " + std::to_string(bindIndex) + ") ";
                 std::string suffix = "(" + type + "," + std::to_string(i) + ") ";
@@ -727,7 +727,7 @@ namespace core {
                             ws.size(),ys[0].tDtype(),compute,reduce_init,reduce);
         Tensor workspace;
         if(op->workspace() > 0)
-            workspace = Tensor(ctx,Shape(op->workspace()),uint8_data);
+            workspace = Tensor(ctx,Shape(op->workspace()),tart::dtypes::uint8);
         op->enqueue(xs,ys,workspace,ws,alpha,beta,e);
     }
 

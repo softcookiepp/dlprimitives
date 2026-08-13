@@ -153,30 +153,36 @@ namespace dlprim {
             return uint64_data;
         throw ValidationError("Unknown data type " + s);
     }
-    
-    inline std::string data_type_to_string(DataType dt)
-    {
-        switch(dt) {
-        case double_data: return "double";
-        case int64_data: return "int64";
-        case uint64_data: return "uint64";
+    #if 1
+		inline std::string data_type_to_string(const tart::DType& dt)
+		{
+			return dt.glsl();
+		}
+    #else
+		inline std::string data_type_to_string(DataType dt)
+		{
+			switch(dt) {
+			case double_data: return "double";
+			case int64_data: return "int64";
+			case uint64_data: return "uint64";
 
-        case float_data: return "float";
-        case int32_data: return "int32";
-        case uint32_data: return "uint32";
+			case float_data: return "float";
+			case int32_data: return "int32";
+			case uint32_data: return "uint32";
 
-        case half_data: return "half";
-        case bfloat16_data: return "bfloat16";
-        case int16_data: return "int16";
-        case uint16_data: return "uint16";
+			case half_data: return "half";
+			case bfloat16_data: return "bfloat16";
+			case int16_data: return "int16";
+			case uint16_data: return "uint16";
 
-        case int8_data: return "int8";
-        case uint8_data: return "uint8";
-        default:
-            return "unknown";
-        }
-    
-    }
+			case int8_data: return "int8";
+			case uint8_data: return "uint8";
+			default:
+				return "unknown";
+			}
+		
+		}
+	#endif
     enum DataTypeLimit {
         dt_min_val,
         dt_max_val,

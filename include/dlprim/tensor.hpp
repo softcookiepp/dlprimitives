@@ -24,17 +24,16 @@ namespace dlprim {
         /// it is non-trainable parameter - for example Batch Normalization's running_var/running_mean
         /// 
         ///
-        TensorSpecs(Shape const &s=Shape(),DataType d=float_data,bool trainable = true) :
+        TensorSpecs(Shape const &s=Shape(), const tart::DType& d = tart::dtypes::float32, bool trainable = true) :
             shape_(s),
-            dtype_(d),
-            mDtype(data_type_to_tart_dtype(d))
+            mDtype(d)
         {
-            is_trainable_ = trainable && data_type_to_tart_dtype(d).isFloatingPoint();
+            is_trainable_ = trainable && d.isFloatingPoint();
         }
         
         bool operator==(TensorSpecs const &other) const
         {
-            return shape_ == other.shape_ && dtype_ == other.dtype_ && is_trainable_ == other.is_trainable_;
+            return shape_ == other.shape_ && mDtype == other.mDtype && is_trainable_ == other.is_trainable_;
         }
         
         bool operator!=(TensorSpecs const &other) const
@@ -82,20 +81,19 @@ namespace dlprim {
         ///
         size_t memory_size() const
         {
-            return shape_.total_size() * data_type_to_tart_dtype(dtype_).size();
+            return shape_.total_size() * mDtype.size();
         }
 
 
-        DataType dtype() const
+        const tart::DType& dtype() const
         {
-            return dtype_;
+            return mDtype;
         }
         
         tart::DType tDtype() const { return mDtype; }
     private:
         friend class Tensor;
         Shape shape_;
-        DataType dtype_;
         tart::DType mDtype;
         bool is_trainable_;
     };
@@ -113,7 +111,7 @@ namespace dlprim {
         /// 
         /// Create a tensor for specific context and allocate the device memory for it.
         /// 
-        Tensor(Context &ctx, Shape const &s,DataType d=float_data,bool is_trainable=true);
+        Tensor(Context &ctx, Shape const &s, const tart::DType& dt = tart::dtypes::float32, bool is_trainable=true);
         
         ///
         /// Create a tensor from external buffer
@@ -122,7 +120,7 @@ namespace dlprim {
 			tart::buffer_ptr
 				buffer,
 				uint64_t
-				offset,Shape const &s,DataType d=float_data,bool is_trainable=true);
+				offset,Shape const &s, const tart::DType& dt = tart::dtypes::float32, bool is_trainable=true);
 
         ///
         /// Create null tensor, binding such a tensor to kernel will pass NULL pointer
@@ -164,11 +162,11 @@ namespace dlprim {
         ///
         size_t memory_size() const
         {
-            return shape().total_size() * data_type_to_tart_dtype(dtype()).size();
+            return shape().total_size() * dtype().size();
         }
 
 
-        DataType dtype() const
+        const tart::DType& dtype() const
         {
             return specs_->dtype();
         }
@@ -206,10 +204,10 @@ namespace dlprim {
         ///
         /// Create tensor over all avalible size for data type d
         ///
-        Tensor workspace_as_type(DataType d=float_data) const
+        Tensor workspace_as_type(const tart::DType& d = tart::dtypes::float32) const
         {
-            size_t size = memory_size() / data_type_to_tart_dtype(d).size();
-            return sub_tensor(0,Shape(size),d);
+            size_t size = memory_size() / d.size();
+            return sub_tensor(0,Shape(size), d);
         }
         
         ///
@@ -220,10 +218,10 @@ namespace dlprim {
         /// \prarm d - new tensor type
         /// \param trainable - mark as trainable tensor
         ///
-        Tensor sub_tensor_target_offset(size_t offset,Shape const &s,DataType d=float_data,bool trainable = true) const
+        Tensor sub_tensor_target_offset(size_t offset,Shape const &s, const tart::DType& d = tart::dtypes::float32,bool trainable = true) const
         {
-            size_t bytes = offset * data_type_to_tart_dtype(d).size();
-            int this_sizeof = data_type_to_tart_dtype(dtype()).size();
+            size_t bytes = offset * d.size();
+            int this_sizeof = dtype().size();
             DLPRIM_CHECK(bytes % this_sizeof == 0);
             return sub_tensor(bytes / this_sizeof,s,d,trainable);
         }
@@ -235,7 +233,7 @@ namespace dlprim {
         /// \prarm d - new tensor type
         /// \param trainable - mark as trainable tensor
         ///
-        Tensor sub_tensor(size_t offset,Shape const &s,DataType d=float_data,bool trainable = true) const;
+        Tensor sub_tensor(size_t offset,Shape const &s,const tart::DType& dt = tart::dtypes::float32,bool trainable = true) const;
 
         ///
         /// Create a tensor with same memory but shape isn't connected to original - it is alias to 

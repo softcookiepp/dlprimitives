@@ -15,7 +15,7 @@ namespace core {
     void softmax_forward(Tensor &x,Tensor &y,bool log_softmax,ExecutionContext const &e)
     {
         DLPRIM_CHECK(x.shape().size() == 2 || x.shape().size() == 3);
-        DLPRIM_CHECK(x.dtype() == float_data);
+        DLPRIM_CHECK(x.dtype() == tart::dtypes::float32);
         DLPRIM_CHECK(y.shape()==x.shape());
         DLPRIM_CHECK(y.dtype() == x.dtype());
         uint32_t sm_range=x.shape()[1];
@@ -84,7 +84,7 @@ namespace core {
     void softmax_backward(Tensor &dx,Tensor &y,Tensor &dy,bool log_softmax,float factor,ExecutionContext const &e)
     {
         DLPRIM_CHECK(dx.shape().size() == 2 || dx.shape().size() == 3);
-        DLPRIM_CHECK(dx.dtype() == float_data);
+        DLPRIM_CHECK(dx.dtype() == tart::dtypes::float32);
         DLPRIM_CHECK(dy.shape() == dx.shape());
         DLPRIM_CHECK(dy.dtype() == dx.dtype());
         DLPRIM_CHECK(y.shape() == dx.shape());
