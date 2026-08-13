@@ -13,7 +13,6 @@ endif()
 option(USE_CL_HPP "Use older CL/cl.hpp instead of CL/opencl.hpp" OFF)
 option(USE_CL2_HPP "Use older CL/cl2.hpp instead of CL/opencl.hpp" OFF)
 option(USE_INTERNAL_BLAS "Use Internal Blas" OFF)
-option(USE_HDF "Compile with HDF support" OFF)
 option(BUILD_CORE_ONLY "Build only dlprimitives core" OFF)
 option(DLPRIM_STATIC_BUILD "Build static version only" OFF)
 option(USE_VULKAN_API "Build with Vulkan API" ON)
@@ -34,16 +33,6 @@ find_program(PYTHON NAMES python3 python python2)
 if(NOT PYTHON)
 	message(FATAL_ERROR "Can't build without Python interpreter")
 endif(NOT PYTHON)
-
-if(USE_HDF)
-    find_package(HDF5)
-endif()
-
-if(USE_HDF AND HDF5_FOUND)
-    include_directories(${HDF5_INCLUDE_DIR})
-else()
-    add_definitions(-DDISABLE_HDF5)
-endif()
 
 if(NOT LIBDIR)
 	set(LIBDIR lib CACHE STRING "Library installation directory" FORCE)
@@ -105,25 +94,6 @@ else()
     message("  BLAS: None")
 endif()
 
-if(HDF5_FOUND)
-    message("  HDF5: include ${HDF5_INCLUDE_DIR}")
-    message("        lib  ${HDF5_LIBRARIES} hdf5_cpp")
-else()
-    message("  HDF5: None")
-endif()
-
-if(BUILD_PYDLPRIM)
-    message("  Python dlprim: enabled")
-    message("  Python version: ${PLIB_VER}")
-    message("  Python: lib ${PYTHON_LIBRARIES}")
-    message("          include ${PYTHON_INCLUDE_DIRS}")
-    message("  Boost: include ${Boost_INCLUDE_DIRS}")
-    message("     boost_numpy ${BNUMPY_LIB}")
-    message("     boost_python ${BPYTHON_LIB}")
-else()
-    message("  Python dlprim: disabled")
-endif()
-
 add_custom_command(
 			  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/kernels.cpp 
 			  DEPENDS
@@ -153,7 +123,6 @@ set(DLPRIM_CORE_SRC
         src/core/activation.cpp
         src/core/util.cpp
         src/core/interpolate.cpp
-        #src/naive.cpp
         src/im2col.cpp
         src/softmax.cpp
         src/tiered_cache.cpp
@@ -211,22 +180,6 @@ target_compile_definitions(dlprim_core PUBLIC VULKAN_API)
 target_include_directories(dlprim_core PUBLIC CLBlast/tart/include CLBlast/tart/xxhashct)
 
 if(NOT BUILD_CORE_ONLY)
-	if(0)
-		if(WIN32)
-			add_library(dlprim STATIC ${DLPRIM_SRC})
-		else()
-			add_library(dlprim SHARED ${DLPRIM_SRC})
-		endif()
-		
-		target_link_libraries(dlprim dlprim_core ${BLAS_LIB})
-		if(HDF5_FOUND)
-			target_link_libraries(dlprim ${HDF5_LIBRARIES} hdf5_cpp) 
-		endif()
-		
-		set_target_properties(dlprim PROPERTIES 
-					PUBLIC_HEADER "${DLPRIM_PUBLIC_HEADERS}")
-	endif()
-
     add_executable(test_context tests/test_context.cpp)
     add_executable(test_broadcast_reduce tests/test_broadcast_reduce.cpp)
     add_executable(test_util tests/test_util.cpp)

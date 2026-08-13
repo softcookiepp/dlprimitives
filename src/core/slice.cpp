@@ -11,11 +11,10 @@
 #include <dlprim/gpu/tiered_cache.hpp>
 namespace dlprim {
 namespace core {
-    SliceCopy::SliceCopy(Context &ctx,DataType dtype) :dtype_(dtype)
+    SliceCopy::SliceCopy(Context &ctx, const tart::DType& dtype) : mDtype(dtype)
     {
 		mDevice = ctx.device();
-		tart::DType dt = data_type_to_tart_dtype(dtype);
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy(ctx.device(), dt);
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy(ctx.device(), mDtype);
         kernel_ = prog->getKernel("copy");
     }
     SliceCopy::~SliceCopy()
@@ -28,8 +27,8 @@ namespace core {
     {
         Shape t = target.shape().split_and_merge_over_axis(dim);
         Shape s = source.shape().split_and_merge_over_axis(dim);
-        DLPRIM_CHECK(target.dtype() == dtype_);
-        DLPRIM_CHECK(source.dtype() == dtype_);
+        DLPRIM_CHECK(target.tDtype() == mDtype);
+        DLPRIM_CHECK(source.tDtype() == mDtype);
         DLPRIM_CHECK(s[0] == t[0]);
         DLPRIM_CHECK(source_offset + slice <= s[1]);
         DLPRIM_CHECK(target_offset + slice <= t[1]);
@@ -44,7 +43,7 @@ namespace core {
         kernel_->setArg(p++,uint32_t(s[2]));
         target.set_arg(kernel_,p);
         source.set_arg(kernel_,p);
-        bind_as_dtype(kernel_,p,scale, data_type_to_tart_dtype(dtype_));
+        bind_as_dtype(kernel_,p,scale, mDtype);
         
         std::vector<uint32_t> totalInvocations({s[2], slice, s[0]});
         auto glPair = mDevice.lock()->chooseGlobalAndLocalSize(totalInvocations);
