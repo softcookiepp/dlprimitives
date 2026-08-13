@@ -43,7 +43,7 @@ namespace core {
     void pointwise_operation_broadcast( std::vector<Tensor> xs,
                                         std::vector<Tensor> ys,
                                         std::vector<double>  weights,
-                                        std::vector<DataType> weights_types,
+                                        const std::vector<tart::DType>& weights_types,
                                         std::string const &code,
                                         ExecutionContext const &e,
                                         bool shrink_dims=true);

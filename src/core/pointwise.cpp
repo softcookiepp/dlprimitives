@@ -220,14 +220,14 @@ namespace core {
                                         std::string const &code,
                                         ExecutionContext const &e)
     {
-        std::vector<DataType> dts(ws.size(),ys.at(0).dtype());
+        std::vector<tart::DType> dts(ws.size(),ys.at(0).tDtype());
         pointwise_operation_broadcast(xs,ys,ws,dts,code,e);
     }
 
     void pointwise_operation_broadcast( std::vector<Tensor> xs,
                                         std::vector<Tensor> ys,
                                         std::vector<double> ws,
-                                        std::vector<DataType> dts,
+                                        const std::vector<tart::DType>& dts,
                                         std::string const &code,
                                         ExecutionContext const &e,
                                         bool shrink_dims)
@@ -248,7 +248,7 @@ namespace core {
             shrink_broadcast_ranges(shapes);
 
 
-        DataType target_type = ys[0].dtype();
+        tart::DType target_type = ys[0].tDtype();
         Shape ref = shapes[xs.size()]; // ys[0]
         for(size_t i=0;i<ys.size();i++) {
             DLPRIM_CHECK(shapes[i + xs.size()] == ref);
@@ -282,10 +282,10 @@ namespace core {
             saves<<"py"<<i<<"[get_direct_offset(index,limit,py"<<i<<"_offset)]=y"<<i<<";\n";
             typeDefs << "#define typeof_y" << i << " " << type << "\n";
         }
-        typeDefs << "#define target_type " << data_type_to_tart_dtype(target_type).glsl() << "\n";
+        typeDefs << "#define target_type " << target_type.glsl() << "\n";
 
         for(size_t i=0;i<ws.size();i++) {
-            std::string type = data_type_to_tart_dtype(dts[i], false, true).glsl();
+            std::string type = dts[i].glsl();
             params << type << " w" << i << "; ";
             typeDefs << "#define typeof_w" << i << " " << type << "\n";
         }
@@ -311,7 +311,7 @@ namespace core {
             y.set_arg(k,p);
         
         for(size_t i=0;i<ws.size();i++) { 
-            bind_as_dtype(k,p,ws[i], data_type_to_tart_dtype(dts[i]));
+            bind_as_dtype(k,p,ws[i], dts[i]);
         }
         std::vector<uint32_t> range = get_broadcast_ndrange(ref);
         std::vector<uint32_t> local(3, 1);
@@ -439,11 +439,7 @@ namespace core {
                                                 std::vector<TensorSpecs> xs,
                                                 std::vector<TensorSpecs> ys,
                                                 int weights_count,
-                                                #if 1
-													const tart::DType& weights_type,
-                                                #else
-													DataType weights_type,
-												#endif
+												const tart::DType& weights_type,
                                                 std::string const &compute_code,
                                                 std::string const &reduce_init,
                                                 std::string const &reduce) :
