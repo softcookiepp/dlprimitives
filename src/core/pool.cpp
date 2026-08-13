@@ -134,7 +134,7 @@ namespace core {
 
 	class GlobalPoolingFWBWImpl  {
 	public:
-		GlobalPoolingFWBWImpl(Context &ctx,bool avg,Shape const &sh,DataType dt=float_data) 
+		GlobalPoolingFWBWImpl(Context &ctx,bool avg,Shape const &sh, const tart::DType& dt = tart::dtypes::float32) 
 		{
 			avg_ = avg;
 			DLPRIM_CHECK(sh.size() == 4);
@@ -146,8 +146,7 @@ namespace core {
 			else 
 				wg_size_ = 256;
 			items_per_wi_ = (sm_range + wg_size_ - 1) / wg_size_;
-			tart::DType dtt = data_type_to_tart_dtype(dt);
-			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().global_pooling(ctx.device(), dtt);
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().global_pooling(ctx.device(), dt);
 			kernel_ = prog->getKernel("global_pooling");
 			kernel_bwd_ = prog->getKernel("global_pooling_bwd");
 			sm_range_ = sm_range;
@@ -240,47 +239,47 @@ namespace core {
 		}
 	};
 
-	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_max_pooling(Context &ctx,int k[2],int p[2],int s[2], const tart::DType dt)
+	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_max_pooling(Context &ctx,int k[2],int p[2],int s[2], const tart::DType& dt)
 	{
 		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<Pooling2DFWBDImpl>(ctx,false,k,p,s,false, dt));
 		return r;
 	}
-	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_avg_pooling(Context &ctx,int k[2],int p[2],int s[2],bool cip,DataType dt)
+	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_avg_pooling(Context &ctx,int k[2],int p[2],int s[2],bool cip, const tart::DType& dt)
 	{
 		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<Pooling2DFWBDImpl>(ctx,true,k,p,s,cip,dt));
 		return r;
 	}
    
-	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_global_max_pooling(Context &ctx,Shape const &in_shape,DataType dt)
+	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_global_max_pooling(Context &ctx,Shape const &in_shape, const tart::DType& dt)
 	{
 		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<GlobalPoolingFWBWImpl>(ctx,false,in_shape,dt));
 		return r;
 	}
-	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_global_avg_pooling(Context &ctx,Shape const &in_shape,DataType dt)
+	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_global_avg_pooling(Context &ctx,Shape const &in_shape, const tart::DType& dt)
 	{
 		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<GlobalPoolingFWBWImpl>(ctx,true,in_shape,dt));
 		return r;
 	}
 
-	std::unique_ptr<MaxPooling2DBackward>  MaxPooling2DBackward::create(Context &ctx,int k[2],int p[2],int s[2],DataType dt)
+	std::unique_ptr<MaxPooling2DBackward>  MaxPooling2DBackward::create(Context &ctx,int k[2],int p[2],int s[2], const tart::DType& dt)
 	{
 		std::unique_ptr<MaxPooling2DBackward> r(new BackwardMax<Pooling2DFWBDImpl>(ctx,false,k,p,s,false,dt));
 		return r;
 	}
 
-	std::unique_ptr<AvgPooling2DBackward>  AvgPooling2DBackward::create(Context &ctx,int k[2],int p[2],int s[2],bool cip,DataType dt)
+	std::unique_ptr<AvgPooling2DBackward>  AvgPooling2DBackward::create(Context &ctx,int k[2],int p[2],int s[2],bool cip, const tart::DType& dt)
 	{
 		std::unique_ptr<AvgPooling2DBackward> r(new BackwardAvg<Pooling2DFWBDImpl>(ctx,true,k,p,s,cip,dt));
 		return r;
 	}
 
-	std::unique_ptr<MaxPooling2DBackward>  MaxPooling2DBackward::create_global(Context &ctx,Shape const &s,DataType dt)
+	std::unique_ptr<MaxPooling2DBackward>  MaxPooling2DBackward::create_global(Context &ctx,Shape const &s, const tart::DType& dt)
 	{
 		std::unique_ptr<MaxPooling2DBackward> r(new BackwardMax<GlobalPoolingFWBWImpl>(ctx,false,s,dt));
 		return r;
 	}
 
-	std::unique_ptr<AvgPooling2DBackward>  AvgPooling2DBackward::create_global(Context &ctx,Shape const &s,DataType dt)
+	std::unique_ptr<AvgPooling2DBackward>  AvgPooling2DBackward::create_global(Context &ctx,Shape const &s, const tart::DType& dt)
 	{
 		std::unique_ptr<AvgPooling2DBackward> r(new BackwardAvg<GlobalPoolingFWBWImpl>(ctx,true,s,dt));
 		return r;
