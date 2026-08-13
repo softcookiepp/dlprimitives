@@ -48,24 +48,24 @@ namespace core {
 		else
 			throw std::runtime_error("no tensors provided!");
         Shape ref;
-        DataType ref_type = float_data;
+        tart::DType ref_type = tart::dtypes::float32;
         DLPRIM_CHECK(xs.size() + ys.size() > 0);
         if(xs.empty()) {
             ref = ys[0].shape();
-            ref_type = ys[0].dtype();
+            ref_type = ys[0].tDtype();
         }
         else {
             ref = xs[0].shape();
-            ref_type = xs[0].dtype();
+            ref_type = xs[0].tDtype();
         }
 
         for(size_t i=0;i<xs.size();i++) {
             DLPRIM_CHECK(ref == xs[i].shape());
-            DLPRIM_CHECK(ref_type == xs[i].dtype());
+            DLPRIM_CHECK(ref_type == xs[i].tDtype());
         }
         for(size_t i=0;i<ys.size();i++) {
             DLPRIM_CHECK(ref == ys[i].shape());
-            DLPRIM_CHECK(ref_type == ys[i].dtype());
+            DLPRIM_CHECK(ref_type == ys[i].tDtype());
         }
         std::ostringstream params,loads,saves;
 		size_t bindingIndex = 0;
@@ -94,8 +94,7 @@ namespace core {
 			bindingIndex += 1;
 		}
 		
-		tart::DType ref_dt = data_type_to_tart_dtype(ref_type);
-		std::string param_dtype = data_type_to_tart_dtype(ref_type, false, true).glsl();
+		std::string param_dtype = ref_type.glsl();
 		for (size_t i = 0; i < ws.size(); i += 1)
 		{
 			params << param_dtype << " w" << i << "; ";
@@ -108,9 +107,8 @@ namespace core {
                 code_fixed << "\\\n";
             else
                 code_fixed << code[i];
-		tart::DType refT = data_type_to_tart_dtype(ref_type);
         tart::program_ptr prog = gpu::Cache::instance().get_program(device, "pointwise",
-                                                                           "dtype", refT.glsl(),
+                                                                           "dtype", ref_type.glsl(),
                                                                            "#BUFFER_DEFS", bufferDefs.str(),
                                                                            "#PARAMS",params.str(),
                                                                            "#LOADS",loads.str(),
@@ -125,7 +123,7 @@ namespace core {
         for(Tensor &y:ys)
             y.set_arg(k,p);
         for(double w:ws)
-            bind_as_dtype(k,p,w, refT);
+            bind_as_dtype(k,p,w, ref_type);
             
 		// this should at least keep things safe. There is almost certainly a better way to do this.
 		std::vector<uint32_t> local({device->getMetadata().maxComputeWorkGroupSize[0], 1, 1});
@@ -266,7 +264,7 @@ namespace core {
 		std::stringstream typeDefs;
         std::ostringstream params,loads,saves;
         for(size_t i=0;i<xs.size();i++) {
-            std::string type = data_type_to_tart_dtype(xs[i].dtype()).glsl();
+            std::string type = xs[i].tDtype().glsl();
             params << "uint px" << i << "_offset; Shape strides" << i << "; ";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
 				<< i << "_buf { " << type << " px" << i << "[]; }; ";
@@ -275,7 +273,7 @@ namespace core {
             typeDefs << "#define typeof_x" << i << " " << type << "\n";
         }
         for(size_t i=0;i<ys.size();i++) {
-            std::string type = data_type_to_tart_dtype(ys[i].dtype()).glsl();
+            std::string type = ys[i].tDtype().glsl();
             params << "uint py" << i << "_offset; ";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
 				<< i << "_buf { " << type << " py" << i << "[]; }; ";
