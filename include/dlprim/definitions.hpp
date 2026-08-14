@@ -212,52 +212,46 @@ namespace dlprim {
         }
 	}
 
-    inline std::string data_type_to_opencl_numeric_limit(DataType dt,DataTypeLimit lmt)
+    inline std::string data_type_to_opencl_numeric_limit(const tart::DType& dt, DataTypeLimit lmt)
     {
 		#if 0
 		#else
 			// TODO: move this to tart as well
-			tart::DType dtt = data_type_to_tart_dtype(dt);
-			if(dtt.isFloatingPoint())
+			if(dt.isFloatingPoint())
 			{
 				std::string prefix;
-				switch(dt) {
-					case float_data: 
-					case bfloat16_data:
-						prefix="FLT"; 
-						break;
-					case double_data : prefix="DBL"; break;
-					case half_data: prefix="HALF"; break;
-					default:
-						throw ValidationError("Unsupported type");
-					}
+				if(dt == tart::dtypes::float32 || dt == tart::dtypes::float16) prefix="FLT";
+				else if (dt == tart::dtypes::float64) prefix="DBL";
+				else if (dt == tart::dtypes::float16) prefix="HALF";
+				else throw ValidationError("Unsupported type");
 				switch(lmt)
 				{
 					case dt_min_val: return "(-" + prefix + "_MAX)";
 					case dt_max_val: return prefix + "_MAX";
 				};
 			}
-			else {
-				bool unsig = (dt & (3 << 3)) == (3<<3);
+			else
+			{
+				if (lmt == dt_min_val
+					&& (dt == tart::dtypes::uint64 || dt == tart::dtypes::uint32 || dt == tart::dtypes::uint16 || dt == tart::dtypes::uint8))
+						return 0;
 				std::string prefix;
-				switch(dt) {
-				case int64_data:  prefix = "LONG"; break;
-				case uint64_data: prefix = "ULONG"; break;
+					 if (dt == tart::dtypes::int64)  prefix = "LONG";
+				else if (dt == tart::dtypes::uint64) prefix = "ULONG";
 
-				case int32_data:  prefix = "INT"; break;
-				case uint32_data: prefix = "UINT"; break;
+				else if (dt == tart::dtypes::int32)  prefix = "INT";
+				else if (dt == tart::dtypes::uint32) prefix = "UINT";
 
-				case int16_data:  prefix = "SHRT"; break;
-				case uint16_data: prefix = "USHRT"; break;
+				else if (dt == tart::dtypes::int16)  prefix = "SHRT";
+				else if (dt == tart::dtypes::uint16) prefix = "USHRT";
 
-				case int8_data:   prefix = "CHAR"; break;
-				case uint8_data:  prefix = "UCHAR"; break;
-				default:
-					throw NotImplementedError("Unsupported data type");
-				}
-				switch(lmt) {
-				case dt_min_val: return unsig ? "0" : prefix + "_MIN";
-				case dt_max_val: return prefix + "_MAX";
+				else if (dt == tart::dtypes::int8)   prefix = "CHAR";
+				else if (dt == tart::dtypes::uint8)  prefix = "UCHAR";
+				else throw NotImplementedError("Unsupported data type");
+				switch(lmt)
+				{
+					case dt_min_val: return prefix + "_MIN";
+					case dt_max_val: return prefix + "_MAX";
 				};
 			}
 			throw NotImplementedError("Unsupported data type");
