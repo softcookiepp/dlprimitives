@@ -31,7 +31,7 @@ namespace core {
         /// for IP it should be (B,feaures_out), for Conv2d (B,feaures_out,H,W)
         /// features is number of output features - size of bias tensor
         ///
-        static std::unique_ptr<BiasBackwardFilter> create(Context &ctx,Shape const &dy_shape,DataType dt=float_data);
+        static std::unique_ptr<BiasBackwardFilter> create(Context &ctx,Shape const &dy_shape, const tart::DType&  = tart::dtypes::float32);
     };
 
     ///

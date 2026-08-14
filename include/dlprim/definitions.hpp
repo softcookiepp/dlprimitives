@@ -74,143 +74,15 @@ namespace dlprim {
 
     #define DLPRIM_CHECK(x) \
     do { if(!(x)) throw ValidationError(std::string("Failed " #x " at " __FILE__ ":") + std::to_string(__LINE__) ); } while(0)
-
-    /// type definition
-    enum DataType {
-        double_data   = 4 + (0 << 3),
-        int64_data    = 4 + (2 << 3),
-        uint64_data   = 4 + (3 << 3),
-
-        float_data    = 3 + (0 << 3),
-        int32_data    = 3 + (2 << 3),
-        uint32_data   = 3 + (3 << 3),
-
-        half_data     = 2 + (0 << 3),
-        bfloat16_data = 2 + (1 << 3),
-        int16_data    = 2 + (2 << 3),
-        uint16_data   = 2 + (3 << 3),
-
-        int8_data     = 1 + (2 << 3),
-        uint8_data    = 1 + (3 << 3),
-    };
-
-    template<typename T>
-    struct TypeTraits;
-
-    template<>
-    struct TypeTraits<float> { static constexpr DataType data_type = float_data; };
-
-    template<>
-    struct TypeTraits<uint16_t> { static constexpr DataType data_type = uint16_data; };
-
-    template<>
-    struct TypeTraits<int16_t> { static constexpr DataType data_type = int16_data; };
-
-    template<>
-    struct TypeTraits<uint8_t> { static constexpr DataType data_type = uint8_data; };
-
-    template<>
-    struct TypeTraits<int8_t> { static constexpr DataType data_type = int8_data; };
-
-
-    template<>
-    struct TypeTraits<uint64_t> { static constexpr DataType data_type = uint64_data; };
-
-    template<>
-    struct TypeTraits<int64_t> { static constexpr DataType data_type = int64_data; };
-
-
-    template<>
-    struct TypeTraits<double> { static constexpr DataType data_type = double_data; };
-
-    template<>
-    struct TypeTraits<uint32_t> { static constexpr DataType data_type = int32_data; };
-
-    template<>
-    struct TypeTraits<int32_t> { static constexpr DataType data_type = int32_data; };
     
-    inline DataType string_to_data_type(std::string const &s)
-    {
-        if(s == "float" || s=="float32")
-            return float_data;
-        else if(s == "float16" || s=="half")
-            return half_data;
-        else if(s == "bfloat16")
-            return bfloat16_data;
-        else if(s == "int32" || s == "int")
-            return int32_data;
-        else if(s == "int8")
-            return int8_data;
-        else if(s == "uint8")
-            return uint8_data;
-        else if(s == "int16")
-            return int16_data;
-        else if(s == "uint16")
-            return uint16_data;
-        else if(s == "int64")
-            return int64_data;
-        else if(s == "uint64")
-            return uint64_data;
-        throw ValidationError("Unknown data type " + s);
-    }
-    #if 1
-		inline std::string data_type_to_string(const tart::DType& dt)
-		{
-			return dt.glsl();
-		}
-    #else
-		inline std::string data_type_to_string(DataType dt)
-		{
-			switch(dt) {
-			case double_data: return "double";
-			case int64_data: return "int64";
-			case uint64_data: return "uint64";
-
-			case float_data: return "float";
-			case int32_data: return "int32";
-			case uint32_data: return "uint32";
-
-			case half_data: return "half";
-			case bfloat16_data: return "bfloat16";
-			case int16_data: return "int16";
-			case uint16_data: return "uint16";
-
-			case int8_data: return "int8";
-			case uint8_data: return "uint8";
-			default:
-				return "unknown";
-			}
-		
-		}
-	#endif
+	inline std::string data_type_to_string(const tart::DType& dt)
+	{
+		return dt.glsl();
+	}
     enum DataTypeLimit {
         dt_min_val,
         dt_max_val,
     };
-    
-    inline tart::DType data_type_to_tart_dtype(DataType dt, bool io_type = false, bool kernel_param = false)
-    {
-		switch(dt)
-		{
-			case double_data: return tart::dtypes::float64;
-			case int64_data: return tart::dtypes::int64;
-			case uint64_data: return tart::dtypes::uint64;
-
-			case float_data: return tart::dtypes::float32;
-			case int32_data: return tart::dtypes::int32;
-			case uint32_data: return tart::dtypes::uint32;
-
-			case half_data: return (kernel_param ? tart::dtypes::float32 : tart::dtypes::float16);
-			case bfloat16_data: return (io_type ? tart::dtypes::uint16 : tart::dtypes::float32 );
-			case int16_data: return tart::dtypes::int16;
-			case uint16_data: return tart::dtypes::uint16;
-
-			case int8_data: return tart::dtypes::int8;
-			case uint8_data: return tart::dtypes::uint8;
-			default:
-				throw NotImplementedError("Unsupported data type");
-        }
-	}
 
     inline std::string data_type_to_opencl_numeric_limit(const tart::DType& dt, DataTypeLimit lmt)
     {

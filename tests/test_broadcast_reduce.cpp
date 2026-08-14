@@ -147,12 +147,12 @@ struct my_half {
         return !(*this == other);
     }
 };
-
+#if 0
 namespace dlprim {
     template<>
     struct TypeTraits<my_half> { static constexpr DataType data_type = half_data; };
 }
-
+#endif
 
 template<typename T>
 dp::Tensor make_tensor(dp::ExecutionContext const &q,dp::Shape s,std::vector<T> values)
@@ -559,7 +559,7 @@ void test_reduce(dp::ExecutionContext const &q)
         size_t pos = 0;
         int eps = 0;
         int reduced_max  = 17 * size * 5;
-        if(dp::TypeTraits<Type>::data_type == dp::half_data) {
+        if(tart::getDType<Type>() == tart::dtypes::float16) {
             if(reduced_max >= 2048)
                 eps = std::numeric_limits<int>::max();
         }

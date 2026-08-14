@@ -139,13 +139,12 @@ namespace core {
     ///
     class BiasBackwardFilterImpl : public BiasBackwardFilter {
     public:
-        BiasBackwardFilterImpl(Context &ctx,Shape const &shape,DataType dt = float_data) :
+        BiasBackwardFilterImpl(Context &ctx,Shape const &shape, const tart::DType& dt = tart::dtypes::float32) :
             batch_(shape[0]),
             features_(shape[1]),
             rows_columns_(shape.size_no_batch() / shape[1]),
             two_stage_reduction_(false),
-            dt_(dt),
-            mDtype(data_type_to_tart_dtype(dt))
+            mDtype(dt)
         {
             int total_size = batch_ * rows_columns_;
             two_stage_reduction_ = false;
@@ -256,10 +255,9 @@ namespace core {
         bool two_stage_reduction_;
 		tart::kernel_ptr kernel_ = nullptr;
 		tart::kernel_ptr kernel2_ = nullptr;
-        DataType dt_;
         tart::DType mDtype;
     };
-    std::unique_ptr<BiasBackwardFilter> BiasBackwardFilter::create(Context &ctx,Shape const &sp,DataType dt)
+    std::unique_ptr<BiasBackwardFilter> BiasBackwardFilter::create(Context &ctx,Shape const &sp, const tart::DType& dt)
     {
         std::unique_ptr<BiasBackwardFilter> r(new BiasBackwardFilterImpl(ctx,sp,dt));
         return r;
