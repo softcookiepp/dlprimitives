@@ -42,7 +42,7 @@ namespace core {
     class Conv2DForward : public Conv2DBase {
     public:
         virtual ~Conv2DForward() {}
-        virtual void enqueue(Tensor &x,Tensor &w,Tensor *bias,Tensor &y,Tensor &ws,float factor,ExecutionContext const &e) = 0;
+        virtual void enqueue(Tensor &x,Tensor &w,Tensor *bias,Tensor &y,Tensor &ws,float factor) = 0;
         /// Create optimal object for conv2d
         /// 
         /// algo is one of 
@@ -63,7 +63,7 @@ namespace core {
     class Conv2DBackwardData: public Conv2DBase  {
     public:
         virtual ~Conv2DBackwardData() {}
-        virtual void enqueue(Tensor &dx,Tensor &w,Tensor &dy,Tensor &ws,float factor,ExecutionContext const &e) = 0;
+        virtual void enqueue(Tensor &dx,Tensor &w,Tensor &dy,Tensor &ws,float factor) = 0;
         static std::unique_ptr<Conv2DBackwardData> create(Context &ctx,Conv2DSettings const &config,std::string const &algo = std::string());
     };
 
@@ -73,7 +73,7 @@ namespace core {
     class Conv2DBackwardFilter: public Conv2DBase  {
     public:
         virtual ~Conv2DBackwardFilter() {}
-        virtual void enqueue(Tensor &x,Tensor &dw,Tensor &dy,Tensor &ws,float factor,ExecutionContext const &e) = 0;
+        virtual void enqueue(Tensor &x,Tensor &dw,Tensor &dy,Tensor &ws,float factor) = 0;
         static std::unique_ptr<Conv2DBackwardFilter> create(Context &ctx,Conv2DSettings const &config,std::string const &algo = std::string());
     };
 

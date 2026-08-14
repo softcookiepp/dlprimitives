@@ -38,14 +38,12 @@ namespace dlprim {
 		virtual void forward(std::vector<Tensor> &input,
                              std::vector<Tensor> &output,
                              std::vector<Tensor> &parameters,
-                             Tensor &workspace,
-                             ExecutionContext const &ctx);
+                             Tensor &workspace);
 
         virtual void backward(std::vector<TensorAndGradient> &input,
                               std::vector<TensorAndGradient> &output,
                               std::vector<TensorAndGradient> &parameters,
-                              Tensor &workspace,
-                              ExecutionContext const &ctx);
+                              Tensor &workspace);
 
         static std::unique_ptr<Activation> get_bwd_op(Context &ctx,StandardActivations act,TensorSpecs spec);
         

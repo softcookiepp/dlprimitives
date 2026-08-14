@@ -23,12 +23,11 @@ AXPBY::~AXPBY()
 {
 }
 
-void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext const &e)
+void AXPBY::apply(float a,Tensor &x,float b,Tensor &y,Tensor &z)
 {
     DLPRIM_CHECK(x.shape().total_size() == y.shape().total_size());
     DLPRIM_CHECK(z.shape().total_size() == y.shape().total_size());
     size_t total = x.shape().total_size();
-	//e.queue()->sync();
     {
         std::vector<uint32_t> l(1);
         if(total >= 256)

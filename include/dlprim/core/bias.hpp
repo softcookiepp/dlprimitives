@@ -25,7 +25,7 @@ namespace core {
         ///
         /// if workspace() == 0 you can provide non initialized tensor
         ///
-        virtual void enqueue(Tensor &dy,Tensor &dw,Tensor &ws,float beta,ExecutionContext const &e) = 0;
+        virtual void enqueue(Tensor &dy,Tensor &dw,Tensor &ws,float beta) = 0;
         ///
         /// Create operator for backward bias calculation. dy_shape is the shape of output tesnor
         /// for IP it should be (B,feaures_out), for Conv2d (B,feaures_out,H,W)
@@ -37,6 +37,6 @@ namespace core {
     ///
     /// Add bias to t over dimentsion 1: t[:,i,:,:] = b[i]
     ///
-    void add_bias(Tensor &t,Tensor &b,ExecutionContext const &e);
+    void add_bias(Tensor &t,Tensor &b);
 } // core
 } // dlprim

@@ -217,11 +217,10 @@ namespace core {
     void pointwise_operation_broadcast( std::vector<Tensor> xs,
                                         std::vector<Tensor> ys,
                                         std::vector<double> ws,
-                                        std::string const &code,
-                                        ExecutionContext const &e)
+                                        std::string const &code)
     {
         std::vector<tart::DType> dts(ws.size(),ys.at(0).tDtype());
-        pointwise_operation_broadcast(xs,ys,ws,dts,code,e);
+        pointwise_operation_broadcast(xs,ys,ws,dts,code);
     }
 
     void pointwise_operation_broadcast( std::vector<Tensor> xs,
@@ -229,7 +228,6 @@ namespace core {
                                         std::vector<double> ws,
                                         const std::vector<tart::DType>& dts,
                                         std::string const &code,
-                                        ExecutionContext const &e,
                                         bool shrink_dims)
     {
         DLPRIM_CHECK(!xs.empty());
@@ -360,8 +358,7 @@ namespace core {
                              Tensor &workspace,
                              std::vector<double> parameters,
                              std::vector<double> alpha,
-                             std::vector<double> beta,
-                             ExecutionContext const &e)
+                             std::vector<double> beta)
         {
             DLPRIM_CHECK(xs.size() == xs_specs_.size());
             DLPRIM_CHECK(ys.size() == ys_specs_.size());
@@ -431,7 +428,7 @@ namespace core {
                 kernel_->enqueue(glob, wg_range_);
                 DLPRIM_CHECK(second_stage_->workspace() == 0);
                 Tensor tmp;
-                second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta,e);
+                second_stage_->enqueue(temp_ys,temp_ys_outputs,tmp,{},alpha,beta);
             }
         }
 
@@ -686,7 +683,7 @@ namespace core {
     /// \param reduce - code for sum reduction "reduce_y0 += y0" or max reduction "reduce_y0 = max(reduce_y0,y0)"
     ///
     std::unique_ptr<PointwiseOperationBroadcastReduce> PointwiseOperationBroadcastReduce::create(
-                    Context &ctx,
+                    const tart::device_ptr& device,
                     std::vector<TensorSpecs> xs,
                     std::vector<TensorSpecs> ys,
                     int weights_count,
@@ -696,7 +693,7 @@ namespace core {
                     std::string const &reduce)
     {
         std::unique_ptr<PointwiseOperationBroadcastReduce> r(new PointwiseOperationBroadcastReduceImpl(
-                    ctx.device(),xs,ys,
+                    device,xs,ys,
                     weights_count, weights_type,
                     compute_code,reduce_init,reduce));
         return r;
@@ -708,27 +705,27 @@ namespace core {
                                                 std::vector<double>  ws,
                                                 std::string const &compute,
                                                 std::string const &reduce_init,
-                                                std::string const &reduce,
-                                                ExecutionContext const &e)
+                                                std::string const &reduce)
     {
-        Context ctx(e);
         std::vector<TensorSpecs> xspec,yspec;
         std::vector<double> alpha,beta;
-        for(auto const &x:xs) {
+        tart::device_ptr device = nullptr;
+        for(auto& x:xs) {
+			device = tensorDevice(x);
             xspec.push_back(x.specs());
         }
-        for(auto const &y:ys) {
+        for(auto& y:ys) {
+			device = tensorDevice(y);
             yspec.push_back(y.specs());
             alpha.push_back(1.0);
             beta.push_back(0.0);
         }
-        auto op = PointwiseOperationBroadcastReduce::create(
-                            ctx,xspec,yspec,
+        auto op = PointwiseOperationBroadcastReduce::create(device, xspec,yspec,
                             ws.size(),ys[0].tDtype(),compute,reduce_init,reduce);
         Tensor workspace;
         if(op->workspace() > 0)
-            workspace = Tensor(ctx,Shape(op->workspace()),tart::dtypes::uint8);
-        op->enqueue(xs,ys,workspace,ws,alpha,beta,e);
+            workspace = Tensor(device, Shape(op->workspace()),tart::dtypes::uint8);
+        op->enqueue(xs,ys,workspace,ws,alpha,beta);
     }
 
 

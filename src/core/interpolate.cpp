@@ -8,7 +8,7 @@ namespace dlprim { namespace core {
     ///
     /// Interpolate forward y size should be floor(src_size * scale), scale_x,scale_y can be -1 to calculate automatically
     ///
-    void interpolate2d_intern(Tensor &x,Tensor &y,double scale_y,double scale_x,InterpolateType method,bool bool_align_corners,ExecutionContext const &e,int fwd_bilinear)
+    void interpolate2d_intern(Tensor &x,Tensor &y,double scale_y,double scale_x,InterpolateType method,bool bool_align_corners, int fwd_bilinear)
     {
         float offset = 0;
         int align_corners = bool_align_corners;
@@ -70,16 +70,16 @@ namespace dlprim { namespace core {
 		k->enqueue(gr, {1, 1, 1});
     }
 
-    void interpolate2d(Tensor &x,Tensor &y,double scale_y,double scale_x,InterpolateType method,bool bool_align_corners,ExecutionContext const &e)
+    void interpolate2d(Tensor &x,Tensor &y,double scale_y,double scale_x,InterpolateType method,bool bool_align_corners)
     {
-        interpolate2d_intern(x,y,scale_y,scale_x,method,bool_align_corners,e,true);
+        interpolate2d_intern(x,y,scale_y,scale_x,method,bool_align_corners,true);
     }
 
-    void interpolate2d_backward(Tensor &dx,Tensor &dy,double scale_y,double scale_x,InterpolateType method,bool align_corners,float factor,ExecutionContext const &e)
+    void interpolate2d_backward(Tensor &dx,Tensor &dy,double scale_y,double scale_x,InterpolateType method,bool align_corners,float factor)
     {
         if(method == InterpolateType::bilinear) {
-            scale_tensor(factor, dx, e);
-            interpolate2d_intern(dx,dy,scale_y,scale_x,method,align_corners, e, false);
+            scale_tensor(factor, dx);
+            interpolate2d_intern(dx,dy,scale_y,scale_x,method,align_corners, false);
             return;
         }
         float offset = 0;

@@ -25,7 +25,7 @@ namespace core {
                 activation            
             ));
         }
-        virtual void enqueue(Tensor &x,Tensor &w,Tensor *bias,Tensor &y,ExecutionContext const &e)
+        virtual void enqueue(Tensor &x,Tensor &w,Tensor *bias,Tensor &y)
         {
             int batch = x.shape()[0];
             int inps  = x.shape().size_no_batch();
@@ -37,8 +37,7 @@ namespace core {
                     w.device_buffer(),w.device_offset(),inps,
                     y.device_buffer(),y.device_offset(),outs,
                     bias_buffer,bias_offset,0.0f,
-                    y.shape().total_size(),
-                    e);
+                    y.shape().total_size());
         }
     private:
         std::unique_ptr<gpu::GEMM> gemm_;
@@ -64,7 +63,7 @@ namespace core {
                         StandardActivations::identity            
                         ));
         }
-        virtual void enqueue(Tensor &dx,Tensor &M,Tensor &dy,float factor,ExecutionContext const &e) 
+        virtual void enqueue(Tensor &dx,Tensor &M,Tensor &dy,float factor) 
         {
             int outputs = dy.shape()[1];
             int inputs  = dx.shape().size_no_batch();
@@ -80,8 +79,7 @@ namespace core {
                         inputs,
                         nullptr,0,
                         factor,
-                        dx.shape().total_size(),
-                        e);
+                        dx.shape().total_size());
         }
     private:
         std::unique_ptr<gpu::GEMM> gemm_;
@@ -104,7 +102,7 @@ namespace core {
                         StandardActivations::identity            
             ));
         }
-        virtual void enqueue(Tensor &x,Tensor &dM,Tensor &dy,float factor,ExecutionContext const &e)
+        virtual void enqueue(Tensor &x,Tensor &dM,Tensor &dy,float factor)
         {
             int outputs = dy.shape()[1];
             int inputs = x.shape().size_no_batch();
@@ -120,8 +118,7 @@ namespace core {
                                 dM.shape()[1],
                                 nullptr,0,
                                 factor,
-                                dM.shape().total_size(),
-                                e);
+                                dM.shape().total_size());
         }
     private:
         std::unique_ptr<gpu::GEMM> gemm_;
@@ -185,7 +182,7 @@ namespace core {
                 return features_ * size2_ * tart::dtypes::float32.size();
             return 0;
         }
-        virtual void enqueue(Tensor &dy,Tensor &dw,Tensor &ws,float beta,ExecutionContext const &e)
+        virtual void enqueue(Tensor &dy,Tensor &dw,Tensor &ws,float beta)
         {
             DLPRIM_CHECK(features_ == int(dw.shape()[0]));
             int total_size = dy.shape()[0] * rows_columns_;
@@ -263,7 +260,7 @@ namespace core {
         return r;
     }
 
-    void add_bias(Tensor &t,Tensor &bias,ExecutionContext const &e)
+    void add_bias(Tensor &t,Tensor &bias)
     {
         DLPRIM_CHECK(t.shape().size() >= 2);
         DLPRIM_CHECK(t.shape()[1] == bias.shape().total_size());

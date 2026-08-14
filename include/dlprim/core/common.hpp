@@ -17,18 +17,18 @@ namespace core {
 	///
 	class Scale {
 	public:
-		Scale(Context &ctx, const tart::DType& dt = tart::dtypes::float32);
-		void enqueue(float s,Tensor &t,ExecutionContext const &ec);
+		Scale(const tart::DType& dt = tart::dtypes::float32);
+		void enqueue(float s,Tensor &t);
 	private:
 		tart::kernel_ptr k_;
 	};
 
-	void add_tensors(Tensor &a,Tensor &b,Tensor &sum,ExecutionContext const &ec);
+	void add_tensors(Tensor &a,Tensor &b,Tensor &sum);
 	///
 	/// Scale tensor by factor inplace, if s==0 fills with zero
 	/// so nan is not propagated of s==0
 	///
-	void scale_tensor(float s,Tensor &t,ExecutionContext const &ec);
+	void scale_tensor(float s,Tensor &t);
 
 	///
 	/// Set to zero tensor - OpenCL only
@@ -77,7 +77,7 @@ namespace core {
 		void tensor_slice_copy(int dim,size_t slice,
 							   Tensor &target,size_t target_offset,
 							   Tensor &source,size_t source_offset,
-							   float target_scale,ExecutionContext const &e);
+							   float target_scale);
 	private:
 		tart::device_ref mDevice;
 		tart::kernel_ptr kernel_;

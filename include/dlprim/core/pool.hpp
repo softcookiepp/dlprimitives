@@ -41,7 +41,7 @@ namespace core {
         /// X and Y dimensions should match at batch and channels and for H/W  the dimention for Y should be Y_dim = op((X_dim + 2 * pad[dim] - kernel[dim]) / stride[dim]) + 1
         /// where op is either ceil or floor
         ///
-        virtual void enqueue(Tensor &X,Tensor &Y,ExecutionContext const &e) = 0;
+        virtual void enqueue(Tensor &X,Tensor &Y) = 0;
 
         ///
         /// Create max pooling for kernel, pad, stride
@@ -85,7 +85,7 @@ namespace core {
         /// X/dX and dY dimensions should match at batch and channels and for H/W  the dimention for Y should be Y_dim = op((X_dim + 2 * pad[dim] - kernel[dim]) / stride[dim]) + 1
         /// where op is either ceil or floor
         ///
-        virtual void enqueue(Tensor &X,Tensor &dX,Tensor &dY,float factor,ExecutionContext const &e) = 0;
+        virtual void enqueue(Tensor &X,Tensor &dX,Tensor &dY,float factor) = 0;
     };
 
     ///
@@ -116,9 +116,9 @@ namespace core {
         /// dX and dY dimensions should match at batch and channels and for H/W  the dimention for Y should be Y_dim = op((X_dim + 2 * pad[dim] - kernel[dim]) / stride[dim]) + 1
         /// where op is either ceil or floor
         ///
-        virtual void enqueue(Tensor &/*X*/,Tensor &dX,Tensor &dY,float factor,ExecutionContext const &e) 
+        virtual void enqueue(Tensor &/*X*/,Tensor &dX,Tensor &dY,float factor) 
         {
-            enqueue(dX,dY,factor,e);
+            enqueue(dX,dY,factor);
         }
         /// actual computation, no need X for backward propogation
         ///
@@ -126,7 +126,7 @@ namespace core {
         /// dX and dY dimensions should match at batch and channels and for H/W  the dimention for Y should be Y_dim = op((X_dim + 2 * pad[dim] - kernel[dim]) / stride[dim]) + 1
         /// where op is either ceil or floor
         ///
-        virtual void enqueue(Tensor &dX,Tensor &dY,float factor,ExecutionContext const &e)  = 0;
+        virtual void enqueue(Tensor &dX,Tensor &dY,float factor)  = 0;
         
         /// Create average pooling with kernel
         static std::unique_ptr<AvgPooling2DBackward> create(

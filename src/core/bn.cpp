@@ -88,7 +88,7 @@ namespace core {
 		}
 
 		
-		virtual void enqueue_calculate_batch_stats(Tensor &x,Tensor &mean,Tensor &var,Tensor &ws,ExecutionContext const &e)
+		virtual void enqueue_calculate_batch_stats(Tensor &x,Tensor &mean,Tensor &var,Tensor &ws)
 		{
 			int batch = x.shape()[0];
 			int channels = x.shape()[1];
@@ -118,7 +118,6 @@ namespace core {
 				var.set_arg(sums_reduce_,p);
 				sums_reduce_->setArg(p++,1.0f/(batch*hw));
 				sums_->enqueue({second_reduce_,features_}, {wg_, second_reduce_});
-				//e.queue()->sync();
 				sums_reduce_->enqueue({1, features_}, {second_reduce_});
 			}
 		}
@@ -127,7 +126,7 @@ namespace core {
 												  Tensor &batch_mean,Tensor &running_mean,
 												  float batch_var_factor,float running_var_factor,
 												  Tensor &batch_var,Tensor &running_var,
-												  Tensor &ws,ExecutionContext const &e)
+												  Tensor &ws)
 		{
 			int p=0;
 			update_sums_->setArg(p++,features_);
@@ -141,7 +140,7 @@ namespace core {
 			update_sums_->setArg(p++,running_var_factor);
 			update_sums_->enqueue({features_}, {1, 1, 1});
 		}
-		void enqueue3D(tart::kernel_ptr &k,int batches,int rc,ExecutionContext const &e,char const *name)
+		void enqueue3D(tart::kernel_ptr &k,int batches,int rc, char const *name)
 		{
 			k->enqueue({rc, features_, batches}, {1, 1, 1});
 		}
@@ -151,7 +150,7 @@ namespace core {
 		///
 		/// Note mean/var can be taken from batch or from global running stats as per user request
 		///
-		void forward_ab(Tensor &x,Tensor &y,Tensor &a,Tensor &b,ExecutionContext const &e)
+		void forward_ab(Tensor &x,Tensor &y,Tensor &a,Tensor &b)
 		{
 			int p = 0;
 			int batches = x.shape()[0];
@@ -164,7 +163,7 @@ namespace core {
 			y.set_arg(forward_,p);
 			a.set_arg(forward_,p);
 			b.set_arg(forward_,p);
-			enqueue3D(forward_,batches,rc,e,"forward");
+			enqueue3D(forward_,batches,rc,"forward");
 		}
 
 		void split_ws_to_a_b_rest(Tensor &ws,Tensor &a,Tensor &b,Tensor &rest)
@@ -184,7 +183,7 @@ namespace core {
 		virtual void enqueue_forward_get_rstd(
 											Tensor &x,Tensor &y,
 											Tensor &mean,Tensor &var,float eps,Tensor &rstd,
-											Tensor &ws,ExecutionContext const &e)
+											Tensor &ws)
 		{
 			DLPRIM_CHECK(ws.memory_size() >= ws_);
 			Tensor b = ws.sub_tensor_target_offset(0,Shape(features_),mDType);
@@ -198,12 +197,12 @@ namespace core {
 			b.set_arg(mean_var_to_a_b_,p);
 
 			mean_var_to_a_b_->enqueue({features_}, {1, 1, 1});
-			forward_ab(x, y, rstd, b, e);
+			forward_ab(x, y, rstd, b);
 
 		}
 		virtual void enqueue_forward_direct(Tensor &x,Tensor &y,
 											Tensor &mean,Tensor &var,float eps,
-											Tensor &ws,ExecutionContext const &e)
+											Tensor &ws)
 		{
 			DLPRIM_CHECK(ws.memory_size() >= ws_);
 			Tensor a,b;
@@ -218,7 +217,7 @@ namespace core {
 			b.set_arg(mean_var_to_a_b_,p);
 
 			mean_var_to_a_b_->enqueue({features_}, {1, 1, 1});
-			forward_ab(x, y, a, b, e);
+			forward_ab(x, y, a, b);
 
 		}
 		///
@@ -232,7 +231,7 @@ namespace core {
 											Tensor &gamma,Tensor &beta,
 											Tensor &mean,Tensor &var,
 											float eps,
-											Tensor &ws,ExecutionContext const &e)
+											Tensor &ws)
 		{
 			DLPRIM_CHECK(ws.memory_size() >= ws_);
 			Tensor a,b;
@@ -249,7 +248,7 @@ namespace core {
 			b.set_arg(combine_mean_var_with_gamma_beta_,p);
 
 			combine_mean_var_with_gamma_beta_->enqueue({features_}, {1, 1, 1});
-			forward_ab(x, y, a, b, e);
+			forward_ab(x, y, a, b);
 		}
 
 		///
@@ -274,7 +273,7 @@ namespace core {
 											 Tensor *dgamma,float dgamma_factor,
 											 Tensor *dbeta,float dbeta_factor,
 											 float eps,
-											 Tensor &ws,ExecutionContext const &e)
+											 Tensor &ws)
 		{
 			if(!dx && !dgamma && !dbeta)
 				return;
@@ -283,26 +282,26 @@ namespace core {
 			split_ws_to_a_b_rest(ws,dyx_sum,dy_sum,new_ws);
 			int N = 1 + int(dgamma || dbeta) + (dx != nullptr);
 			int id = 0;
-			calc_sums(x,dy,new_ws,dyx_sum,dy_sum, e);
+			calc_sums(x,dy,new_ws,dyx_sum,dy_sum);
 			if(dgamma || dbeta)
 				backward_filter(mean,var,dyx_sum,dy_sum,
 								(dgamma ? *dgamma : null_),(dbeta ? *dbeta : null_),
-								dgamma_factor,dbeta_factor,eps, e);
+								dgamma_factor,dbeta_factor,eps);
 			if(dx)
 			{
 				if(training_mode)
 				{
-					backward_data_train(x,*dx,dy,mean,var,dy_sum,dyx_sum,gamma,new_ws,eps,dx_factor, e);
+					backward_data_train(x,*dx,dy,mean,var,dy_sum,dyx_sum,gamma,new_ws,eps,dx_factor);
 				}
 				else
 				{
-					backward_data_test(*dx,dy,var,gamma,new_ws,eps,dx_factor,e);
+					backward_data_test(*dx,dy,var,gamma,new_ws,eps,dx_factor);
 				}
 			}
 
 		}
 
-		void calc_sums(Tensor &x,Tensor &dy,Tensor &ws,Tensor &dyx_sum,Tensor &dy_sum,ExecutionContext const &e)
+		void calc_sums(Tensor &x,Tensor &dy,Tensor &ws,Tensor &dyx_sum,Tensor &dy_sum)
 		{
 			int batch = x.shape()[0];
 			int channels = x.shape()[1];
@@ -338,7 +337,7 @@ namespace core {
 		}
 
 		void backward_data_test(Tensor &dx,Tensor &dy,Tensor &var,Tensor &gamma,
-								Tensor &ws,float eps,float dx_factor,ExecutionContext const &e)
+								Tensor &ws,float eps,float dx_factor)
 		{
 			Tensor  dy_factor = ws.sub_tensor_target_offset(0*features_,Shape(features_),mDType);
 			int batches = dx.shape()[0];
@@ -360,14 +359,14 @@ namespace core {
 			dy.set_arg(backward_test_,p);
 			dy_factor.set_arg(backward_test_,p);
 			backward_test_->setArg(p++,dx_factor);
-			enqueue3D(backward_test_, batches, hw, e, "backward_data");
+			enqueue3D(backward_test_, batches, hw, "backward_data");
 		}
 
 		void backward_data_train(Tensor &x,Tensor &dx,Tensor &dy,
 								 Tensor &mean,Tensor &var,
 								 Tensor &dy_sum,Tensor &dyx_sum,
 								 Tensor &gamma,Tensor &ws,
-								 float eps,float scale,ExecutionContext const &e)
+								 float eps,float scale)
 		{
 			Tensor  x_factor = ws.sub_tensor_target_offset(0*features_,Shape(features_),mDType);
 			Tensor dy_factor = ws.sub_tensor_target_offset(1*features_,Shape(features_),mDType);
@@ -402,12 +401,12 @@ namespace core {
 			b_offset.set_arg(backward_data_,p);
 			dx.set_arg(backward_data_,p);
 			backward_data_->setArg(p++,scale);
-			enqueue3D(backward_data_, batches, hw, e, "backward_data");
+			enqueue3D(backward_data_, batches, hw, "backward_data");
 		}
 
 		void backward_filter(Tensor &mean,Tensor &var,Tensor &dyx_sum,Tensor &dy_sum,
 							 Tensor &dgamma,Tensor &dbeta,
-							 float dg_fact,float db_fact,float eps,ExecutionContext const &e)
+							 float dg_fact,float db_fact,float eps)
 		{
 			int p=0;
 			backward_filter_->setArg(p++,features_);
@@ -442,36 +441,36 @@ namespace core {
 											 Tensor &mean,Tensor &var,
 											 Tensor &dx,float dx_factor,
 											 float eps,
-											 Tensor &ws,ExecutionContext const &e)
+											 Tensor &ws)
 		{
 			DLPRIM_CHECK(ws.memory_size() >= ws_);
 			Tensor dyx_sum,dy_sum,new_ws;
 			split_ws_to_a_b_rest(ws,dyx_sum,dy_sum,new_ws);
-			calc_sums(x,dy,new_ws,dyx_sum,dy_sum,e);
+			calc_sums(x,dy,new_ws,dyx_sum,dy_sum);
 			if(training_mode) {
-				backward_data_train(x,dx,dy,mean,var,dy_sum,dyx_sum,null_,new_ws,eps,dx_factor, e);
+				backward_data_train(x,dx,dy,mean,var,dy_sum,dyx_sum,null_,new_ws,eps,dx_factor);
 			}
 			else {
-				backward_data_test(dx,dy,var,null_,new_ws,eps,dx_factor,e);
+				backward_data_test(dx,dy,var,null_,new_ws,eps,dx_factor);
 			}
 		}
 
 		virtual void enqueue_backward_rstd(  Tensor &x,Tensor &dy,
 											 Tensor &mean,Tensor &rstd,
 											 Tensor &dx,float dx_factor,
-											 Tensor &ws,ExecutionContext const &e)
+											 Tensor &ws)
 		{
 			Tensor dyx_sum,dy_sum,new_ws;
 			split_ws_to_a_b_rest(ws,dyx_sum,dy_sum,new_ws);
-			calc_sums(x,dy,new_ws,dyx_sum,dy_sum,e);
-			backward_data_rstd(x,dx,dy,mean,rstd,dy_sum,dyx_sum,new_ws,dx_factor,e);
+			calc_sums(x,dy,new_ws,dyx_sum,dy_sum);
+			backward_data_rstd(x,dx,dy,mean,rstd,dy_sum,dyx_sum,new_ws,dx_factor);
 		}
 		
 		void backward_data_rstd(Tensor &x,Tensor &dx,Tensor &dy,
 								 Tensor &mean,Tensor &rstd,
 								 Tensor &dy_sum,Tensor &dyx_sum,
 								 Tensor &ws,
-								 float scale,ExecutionContext const &e)
+								 float scale)
 		{   
 			Tensor  x_factor = ws.sub_tensor_target_offset(0*features_,Shape(features_),mDType);
 			Tensor dy_factor = ws.sub_tensor_target_offset(1*features_,Shape(features_),mDType);
@@ -507,7 +506,7 @@ namespace core {
 			b_offset.set_arg(backward_data_,p);
 			dx.set_arg(backward_data_,p);
 			backward_data_->setArg(p++,scale);
-			enqueue3D(backward_data_, batches, hw, e,"backward_data");
+			enqueue3D(backward_data_, batches, hw,"backward_data");
 		}
 
 	private:

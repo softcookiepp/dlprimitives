@@ -10,7 +10,7 @@ namespace gpu
 
 void hvol2col();
 
-void im2col(const ExecutionContext& e,
+void im2col(
 	const tart::buffer_ptr& data_im,
 	const uint32_t data_im_offset, // new arg
 	const uint32_t channels,
@@ -31,7 +31,6 @@ void im2col(const ExecutionContext& e,
 	const tart::DType& dtype); // also new arg
 
 void col2im(
-		const ExecutionContext& e,
 		const tart::buffer_ptr& data_col,
 		const uint32_t data_col_offset,
 		const uint32_t channels,
@@ -53,7 +52,6 @@ void col2im(
 		const tart::DType& accT);
 
 void col2im_batched(
-		const ExecutionContext& e,
 		const tart::buffer_ptr& data_col,
 		const uint32_t data_col_offset,
 		const uint32_t col_batch_stride,

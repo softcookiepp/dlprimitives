@@ -61,8 +61,7 @@ void MSELoss::reshape(std::vector<Shape> const &in,
 void MSELoss::forward(std::vector<Tensor> &input,
                      std::vector<Tensor> &output,
                      std::vector<Tensor> &parameters,
-                     Tensor &workspace,
-                     ExecutionContext const &q)
+                     Tensor &workspace)
 {
     Tensor a=input.at(0);
     Tensor b=input.at(1);
@@ -76,8 +75,7 @@ void MSELoss::forward(std::vector<Tensor> &input,
 void MSELoss::backward(  std::vector<TensorAndGradient> &input,
                         std::vector<TensorAndGradient> &output,
                         std::vector<TensorAndGradient> &,
-                        Tensor &,
-                        ExecutionContext const &e)
+                        Tensor &)
 {
     bool left = input.at(0).requires_gradient;
     bool right = input.at(1).requires_gradient;

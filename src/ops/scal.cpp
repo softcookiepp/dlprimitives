@@ -18,7 +18,7 @@ namespace dlprim {
     }
     Scal::~Scal(){}
     
-    void Scal::scale(float s,Tensor &t,ExecutionContext const &ec)
+    void Scal::scale(float s,Tensor &t)
     {
         {
             int p = 0;

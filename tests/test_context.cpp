@@ -25,29 +25,22 @@ int main(int argc,char **argv)
 
         dp::Context ctx(argv[1]);
         std::cout << ctx.name() << std::endl;
-        dp::Tensor a(ctx,dp::Shape(10));
+        dp::Tensor a(ctx.device(), dp::Shape(10));
 
         dp::ExecutionContext q = ctx.make_execution_context();
-        dp::Context ctx2(q);
-        dp::ExecutionContext q2 = ctx2.make_execution_context();
-		
-        {
-            TEST(ctx.device() == ctx2.device());
-        }
-    
 
         float *p = a.data<float>();
 
         for(unsigned i=0;i<a.shape()[0];i++)
             p[i] = -5.0 + i;
-        a.to_device(q2);
+        a.to_device();
         tart::program_ptr prg = dp::gpu::Cache::instance().get_program(ctx.device(), "bias");
         tart::kernel_ptr k = prg->getKernel("activation_inplace");
         int pos=0;
         k->setArg(pos++,int(a.shape().total_size()));
         a.set_arg(k,pos);
         k->enqueue({a.shape().total_size()}, {1, 1, 1, uint32_t(dp::StandardActivations::relu)});
-        a.to_host(q2,false);
+        a.to_host(false);
         for(unsigned i=0;i<a.shape()[0];i++) {
             TEST(p[i] == std::max(0.0,-5.0 + i));
         }

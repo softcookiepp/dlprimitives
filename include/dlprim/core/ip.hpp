@@ -31,7 +31,7 @@ namespace core {
     class IPForward {
     public:
         virtual ~IPForward() {}
-        virtual void enqueue(Tensor &x,Tensor &w,Tensor *bias,Tensor &y,ExecutionContext const &e) = 0;
+        virtual void enqueue(Tensor &x,Tensor &w,Tensor *bias,Tensor &y) = 0;
         ///
         /// Create optimal object for innter product calculation
         ///
@@ -51,7 +51,7 @@ namespace core {
     class IPBackwardData {
     public:
         virtual ~IPBackwardData() {}
-        virtual void enqueue(Tensor &dx,Tensor &w,Tensor &dy,float factor,ExecutionContext const &e) = 0;
+        virtual void enqueue(Tensor &dx,Tensor &w,Tensor &dy,float factor) = 0;
         ///
         /// Create optimal object for innter product calculation
         ///
@@ -65,7 +65,7 @@ namespace core {
     class IPBackwardFilter {
     public:
         virtual ~IPBackwardFilter() {}
-        virtual void enqueue(Tensor &x,Tensor &dw,Tensor &dy,float factor,ExecutionContext const &e) = 0;
+        virtual void enqueue(Tensor &x,Tensor &dw,Tensor &dy,float factor) = 0;
         ///
         /// Create optimal object for innter product calculation
         ///

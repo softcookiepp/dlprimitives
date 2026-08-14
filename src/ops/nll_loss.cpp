@@ -47,8 +47,7 @@ void NLLLoss::reshape(std::vector<Shape> const &in,
 void NLLLoss::forward(std::vector<Tensor> &input,
                      std::vector<Tensor> &output,
                      std::vector<Tensor> &parameters,
-                     Tensor &workspace,
-                     ExecutionContext const &q)
+                     Tensor &workspace)
 {
     Tensor x=input.at(0);
     Tensor lbl=input.at(1);
@@ -57,16 +56,14 @@ void NLLLoss::forward(std::vector<Tensor> &input,
         float scale = cfg_.reduce == cfg_.reduce_mean ? 1.0f/x.shape()[0] : 1.0f;
         core::nll_loss_forward(x,lbl,y,
                                 cfg_.reduce != NLLLossConfig::reduce_none,
-                                scale,
-                                q);
+                                scale);
     }
 }
 
 void NLLLoss::backward(  std::vector<TensorAndGradient> &input,
                         std::vector<TensorAndGradient> &output,
                         std::vector<TensorAndGradient> &,
-                        Tensor &,
-                        ExecutionContext const &e)
+                        Tensor &)
 {
     if(!input.at(0).requires_gradient)
         return;

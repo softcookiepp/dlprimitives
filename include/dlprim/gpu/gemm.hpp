@@ -36,8 +36,7 @@ namespace gpu {
 						tart::buffer_ptr bias,
 						uint32_t bias_offset,
                           float beta,
-                          int size_of_c,
-                          ExecutionContext const &e) = 0;
+                          int size_of_c) = 0;
 
         static void batch_sgemm(
                           const tart::DType& dt,
@@ -56,8 +55,7 @@ namespace gpu {
                           uint32_t offset_c,
                           int batch_stride_c,
                           int ldc,
-                          float beta,
-                          ExecutionContext const &e);
+                          float beta);
 
         static std::unique_ptr<GEMM> get_optimal_gemm(
             const tart::device_ptr& device,

@@ -21,7 +21,7 @@ void get_seed_seq(size_t total,RandomState &state,RandomState::seed_type &seed,R
 
 }
 
-void set_to_urandom(Tensor &t,RandomState &state,float minv,float maxv,ExecutionContext const &e)
+void set_to_urandom(Tensor &t,RandomState &state,float minv,float maxv)
 {
     RandomState::seed_type seed;
     RandomState::sequence_type seq;
@@ -31,7 +31,7 @@ void set_to_urandom(Tensor &t,RandomState &state,float minv,float maxv,Execution
     }
 }
 
-void set_to_bernoulli(Tensor &t,RandomState &state,float p,ExecutionContext const &e)
+void set_to_bernoulli(Tensor &t,RandomState &state,float p)
 {
     RandomState::seed_type seed;
     RandomState::sequence_type seq;
@@ -45,7 +45,7 @@ void set_to_bernoulli(Tensor &t,RandomState &state,float p,ExecutionContext cons
 ///
 /// set t values to normal distribution with mean and sigma), seed is updated
 ///
-void set_to_normal(Tensor &t,RandomState &state,float mean,float sigma,ExecutionContext const &e)
+void set_to_normal(Tensor &t,RandomState &state,float mean,float sigma)
 {
     RandomState::seed_type seed;
     RandomState::sequence_type seq;

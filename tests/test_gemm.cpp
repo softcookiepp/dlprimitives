@@ -7,14 +7,14 @@
 
 namespace dp = dlprim;
 
-void test_mm(int batch,int m,int n,int k,bool ta,bool tb,float beta,dp::Context &ctx,dp::ExecutionContext &q)
+void test_mm(int batch,int m,int n,int k,bool ta,bool tb,float beta, const tart::device_ptr& device)
 {
     std::cout << "- B="<<batch << " M=" << m << " N="<<n << " K=" << k << " "<< (ta?"T":"N")<<(tb?"T":"N")<< " beta="<<beta<<std::endl;
     bool use_batch = batch > 0;
     batch = std::max(1,batch);
-    dp::Tensor A(ctx,(ta?dp::Shape(batch,k,m):dp::Shape(batch,m,k)),tart::dtypes::float32);
-    dp::Tensor B(ctx,(tb?dp::Shape(batch,n,k):dp::Shape(batch,k,n)),tart::dtypes::float32);
-    dp::Tensor C(ctx,dp::Shape(batch,m,n),tart::dtypes::float32);
+    dp::Tensor A(device,(ta?dp::Shape(batch,k,m):dp::Shape(batch,m,k)),tart::dtypes::float32);
+    dp::Tensor B(device,(tb?dp::Shape(batch,n,k):dp::Shape(batch,k,n)),tart::dtypes::float32);
+    dp::Tensor C(device,dp::Shape(batch,m,n),tart::dtypes::float32);
     
     dp::core::fill_random(A,0,0,dp::core::rnd_normal,-5,5);
     dp::core::fill_random(B,0,(A.shape().total_size() + 3)/4,dp::core::rnd_normal,-5,5);
@@ -24,8 +24,8 @@ void test_mm(int batch,int m,int n,int k,bool ta,bool tb,float beta,dp::Context 
     dp::core::pointwise_operation({A},{A},{},"y0 = round(x0);");
     dp::core::pointwise_operation({B},{B},{},"y0 = round(x0);");
 
-    A.to_host(q);
-    B.to_host(q);
+    A.to_host();
+    B.to_host();
     std::vector<float> C_ref(C.shape().total_size(),1.0f);
     for(int b=0;b<batch;b++)
     {
@@ -47,21 +47,20 @@ void test_mm(int batch,int m,int n,int k,bool ta,bool tb,float beta,dp::Context 
             A.device_buffer(),A.device_offset(),m*k,A.shape()[2],
             B.device_buffer(),B.device_offset(),n*k,B.shape()[2],
             C.device_buffer(),C.device_offset(),m*n,C.shape()[2],
-            beta,q);
+            beta);
     }
     else {
         auto ptr = dlprim::gpu::GEMM::get_optimal_gemm(
-            ctx.device(), tart::dtypes::float32,
+            device, tart::dtypes::float32,
             ta,tb,m,n,k);
         ptr->gemm(m,n,k,
             A.device_buffer(),A.device_offset(),A.shape()[2],
             B.device_buffer(),B.device_offset(),B.shape()[2],
             C.device_buffer(),C.device_offset(),C.shape()[2],
             nullptr,0,
-            beta,C.shape().total_size(),
-            q);
+            beta,C.shape().total_size());
     }
-    C.to_host(q);
+    C.to_host();
     float *Cptr = C.data<float>();
     for(size_t i=0;i<C_ref.size();i++) {
         if(Cptr[i] != C_ref[i]) {
@@ -110,7 +109,7 @@ int main(int argc,char **argv)
                             int M = setups[setup][0];
                             int N = setups[setup][1];
                             int K = setups[setup][2];
-                            test_mm(b,M,N,K,ta,tb,beta,ctx,q);
+                            test_mm(b,M,N,K,ta,tb,beta,ctx.device());
                         }
                     }
                 }

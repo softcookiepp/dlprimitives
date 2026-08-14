@@ -155,14 +155,12 @@ namespace dlprim {
 #endif
 
 template<typename T>
-dp::Tensor make_tensor(dp::ExecutionContext const &q,dp::Shape s,std::vector<T> values)
+dp::Tensor make_tensor(const tart::device_ptr& device, dp::Shape s,std::vector<T> values)
 {
-    dp::Context ctx(q);
     TEST(s.total_size() == values.size());
     TEST(values.size() > 0);
-    //dp::Tensor r(ctx,s,dp::TypeTraits<T>::data_type);
-    dp::Tensor r(ctx,s, tart::getDType<T>());
-    r.to_device(q,values.data());
+    dp::Tensor r(device, s, tart::getDType<T>());
+    r.to_device(values.data());
     return r;
 }
 
@@ -177,13 +175,13 @@ dp::Tensor make_tensor(dp::ExecutionContext const &q,dp::Shape s,std::vector<T> 
 #endif
 
 
-bool equal(dp::Tensor a,dp::Tensor b,dp::ExecutionContext const &q,int eps = 0)
+bool equal(dp::Tensor a,dp::Tensor b, const tart::device_ptr& q,int eps = 0)
 {
     if(a.shape() != b.shape() || a.dtype() != b.dtype()) {
         return false;
     }
-    a.to_host(q);
-    b.to_host(q);
+    a.to_host();
+    b.to_host();
     bool res;
     if(eps == 0 || a.dtype() != tart::dtypes::float16) {
         res = memcmp(a.host_data(),b.host_data(),a.memory_size())==0;
@@ -231,15 +229,14 @@ bool equal(dp::Tensor a,dp::Tensor b,dp::ExecutionContext const &q,int eps = 0)
 
 
 template<typename Type>
-void test_pointwise(dp::ExecutionContext const &q)
+void test_pointwise(const tart::device_ptr& q)
 {
     using dp::core::pointwise_operation;
-    dp::Context ctx(q);
     {
         auto a=make_tensor<Type>(q,dp::Shape(3,2),{1,2,3,4,5,6});
         auto b=make_tensor<Type>(q,dp::Shape(3,2),{5,6,7,8,9,10});
         auto ref=make_tensor<Type>(q,dp::Shape(3,2),{6,8,10,12,14,16});
-        dp::Tensor c(ctx,dp::Shape(3,2),a.dtype());
+        dp::Tensor c(q,dp::Shape(3,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
         pointwise_operation({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
@@ -248,7 +245,7 @@ void test_pointwise(dp::ExecutionContext const &q)
         auto a=make_tensor<Type>(q,dp::Shape(3,2),{1,2,3,4,5,6});
         auto b=make_tensor<Type>(q,dp::Shape(3,2),{5,6,7,8,9,10});
         auto ref=make_tensor<Type>(q,dp::Shape(3,2),{-4,-4,-4,-4,-4,-4});
-        dp::Tensor c(ctx,dp::Shape(3,2),a.dtype());
+        dp::Tensor c(q,dp::Shape(3,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
         pointwise_operation({a,b},{c},{-1},"y0=x0+w0*x1;");
         TEST(equal(c,ref,q));
@@ -256,44 +253,43 @@ void test_pointwise(dp::ExecutionContext const &q)
 }
 
 template<typename Type>
-void test_broadcast(dp::ExecutionContext const &q)
+void test_broadcast(const tart::device_ptr& q)
 {
     using dp::core::pointwise_operation_broadcast;
-    dp::Context ctx(q);
     {
         auto a=make_tensor<Type>(q,dp::Shape(1),{1});
         auto b=make_tensor<Type>(q,dp::Shape(2),{2,3});
         auto ref=make_tensor<Type>(q,dp::Shape(2),{3,4});
-        dp::Tensor c(ctx,dp::Shape(2),a.dtype());
+        dp::Tensor c(q,dp::Shape(2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;",q);
+        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
         auto a=make_tensor<Type>(q,dp::Shape(1,2),{0,1});
         auto b=make_tensor<Type>(q,dp::Shape(2,1),{0,1});
         auto ref=make_tensor<Type>(q,dp::Shape(2,2),{0,1,1,2});
-        dp::Tensor c(ctx,dp::Shape(2,2),a.dtype());
+        dp::Tensor c(q,dp::Shape(2,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;",q);
+        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
         auto a=make_tensor<Type>(q,dp::Shape(1,2),{0,1});
         auto b=make_tensor<Type>(q,dp::Shape(2,1),{0,1});
         auto ref=make_tensor<Type>(q,dp::Shape(2,2),{0,1,7,8});
-        dp::Tensor c(ctx,dp::Shape(2,2),a.dtype());
+        dp::Tensor c(q,dp::Shape(2,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{7},"y0=x0+w0*x1;",q);
+        pointwise_operation_broadcast({a,b},{c},{7},"y0=x0+w0*x1;");
         TEST(equal(c,ref,q));
     }
     {
         auto a=make_tensor<Type>(q,dp::Shape(1,2,1),{0,1});
         auto b=make_tensor<Type>(q,dp::Shape(2,1,3),{0,1,2,3,4,5,});
         auto ref=make_tensor<Type>(q,dp::Shape(2,2,3),{0, 1, 2, 1, 2, 3, 3, 4, 5, 4, 5, 6});
-        dp::Tensor c(ctx,dp::Shape(2,2,3),a.dtype());
+        dp::Tensor c(q,dp::Shape(2,2,3),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;",q);
+        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -302,9 +298,9 @@ void test_broadcast(dp::ExecutionContext const &q)
         auto ref=make_tensor<Type>(q,dp::Shape(2,2,3,3),{ 0,  1,  2,  1,  2,  3,  2,  3,  4,  3,  4,  5,  4,  5,  6,  5,  6,
                                                           7,  3,  4,  5,  4,  5,  6,  5,  6,  7,  6,  7,  8,  7,  8,  9,  8,
                                                           9, 10});
-        dp::Tensor c(ctx,dp::Shape(2,2,3,3),a.dtype());
+        dp::Tensor c(q,dp::Shape(2,2,3,3),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;",q);
+        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -317,9 +313,9 @@ void test_broadcast(dp::ExecutionContext const &q)
            12, 12, 13,  9, 10, 10, 11, 11, 12, 11, 12, 12, 13, 13, 14, 13, 14,
            14, 15, 15, 16
         });
-        dp::Tensor c(ctx,dp::Shape(2,2,3,3,2),a.dtype());
+        dp::Tensor c(q,dp::Shape(2,2,3,3,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;",q);
+        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -336,9 +332,9 @@ void test_broadcast(dp::ExecutionContext const &q)
                 18, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 16, 17, 17, 18,
                 18, 19, 19, 20, 20, 21, 21, 22
         });
-        dp::Tensor c(ctx,dp::Shape(2,2,3,3,2,2),a.dtype());
+        dp::Tensor c(q,dp::Shape(2,2,3,3,2,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;",q);
+        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -363,9 +359,9 @@ void test_broadcast(dp::ExecutionContext const &q)
                 28, 26, 27, 27, 28, 28, 29, 29, 30, 26, 27, 27, 28, 28, 29, 29, 30,
                 28, 29, 29, 30, 30, 31, 31, 32, 30, 31, 31, 32, 32, 33, 33, 34
         });
-        dp::Tensor c(ctx,dp::Shape(2,2,3,3,2,2,2),a.dtype());
+        dp::Tensor c(q,dp::Shape(2,2,3,3,2,2,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;",q);
+        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -389,9 +385,9 @@ void test_broadcast(dp::ExecutionContext const &q)
                 25, 26, 24, 25, 25, 26, 26, 27, 27, 28, 26, 27, 27, 28, 28, 29, 29,
                 30            
         });
-        dp::Tensor c(ctx,dp::Shape(2,2,2,2, 2,2,2,2),a.dtype());
+        dp::Tensor c(q,dp::Shape(2,2,2,2, 2,2,2,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;",q);
+        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
 }
@@ -401,11 +397,9 @@ void pointwise_operation_broadcast_reduce(  std::vector<dp::Tensor> xs,
                                             std::vector<double>  ws,
                                             std::string const &compute,
                                             std::string const &reduce_init,
-                                            std::string const &reduce,
-                                            dp::ExecutionContext const &e)
+                                            std::string const &reduce)
 {
     using namespace dlprim;
-    Context ctx(e);
     std::vector<TensorSpecs> xspec,yspec;
     std::vector<double> alpha,beta;
     for(auto const &x:xs) {
@@ -418,16 +412,16 @@ void pointwise_operation_broadcast_reduce(  std::vector<dp::Tensor> xs,
     }
     
     auto op = dlprim::core::PointwiseOperationBroadcastReduce::create(
-                        ctx,xspec,yspec,
+                        dlprim::tensorDevice(xs[0]), xspec,yspec,
                         ws.size(),ys[0].tDtype(),compute,reduce_init,reduce);
     Tensor workspace;
     if(op->workspace() > 0)
-        workspace = Tensor(ctx,Shape(op->workspace()),tart::dtypes::uint8);
-    op->enqueue(xs,ys,workspace,ws,alpha,beta,e);
+        workspace = Tensor(dlprim::tensorDevice(xs[0]),Shape(op->workspace()),tart::dtypes::uint8);
+    op->enqueue(xs,ys,workspace,ws,alpha,beta);
 }
 
 template<typename Type>
-void test_reduce(dp::ExecutionContext const &q)
+void test_reduce(const tart::device_ptr& q)
 {
 
     dp::Context ctx(q);
@@ -435,30 +429,30 @@ void test_reduce(dp::ExecutionContext const &q)
         auto a=make_tensor<Type>(q,dp::Shape(1),{1});
         auto b=make_tensor<Type>(q,dp::Shape(2),{2,3});
         auto ref=make_tensor<Type>(q,dp::Shape(1),{7});
-        dp::Tensor c(ctx,dp::Shape(1),a.dtype());
+        dp::Tensor c(q,dp::Shape(1),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast_reduce({a,b},{c},{},"y0=x0+x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;",q);
+        pointwise_operation_broadcast_reduce({a,b},{c},{},"y0=x0+x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
         TEST(equal(c,ref,q));
     }
     {
         auto a=make_tensor<Type>(q,dp::Shape(1,2),{0,1});
         auto b=make_tensor<Type>(q,dp::Shape(2,1),{0,1});
         auto ref=make_tensor<Type>(q,dp::Shape(1,2),{7,9});
-        dp::Tensor c(ctx,dp::Shape(1,2),a.dtype());
+        dp::Tensor c(q,dp::Shape(1,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast_reduce({a,b},{c},{7},"y0=x0+w0*x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;",q);
+        pointwise_operation_broadcast_reduce({a,b},{c},{7},"y0=x0+w0*x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
         TEST(equal(c,ref,q));
     }
     {
         auto a=make_tensor<Type>(q,dp::Shape(2,2),{1,2,7,3});
         auto ref0=make_tensor<Type>(q,dp::Shape(1,2),{7, 3});
         auto ref1=make_tensor<Type>(q,dp::Shape(1,2),{1, 1});
-        dp::Tensor c0(ctx,dp::Shape(1,2),a.dtype());
-        dp::Tensor c1(ctx,dp::Shape(1,2),a.dtype());
+        dp::Tensor c0(q,dp::Shape(1,2),a.dtype());
+        dp::Tensor c1(q,dp::Shape(1,2),a.dtype());
         std::cout << a <<"+"<<"->"<<c0 << "x" << c1<<","<<c1<<std::endl;
         pointwise_operation_broadcast_reduce({a},{c0,c1},{},
                     "y0=typeof_y0(x0); y1=typeof_y1(reduce_item);",
-                    "reduce_y0 = -100; reduce_y1 = -1;" ,"if(y0 > reduce_y0) { reduce_y0 = y0; reduce_y1 = y1; }",q);
+                    "reduce_y0 = -100; reduce_y1 = -1;" ,"if(y0 > reduce_y0) { reduce_y0 = y0; reduce_y1 = y1; }");
         TEST(equal(c0,ref0,q));
         TEST(equal(c1,ref1,q));
     }
@@ -467,10 +461,10 @@ void test_reduce(dp::ExecutionContext const &q)
         auto b=make_tensor<Type>(q,dp::Shape(2,1),{0,1});
         auto ref0=make_tensor<Type>(q,dp::Shape(2,1),{1,15});
         auto ref1=make_tensor<Type>(q,dp::Shape(2,1),{0,56});
-        dp::Tensor c0(ctx,dp::Shape(2,1),a.dtype());
-        dp::Tensor c1(ctx,dp::Shape(2,1),a.dtype());
+        dp::Tensor c0(q,dp::Shape(2,1),a.dtype());
+        dp::Tensor c1(q,dp::Shape(2,1),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c0<<","<<c1<<std::endl;
-        pointwise_operation_broadcast_reduce({a,b},{c0,c1},{7},"y0=x0+w0*x1; y1=y0;","reduce_y0 = 0; reduce_y1 = 1;" ,"reduce_y0 += y0; reduce_y1 *= y1;",q);
+        pointwise_operation_broadcast_reduce({a,b},{c0,c1},{7},"y0=x0+w0*x1; y1=y0;","reduce_y0 = 0; reduce_y1 = 1;" ,"reduce_y0 += y0; reduce_y1 *= y1;");
         TEST(equal(c0,ref0,q));
         TEST(equal(c1,ref1,q));
     }
@@ -480,9 +474,9 @@ void test_reduce(dp::ExecutionContext const &q)
             auto a=make_tensor<Type>(q,as,av);
             auto b=make_tensor<Type>(q,bs,bv);
             auto ref=make_tensor<Type>(q,cs,cv);
-            dp::Tensor c(ctx,cs,a.dtype());
+            dp::Tensor c(q,cs,a.dtype());
             std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-            pointwise_operation_broadcast_reduce({a,b},{c},{},"y0=x0+x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;",q);
+            pointwise_operation_broadcast_reduce({a,b},{c},{},"y0=x0+x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
             TEST(equal(c,ref,q));
         };
         test_eq(dp::Shape(1,2,1),{0,1},
@@ -574,22 +568,22 @@ void test_reduce(dp::ExecutionContext const &q)
         auto a=make_tensor<Type>(q,as,av);
         auto ref0=make_tensor<Type>(q,rs,r0);
         auto ref1=make_tensor<std::int64_t>(q,rs,r1);
-        dp::Tensor c0(ctx,rs,a.dtype());
-        dp::Tensor c1(ctx,rs,ref1.dtype());
+        dp::Tensor c0(q,rs,a.dtype());
+        dp::Tensor c1(q,rs,ref1.dtype());
         std::cout << a <<"->"<<c0 << "&" << c1<<std::endl;
 
         auto op = dp::core::PointwiseOperationBroadcastReduce::create(
-            ctx,{a.specs()},{c0.specs(),c1.specs()},
+            q,{a.specs()},{c0.specs(),c1.specs()},
             0, tart::dtypes::float32,
             "y0=typeof_y0(x0); y1=typeof_y1(-x0);",
             "reduce_y0 = 0; reduce_y1 = 0;" ,
             "reduce_y0 += y0; reduce_y1 += y1;");
         dp::Tensor ws;
         if(op->workspace() > 0)
-            ws = dp::Tensor(ctx,dp::Shape(op->workspace()),tart::dtypes::uint8);
+            ws = dp::Tensor(q,dp::Shape(op->workspace()),tart::dtypes::uint8);
 
-        op->enqueue({a},{c0,c1},ws,{},{1,2},{0,0},q);
-        op->enqueue({a},{c0,c1},ws,{},{1,2},{4,1},q);
+        op->enqueue({a},{c0,c1},ws,{},{1,2},{0,0});
+        op->enqueue({a},{c0,c1},ws,{},{1,2},{4,1});
 
         TEST(equal(c0,ref0,q,eps));
         TEST(equal(c1,ref1,q,eps));
@@ -615,9 +609,9 @@ void test_reduce(dp::ExecutionContext const &q)
             }
             auto a=make_tensor<Type>(q,as,av);
             auto ref=make_tensor<Type>(q,rs,rv);
-            dp::Tensor c(ctx,rs,a.dtype());
+            dp::Tensor c(q,rs,a.dtype());
             std::cout << a <<"->"<<c<<std::endl;
-            pointwise_operation_broadcast_reduce({a},{c},{},"y0=x0;","reduce_y0 = 0;" ,"reduce_y0 += y0;",q);
+            pointwise_operation_broadcast_reduce({a},{c},{},"y0=x0;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
             int eps = 0;
             if(tart::getDType<Type>() == tart::dtypes::float16 && (b*hw*hw*7) >= 2048) {
                 eps = std::numeric_limits<int>::max();
@@ -647,9 +641,9 @@ void test_reduce(dp::ExecutionContext const &q)
             }
             auto a=make_tensor<Type>(q,as,av);
             auto ref=make_tensor<Type>(q,rs,rv);
-            dp::Tensor c(ctx,rs,a.dtype());
+            dp::Tensor c(q,rs,a.dtype());
             std::cout << a <<"->"<<c<<std::endl;
-            pointwise_operation_broadcast_reduce({a},{c},{},"y0=x0;","reduce_y0 = 0;" ,"reduce_y0 += y0;",q);
+            pointwise_operation_broadcast_reduce({a},{c},{},"y0=x0;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
             int eps = 0;
             if(tart::getDType<Type>() == tart::dtypes::float16 ) {
                 eps = std::numeric_limits<int>::max();
@@ -674,7 +668,7 @@ int main(int argc,char **argv)
 
         dp::Context ctx(argv[1]);
         bool with_half = false;
-        dp::ExecutionContext q = ctx.make_execution_context();
+        tart::device_ptr q = ctx.device();
         std::cout << ctx.name() << std::endl;
         
         std::cout << "Pointwise" << std::endl;

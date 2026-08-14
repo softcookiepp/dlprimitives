@@ -128,7 +128,7 @@ std::tuple<int,int,float,float> Interpolation::calc_bin_src_weight(int dst_intex
     return std::make_tuple(p0,p1,w0,w1);
 }
 
-void Interpolation::forward(std::vector<Tensor> &input,std::vector<Tensor> &output, std::vector<Tensor> &,Tensor &,ExecutionContext const &e)
+void Interpolation::forward(std::vector<Tensor> &input,std::vector<Tensor> &output, std::vector<Tensor> &,Tensor &)
 {
     DLPRIM_CHECK(input.size()==1);
     DLPRIM_CHECK(output.size()==1); 
@@ -137,15 +137,14 @@ void Interpolation::forward(std::vector<Tensor> &input,std::vector<Tensor> &outp
     DLPRIM_CHECK(output[0].shape() == calc_size(input[0].shape()));
     DLPRIM_CHECK(input[0].dtype() == output[0].dtype());
     {
-        core::interpolate2d(input[0],output[0],config_.scale_y,config_.scale_x,config_.method,config_.align_corners,e);
+        core::interpolate2d(input[0],output[0],config_.scale_y,config_.scale_x,config_.method,config_.align_corners);
     }
 }
 
 void Interpolation::backward(std::vector<TensorAndGradient> &input,
                           std::vector<TensorAndGradient> &output,
                           std::vector<TensorAndGradient> &,
-                          Tensor &,
-                          ExecutionContext const &e)
+                          Tensor &)
 {
     DLPRIM_CHECK(input.size()==1);
     DLPRIM_CHECK(output.size()==1);
@@ -158,7 +157,7 @@ void Interpolation::backward(std::vector<TensorAndGradient> &input,
     float accum = input[0].accumulate_gradient;
 
 	{
-        core::interpolate2d_backward(input[0].diff,output[0].diff,config_.scale_y,config_.scale_x,config_.method,config_.align_corners,accum,e);
+        core::interpolate2d_backward(input[0].diff,output[0].diff,config_.scale_y,config_.scale_x,config_.method,config_.align_corners,accum);
     }
 }
 

@@ -40,28 +40,29 @@ int main(int argc,char **argv)
 {
     try {
         dp::Context ctx(argv[1]);
-        dp::ExecutionContext e=ctx.make_execution_context();
-        dp::Tensor t(ctx,dp::Shape(10000));
-        dp::RandomState st(0xDEADBEEF);
+        tart::device_ptr device = ctx.device();
+
+        dp::Tensor t(device,dp::Shape(10000));
+        dp::RandomState st(8008135);
         std::cout << "Testing zero" << std::endl;
         dp::core::fill_tensor(t, 0.0);
-        t.to_host(e);
+        t.to_host();
         test_values(t,0,0.0,0,0);
         std::cout << "Testing constant" << std::endl;
         dp::core::fill_tensor(t, 1.5);
-        t.to_host(e);
+        t.to_host();
         test_values(t,1.5,0.0,1.5,1.5);
         std::cout << "Testing uniform" << std::endl;
-        dp::set_to_urandom(t,st,0.5,2.5,e);
-        t.to_host(e);
+        dp::set_to_urandom(t,st,0.5,2.5);
+        t.to_host();
         test_values(t,1.5,0.5773502691896257,0.5,2.5);
         std::cout << "Testing normal" << std::endl;
-        dp::set_to_normal(t,st,-1.5,0.5,e);
-        t.to_host(e);
+        dp::set_to_normal(t,st,-1.5,0.5);
+        t.to_host();
         test_values(t,-1.5,0.5,-std::numeric_limits<float>::max(),std::numeric_limits<float>::max());
         std::cout << "Testing bernoulli" << std::endl;
-        dp::set_to_bernoulli(t,st,0.75,e);
-        t.to_host(e);
+        dp::set_to_bernoulli(t,st,0.75);
+        t.to_host();
         test_values(t,0.75,std::sqrt(0.75*0.25),0,1);
     }
     catch(std::exception const &e) {

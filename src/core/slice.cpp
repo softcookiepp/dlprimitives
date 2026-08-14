@@ -23,7 +23,7 @@ namespace core {
     void SliceCopy::tensor_slice_copy(int dim,size_t slice,
                            Tensor &target,size_t target_offset,
                            Tensor &source,size_t source_offset,
-                           float scale,ExecutionContext const &q)
+                           float scale)
     {
         Shape t = target.shape().split_and_merge_over_axis(dim);
         Shape s = source.shape().split_and_merge_over_axis(dim);

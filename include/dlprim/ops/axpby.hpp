@@ -13,7 +13,7 @@ namespace dlprim {
 	public:
 		AXPBY(Context &ctx, const tart::DType& dtype = tart::dtypes::float32);
 		~AXPBY();
-		void apply(float a,Tensor &x,float b,Tensor &y,Tensor &z,ExecutionContext const &e);
+		void apply(float a,Tensor &x,float b,Tensor &y,Tensor &z);
 	private:
 		Context ctx_;
 		tart::kernel_ptr kernel_;

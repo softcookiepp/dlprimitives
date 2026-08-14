@@ -22,7 +22,7 @@ namespace core {
 			mPadSize({p[0], p[1]}),
 			mPoolMode(static_cast<uint32_t>(avg)),
 			mIncludePad(inc_pad),
-			scal_(ctx, dt)
+			scal_(dt)
 		{
 			wg_size_ = 8;
 			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(ctx.device(), dt);
@@ -30,7 +30,7 @@ namespace core {
 			bwd_kernel_ = prog->getKernel("pooling_bw");
 		}
 
-		void forward(Tensor &in,Tensor &out,ExecutionContext const &ctx)
+		void forward(Tensor &in,Tensor &out)
 		{
 			int bc = in.shape()[0]*in.shape()[1];
 
@@ -68,7 +68,7 @@ namespace core {
 			);
 		}
 
-		void backward(Tensor *x,Tensor &dx,Tensor &dy,float factor,ExecutionContext const &ex)
+		void backward(Tensor *x,Tensor &dx,Tensor &dy,float factor)
 		{
 			int bc = dx.shape()[0]*dx.shape()[1];
 
@@ -80,7 +80,7 @@ namespace core {
 
 			int p=0;
 
-			scale_tensor(factor, dx, ex);
+			scale_tensor(factor, dx);
 			bwd_kernel_->setArg(p++,bc);
 			bwd_kernel_->setArg(p++,in_h);
 			bwd_kernel_->setArg(p++,in_w);
@@ -154,7 +154,7 @@ namespace core {
 			nd_range_ = (sm_range_ + mpl - 1) / mpl * wg_size_;
 		}
 
-		void forward(Tensor &input,Tensor &output,ExecutionContext const &ctx)
+		void forward(Tensor &input,Tensor &output)
 		{
 			Shape in_shape = input.shape();
 			int over = in_shape[2] * in_shape[3];
@@ -171,7 +171,7 @@ namespace core {
 			gr.resize(3, 1);
 			kernel_->enqueue(gr, {wg_size_, items_per_wi_, static_cast<uint32_t>(avg_)});
 		}
-		void backward(Tensor *x,Tensor &dx,Tensor &dy, float factor,ExecutionContext const &ctx)
+		void backward(Tensor *x,Tensor &dx,Tensor &dy, float factor)
 		{
 			Shape in_shape = dx.shape();
 			int over = in_shape[2] * in_shape[3];
@@ -211,9 +211,9 @@ namespace core {
 	public:
 		using Impl::Impl;
 		size_t workspace() { return 0; }
-		virtual void enqueue(Tensor &X,Tensor &Y,ExecutionContext const &e)
+		virtual void enqueue(Tensor &X,Tensor &Y)
 		{
-			this->forward(X,Y,e);
+			this->forward(X,Y);
 		}
 	};
 
@@ -222,9 +222,9 @@ namespace core {
 	public:
 		using Impl::Impl;
 		size_t workspace() { return 0; }
-		virtual void enqueue(Tensor &X,Tensor &dX,Tensor &dY,float factor,ExecutionContext const &e)
+		virtual void enqueue(Tensor &X,Tensor &dX,Tensor &dY,float factor)
 		{
-			this->backward(&X,dX,dY,factor,e);
+			this->backward(&X,dX,dY,factor);
 		}
 	};
 
@@ -233,9 +233,9 @@ namespace core {
 	public:
 		using Impl::Impl;
 		size_t workspace() { return 0; }
-		virtual void enqueue(Tensor &dX,Tensor &dY,float factor,ExecutionContext const &e)
+		virtual void enqueue(Tensor &dX,Tensor &dY,float factor)
 		{
-			this->backward(nullptr,dX,dY,factor,e);
+			this->backward(nullptr,dX,dY,factor);
 		}
 	};
 

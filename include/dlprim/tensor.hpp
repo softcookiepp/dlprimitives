@@ -111,7 +111,7 @@ namespace dlprim {
         /// 
         /// Create a tensor for specific context and allocate the device memory for it.
         /// 
-        Tensor(Context &ctx, Shape const &s, const tart::DType& dt = tart::dtypes::float32, bool is_trainable=true);
+        Tensor(const tart::device_ptr& device, Shape const &s, const tart::DType& dt = tart::dtypes::float32, bool is_trainable=true);
         
         ///
         /// Create a tensor from external buffer
@@ -266,19 +266,19 @@ namespace dlprim {
         ///
         /// Copy external host memory to device, sync - for synchronoys copy
         ///
-        void to_device(ExecutionContext const &c,void *host_memory,bool sync=true);
+        void to_device(void *host_memory,bool sync=true);
         ///
         /// Copy device memory to external host memory, sync - for synchronoys copy
         ///
-        void to_host(ExecutionContext const &c,void *host_memory,bool sync=true);
+        void to_host(void *host_memory,bool sync=true);
         ///
         /// Copy host memory to device, sync - for synchronoys copy
         ///
-        void to_device(ExecutionContext const &c,bool sync=true);
+        void to_device(bool sync=true);
         ///
         /// Copy device memory to host, sync - for synchronoys copy
         ///
-        void to_host(ExecutionContext const &c,bool sync=true);
+        void to_host(bool sync=true);
 
         ///
         /// Assign buffer and offset as kernel argumnets, at position pos and pos+1, pos incrementeded twice

@@ -34,8 +34,7 @@ namespace core {
     void pointwise_operation_broadcast( std::vector<Tensor> xs,
                                         std::vector<Tensor> ys,
                                         std::vector<double>  weights,
-                                        std::string const &code,
-                                        ExecutionContext const &e);
+                                        std::string const &code);
 
     ///
     /// Similar to pointwise_operation but xs are broadcasted numpy style. ys must much broadcasted shape
@@ -45,7 +44,6 @@ namespace core {
                                         std::vector<double>  weights,
                                         const std::vector<tart::DType>& weights_types,
                                         std::string const &code,
-                                        ExecutionContext const &e,
                                         bool shrink_dims=true);
     ///
     /// Perform pointwise operation with both boradcasting and reduction
@@ -82,8 +80,7 @@ namespace core {
                              Tensor &workspace,
                              std::vector<double> parameters,
                              std::vector<double> alpha,
-                             std::vector<double> beta,
-                             ExecutionContext const &e) = 0;
+                             std::vector<double> beta) = 0;
 
         ///
         /// Create objects:
@@ -100,7 +97,7 @@ namespace core {
         /// \param reduce - code for sum reduction "reduce_y0 += y0" or max reduction "reduce_y0 = max(reduce_y0,y0)"
         ///
         static std::unique_ptr<PointwiseOperationBroadcastReduce> create(
-                        Context &ctx,
+                        const tart::device_ptr& device,
                         std::vector<TensorSpecs> xs,
                         std::vector<TensorSpecs> ys,
                         int weights_count,

@@ -68,8 +68,7 @@ namespace dlprim {
 	void Reduction::forward( std::vector<Tensor> &input,
                              std::vector<Tensor> &output,
                              std::vector<Tensor> &parameters,
-                             Tensor &workspace,
-                             ExecutionContext const &q)
+                             Tensor &workspace)
     {
         DLPRIM_CHECK(input.size() == 1 && output.size() == 1);
         DLPRIM_CHECK(input[0].shape() == x_shape_ && output[0].shape() == squeezed_y_);
@@ -83,8 +82,7 @@ namespace dlprim {
     void Reduction::backward(   std::vector<TensorAndGradient> &input,
                                 std::vector<TensorAndGradient> &output,
                                 std::vector<TensorAndGradient> &,
-                                Tensor &,
-                                ExecutionContext const &q)
+                                Tensor &)
     {
         if(!input.at(0).requires_gradient)
             return;
@@ -287,13 +285,13 @@ namespace dlprim {
                             "reduce_y0 = 0;",
                             "reduce_y0 += y0;"));
     }
-    void Reduction::forward_gpu(Tensor &x,Tensor &y,Tensor &ws,ExecutionContext const &q)
+    void Reduction::forward_gpu(Tensor &x,Tensor &y,Tensor &ws)
     {
         Tensor Y = y.alias();
         Y.reshape(full_y_);
-        broadcast_->enqueue({x},{Y},ws,{},{get_coeff()},{0},q);
+        broadcast_->enqueue({x},{Y},ws,{},{get_coeff()},{0});
     }
-    void Reduction::backward_gpu(Tensor &x,Tensor &dx,Tensor &inp_y,Tensor &inp_dy,float accum,ExecutionContext const &q)
+    void Reduction::backward_gpu(Tensor &x,Tensor &dx,Tensor &inp_y,Tensor &inp_dy,float accum)
     {
         Tensor y = inp_y.alias();
         y.reshape(full_y_);

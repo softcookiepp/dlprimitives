@@ -48,7 +48,7 @@ namespace dlprim {
     {
         buffer_ = buffer;
     }
-    Tensor::Tensor(Context &ctx, Shape const &s,const tart::DType& d,bool is_train):
+    Tensor::Tensor(const tart::device_ptr& device, Shape const &s,const tart::DType& d,bool is_train):
         specs_(new TensorSpecs(s,d,is_train)),
 		host_(new Tensor::HostMem()),
         offset_(0),
@@ -57,8 +57,8 @@ namespace dlprim {
     {
         size_t size = memory_size();
         DLPRIM_CHECK(size > 0);
-		buffer_ = ctx.device()->allocateBuffer(size);
-		dev_ = ctx.device();
+		buffer_ = device->allocateBuffer(size);
+		dev_ = device;
 		own_buffer_ = true;
     }
 
@@ -75,22 +75,22 @@ namespace dlprim {
         specs_->shape(new_shape);
     }
 
-    void Tensor::to_device(ExecutionContext const &c,void *p,bool sync)
+    void Tensor::to_device(void *p,bool sync)
     {
 		buffer_->copyIn(p, memory_size(), offset_ * tDtype().size());
     }
 
-    void Tensor::to_device(ExecutionContext const &c,bool sync)
+    void Tensor::to_device(bool sync)
     {
 		buffer_->copyIn(host_data(), memory_size(), offset_ * tDtype().size());
     }
-    void Tensor::to_host(ExecutionContext const &c, void *p,bool sync)
+    void Tensor::to_host(void *p,bool sync)
     {
         {
 			buffer_->copyOut(p, memory_size(), offset_ * tDtype().size());
 		}
     }
-    void Tensor::to_host(ExecutionContext const &c,bool sync)
+    void Tensor::to_host(bool sync)
     {
 		// all buffer copies in tart are sync, sorry :c
 		buffer_->copyOut(host_data(), memory_size(), offset_ * tDtype().size());

@@ -11,7 +11,7 @@
 
 namespace dlprim {
 namespace core {
-    void activation_forward(Tensor &x,Tensor &y,StandardActivations activation, ExecutionContext const &ec)
+    void activation_forward(Tensor &x,Tensor &y,StandardActivations activation)
     {
 		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().activation(tensorDevice(x));
         tart::kernel_ptr k = prog->getKernel("activation");
@@ -29,7 +29,7 @@ namespace core {
 		wg[3] = static_cast<uint32_t>(activation);
 		k->enqueue(gr, wg);
     }
-    void activation_backward(Tensor &dx,Tensor &dy,Tensor &y,StandardActivations activation,float beta,ExecutionContext const &ec)
+    void activation_backward(Tensor &dx,Tensor &dy,Tensor &y,StandardActivations activation,float beta)
     {
 		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().activation(tensorDevice(dx));
         tart::kernel_ptr k = prog->getKernel("activation_diff");

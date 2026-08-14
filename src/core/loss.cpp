@@ -12,7 +12,7 @@
 
 namespace dlprim {
 namespace core {
-    void softmax_forward(Tensor &x,Tensor &y,bool log_softmax,ExecutionContext const &e)
+    void softmax_forward(Tensor &x,Tensor &y,bool log_softmax)
     {
         DLPRIM_CHECK(x.shape().size() == 2 || x.shape().size() == 3);
         DLPRIM_CHECK(x.dtype() == tart::dtypes::float32);
@@ -39,9 +39,8 @@ namespace core {
         uint32_t mpl = wg_size * items_per_wi;
         if (mpl == 0) mpl += 1;
         uint32_t nd_range = (sm_range + mpl - 1) / mpl * wg_size;
-        Context ctx(e);
 #if VULKAN_API
-		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(), "softmax",
+		tart::program_ptr prog = gpu::Cache::instance().get_program(x.device_buffer()->getDevice(), "softmax",
                             "WG_SIZE",wg_size,
                             "ITEMS_PER_WI",items_per_wi,
                             "LOG_SM",int(log_softmax));
@@ -81,7 +80,7 @@ namespace core {
 #endif
     }
 
-    void softmax_backward(Tensor &dx,Tensor &y,Tensor &dy,bool log_softmax,float factor,ExecutionContext const &e)
+    void softmax_backward(Tensor &dx,Tensor &y,Tensor &dy,bool log_softmax,float factor)
     {
         DLPRIM_CHECK(dx.shape().size() == 2 || dx.shape().size() == 3);
         DLPRIM_CHECK(dx.dtype() == tart::dtypes::float32);
@@ -104,9 +103,8 @@ namespace core {
 		if (items_per_wi == 0) items_per_wi += 1;
         int mpl = wg_size * items_per_wi;
         int nd_range = (sm_range + mpl - 1) / mpl * wg_size;
-        Context ctx(e);
 
-		tart::program_ptr prog = gpu::Cache::instance().get_program(ctx.device(), "softmax",
+		tart::program_ptr prog = gpu::Cache::instance().get_program(dx.device_buffer()->getDevice(), "softmax",
                             "WG_SIZE",wg_size,
                             "ITEMS_PER_WI",items_per_wi,
                             "LOG_SM",int(log_softmax));
@@ -131,7 +129,7 @@ namespace core {
     ///
     /// Compute forward Negative log likelehood loss x should be log of prob
     ///
-    void nll_loss_forward(Tensor &x,Tensor &lbl,Tensor &y,bool reduce,float scale,ExecutionContext const &e)
+    void nll_loss_forward(Tensor &x,Tensor &lbl,Tensor &y,bool reduce,float scale)
     {
         DLPRIM_CHECK(x.shape().size() == 2);
         DLPRIM_CHECK(y.shape()==(reduce ? Shape(1) : Shape(x.shape()[0])));
@@ -164,7 +162,7 @@ namespace core {
     ///
     /// Compute forward Negative log likelehood loss x should be log of prob
     ///
-    void nll_loss_backward(Tensor &dx,Tensor &lbl,Tensor &dy,bool reduce,float scale,float factor,ExecutionContext const &e)
+    void nll_loss_backward(Tensor &dx,Tensor &lbl,Tensor &dy,bool reduce,float scale,float factor)
     {
         DLPRIM_CHECK(dx.shape().size() == 2);
         DLPRIM_CHECK(dy.shape()==(reduce ? Shape(1) : Shape(dx.shape()[0])));

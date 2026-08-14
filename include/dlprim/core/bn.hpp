@@ -84,7 +84,7 @@ namespace core {
         ///
         /// Note \a mean and \a var shoudl have Shape(features) where features is x.shape()[1]
         ///
-        virtual void enqueue_calculate_batch_stats(Tensor &x,Tensor &mean,Tensor &var,Tensor &ws,ExecutionContext const &e) = 0;
+        virtual void enqueue_calculate_batch_stats(Tensor &x,Tensor &mean,Tensor &var,Tensor &ws) = 0;
         
         ///
         /// Update running sums as 
@@ -97,7 +97,7 @@ namespace core {
                                                   Tensor &batch_mean,Tensor &running_mean,
                                                   float batch_var_factor,float running_var_factor,
                                                   Tensor &batch_var,Tensor &running_var,
-                                                  Tensor &ws,ExecutionContext const &e) = 0;
+                                                  Tensor &ws) = 0;
 
         ///
         /// Peform forward computation as y = (x-mean) / sqrt(var + eps)
@@ -106,7 +106,7 @@ namespace core {
         ///
         virtual void enqueue_forward_direct(Tensor &x,Tensor &y,
                                             Tensor &mean,Tensor &var,float eps,
-                                            Tensor &ws,ExecutionContext const &e) = 0;
+                                            Tensor &ws) = 0;
         ///
         /// Peform forward computation as y = (x-mean) / sqrt(var + eps), save 1/sqrt(var + eps) as rstd
         ///
@@ -116,8 +116,7 @@ namespace core {
         ///
         virtual void enqueue_forward_get_rstd(  Tensor &x,Tensor &y,
                                                 Tensor &mean,Tensor &var,float eps,
-                                                Tensor &rstd,Tensor &ws,
-                                                ExecutionContext const &e) = 0;
+                                                Tensor &rstd,Tensor &ws) = 0;
         ///
         /// Peform forward computation as y = (x-mean) / sqrt(var + eps) * gamma + beta 
         ///
@@ -129,7 +128,7 @@ namespace core {
                                             Tensor &gamma,Tensor &beta,
                                             Tensor &mean,Tensor &var,
                                             float eps,
-                                            Tensor &ws,ExecutionContext const &e) = 0;
+                                            Tensor &ws) = 0;
 
         ///
         /// Perform backpropogation calculations
@@ -153,7 +152,7 @@ namespace core {
                                              Tensor *dgamma,float dgamma_factor,
                                              Tensor *dbeta,float dbeta_factor,
                                              float eps,
-                                             Tensor &ws,ExecutionContext const &e) = 0;
+                                             Tensor &ws) = 0;
 
         ///
         /// Perform backpropogation calculations for BN without affine addtition Gamma/Beta
@@ -170,7 +169,7 @@ namespace core {
                                              Tensor &mean,Tensor &var,
                                              Tensor &dx,float dx_factor,
                                              float eps,
-                                             Tensor &ws,ExecutionContext const &e) = 0;
+                                             Tensor &ws) = 0;
 
         ///
         /// Perform backpropogation calculations for BN without affine addtition Gamma/Beta and using rstd instread of var
@@ -184,7 +183,7 @@ namespace core {
         virtual void enqueue_backward_rstd(  Tensor &x,Tensor &dy,
                                              Tensor &mean,Tensor &rstd,
                                              Tensor &dx,float dx_factor,
-                                             Tensor &ws,ExecutionContext const &e) = 0;
+                                             Tensor &ws) = 0;
 
         static std::unique_ptr<BatchNormFwdBwd> create(Context &ctx,Shape const &s, const tart::DType& dt = tart::dtypes::float32);
         

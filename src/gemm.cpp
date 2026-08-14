@@ -35,7 +35,7 @@ namespace gpu
 			tart::buffer_ptr a, uint32_t offset_a, int batch_stride_a, int lda,
 			tart::buffer_ptr b, uint32_t offset_b, int batch_stride_b, int ldb,
 			tart::buffer_ptr c, uint32_t offset_c, int batch_stride_c, int ldc,
-			float beta, ExecutionContext const &e)
+			float beta)
         {
 			// adjust matrices based on offset; maybe it will work here?
 			size_t byte_offset_a = offset_a*sizeof(float);
@@ -88,8 +88,7 @@ namespace gpu
 						tart::buffer_ptr bias,
 						uint32_t bias_offset,
                           float beta,
-                          int size_of_c,
-                          ExecutionContext const &ein)
+                          int size_of_c)
         {
 			const float alpha = 1.0;
 			if (beta == 0.0 && mUseBias)
@@ -170,19 +169,17 @@ namespace gpu
                           uint32_t offset_c,
                           int batch_stride_c,
                           int ldc,
-                          float beta,
-                          ExecutionContext const &e)
+                          float beta)
     {
 		DLPRIM_CHECK(dt == tart::dtypes::float32);
         
         StandardActivations act = StandardActivations::identity;
-        BlasBatchSGEMM gemm_opt(e.queue(), trans_a,trans_b,M,N,K,act);
+        BlasBatchSGEMM gemm_opt(a->getDevice(), trans_a,trans_b,M,N,K,act);
         gemm_opt.gemm(Batch,M,N,K,
                 a,offset_a,batch_stride_a,lda,
                 b,offset_b,batch_stride_b,ldb,
                 c,offset_c,batch_stride_c,ldc,
-                beta,
-                e);
+                beta);
     }
 
 

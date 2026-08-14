@@ -10,7 +10,7 @@
 #include <dlprim/core/pointwise.hpp>
 namespace dlprim
 {
-    void Parameter::copy_and_scale(Tensor &tgt,Tensor &src,float accum,ExecutionContext const &q)
+    void Parameter::copy_and_scale(Tensor &tgt,Tensor &src,float accum)
     {
         DLPRIM_CHECK(tgt.specs() == src.specs());
 
