@@ -186,7 +186,7 @@ namespace core {
                                              Tensor &dx,float dx_factor,
                                              Tensor &ws,ExecutionContext const &e) = 0;
 
-        static std::unique_ptr<BatchNormFwdBwd> create(Context &ctx,Shape const &s,DataType dt=float_data);
+        static std::unique_ptr<BatchNormFwdBwd> create(Context &ctx,Shape const &s, const tart::DType& dt = tart::dtypes::float32);
         
     };
 

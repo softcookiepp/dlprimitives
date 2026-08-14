@@ -17,10 +17,9 @@ namespace core {
 	public:
 		virtual ~BatchNormImpl() {}
 
-		BatchNormImpl(Context &ctx,Shape const &s,DataType dtype) :
-			mDType(data_type_to_tart_dtype(dtype))
+		BatchNormImpl(Context &ctx,Shape const &s, const tart::DType& dtype = tart::dtypes::float32) :
+			mDType(dtype)
 		{
-			dt_ = dtype;
 			DLPRIM_CHECK(mDType == tart::dtypes::float32);
 			DLPRIM_CHECK(s.size() >= 2);
 			features_ = s[1];
@@ -516,7 +515,6 @@ namespace core {
 		size_t ws_;
 		int wg_;
 		int second_reduce_;
-		DataType dt_;
 		tart::DType mDType;
 		tart::kernel_ptr sums_,sums_reduce_;
 		tart::kernel_ptr dyx_sums_,dyx_sums_reduce_;
@@ -531,7 +529,7 @@ namespace core {
 		Tensor null_;
 	};
 
-	std::unique_ptr<BatchNormFwdBwd> BatchNormFwdBwd::create(Context &ctx,Shape const &s,DataType dt)
+	std::unique_ptr<BatchNormFwdBwd> BatchNormFwdBwd::create(Context &ctx,Shape const &s, const tart::DType& dt)
 	{
 		std::unique_ptr<BatchNormFwdBwd> r(new BatchNormImpl(ctx,s,dt));
 		return r;
