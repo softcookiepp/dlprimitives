@@ -160,7 +160,8 @@ dp::Tensor make_tensor(dp::ExecutionContext const &q,dp::Shape s,std::vector<T> 
     dp::Context ctx(q);
     TEST(s.total_size() == values.size());
     TEST(values.size() > 0);
-    dp::Tensor r(ctx,s,dp::TypeTraits<T>::data_type);
+    //dp::Tensor r(ctx,s,dp::TypeTraits<T>::data_type);
+    dp::Tensor r(ctx,s, tart::getDType<T>());
     r.to_device(q,values.data());
     return r;
 }

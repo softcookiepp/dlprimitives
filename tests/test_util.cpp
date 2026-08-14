@@ -76,9 +76,9 @@ int main(int argc,char **argv)
                         std::vector<float> vals_y_ref(s.total_size());
                         for(unsigned i=0;i<vals_x.size();i++)
                             vals_x[i]=i+5;
-                        Tensor x(ctx,src_s,int32_data);
-                        Tensor y_ref(ctx,s,float_data);
-                        Tensor y(ctx,s,float_data);
+                        Tensor x(ctx,src_s, tart::dtypes::int32);
+                        Tensor y_ref(ctx,s, tart::dtypes::float32);
+                        Tensor y(ctx,s, tart::dtypes::float32);
                         x.to_device(q,vals_x.data());
                         //core::pointwise_operation_broadcast({x},{y_ref},{},"y0=x0;",q);
                         core::pointwise_operation_broadcast({x},{y_ref},{},"y0=x0;",q);

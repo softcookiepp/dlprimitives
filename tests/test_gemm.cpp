@@ -12,9 +12,9 @@ void test_mm(int batch,int m,int n,int k,bool ta,bool tb,float beta,dp::Context 
     std::cout << "- B="<<batch << " M=" << m << " N="<<n << " K=" << k << " "<< (ta?"T":"N")<<(tb?"T":"N")<< " beta="<<beta<<std::endl;
     bool use_batch = batch > 0;
     batch = std::max(1,batch);
-    dp::Tensor A(ctx,(ta?dp::Shape(batch,k,m):dp::Shape(batch,m,k)),dp::float_data);
-    dp::Tensor B(ctx,(tb?dp::Shape(batch,n,k):dp::Shape(batch,k,n)),dp::float_data);
-    dp::Tensor C(ctx,dp::Shape(batch,m,n),dp::float_data);
+    dp::Tensor A(ctx,(ta?dp::Shape(batch,k,m):dp::Shape(batch,m,k)),tart::dtypes::float32);
+    dp::Tensor B(ctx,(tb?dp::Shape(batch,n,k):dp::Shape(batch,k,n)),tart::dtypes::float32);
+    dp::Tensor C(ctx,dp::Shape(batch,m,n),tart::dtypes::float32);
     
     dp::core::fill_random(A,0,0,dp::core::rnd_normal,-5,5);
     dp::core::fill_random(B,0,(A.shape().total_size() + 3)/4,dp::core::rnd_normal,-5,5);
