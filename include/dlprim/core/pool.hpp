@@ -47,7 +47,7 @@ namespace core {
         /// Create max pooling for kernel, pad, stride
         ///
         static std::unique_ptr<Pooling2DForward> create_max_pooling(
-                            Context &ctx,
+                            const tart::device_ptr& device,
                             int kernel[2],int pad[2],int stride[2],
                             const tart::DType& dt = tart::dtypes::float32);
 
@@ -58,17 +58,17 @@ namespace core {
         /// amount of pixel participated
         ///
         static std::unique_ptr<Pooling2DForward> create_avg_pooling(
-                    Context &ctx,
+                    const tart::device_ptr& device,
                     int kernel[2],int pad[2],int stride[2],bool count_include_pad=false,
                     const tart::DType& dt = tart::dtypes::float32);
         
         /// Max global pooling
         static std::unique_ptr<Pooling2DForward> create_global_max_pooling(
-                    Context &ctx,Shape const &in_shape, const tart::DType& dt = tart::dtypes::float32);
+                    const tart::device_ptr& device,Shape const &in_shape, const tart::DType& dt = tart::dtypes::float32);
 
         /// Avergage global pooling
         static std::unique_ptr<Pooling2DForward> create_global_avg_pooling(
-                    Context &ctx,Shape const &in_shape, const tart::DType& dt = tart::dtypes::float32);
+                    const tart::device_ptr& device, Shape const &in_shape, const tart::DType& dt = tart::dtypes::float32);
     };
 
     ///
@@ -97,13 +97,13 @@ namespace core {
         /// Create pooling backward computation, See Pooling2DForward for
         /// details 
         static std::unique_ptr<MaxPooling2DBackward> create(
-                    Context &ctx,
+                    const tart::device_ptr& device,
                     int kernel[2],int pad[2],int stride[2],
                     const tart::DType& dt = tart::dtypes::float32);
 
         /// Create global pooling
         static std::unique_ptr<MaxPooling2DBackward> create_global(
-                    Context &ctx,Shape const &in_shape, const tart::DType& dt = tart::dtypes::float32);
+                    const tart::device_ptr& device, Shape const &in_shape, const tart::DType& dt = tart::dtypes::float32);
     };
 
     class AvgPooling2DBackward : public Pooling2DBackwardBase {
@@ -130,13 +130,13 @@ namespace core {
         
         /// Create average pooling with kernel
         static std::unique_ptr<AvgPooling2DBackward> create(
-                    Context &ctx,
+                    const tart::device_ptr& device,
                     int kernel[2],int pad[2],int stride[2],bool count_include_pad=false,
                     const tart::DType& dt = tart::dtypes::float32);
 
         /// Create global average pooling
         static std::unique_ptr<AvgPooling2DBackward> create_global(
-                    Context &ctx,Shape const &in_shape, const tart::DType& dt = tart::dtypes::float32);
+                    const tart::device_ptr& device,Shape const &in_shape, const tart::DType& dt = tart::dtypes::float32);
     };
 } // core
 } //dlprim

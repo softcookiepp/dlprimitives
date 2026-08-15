@@ -39,7 +39,7 @@ namespace core {
         /// bias - apply bias
         /// activation - apply activation
         ///
-        static std::unique_ptr<IPForward> create(Context &ctx,
+        static std::unique_ptr<IPForward> create(const tart::device_ptr& device,
                                                  IPSettings const &config,
                                                  bool bias,
                                                  StandardActivations activation = StandardActivations::identity);
@@ -56,7 +56,7 @@ namespace core {
         /// Create optimal object for innter product calculation
         ///
         /// config - IP Settings,
-        static std::unique_ptr<IPBackwardData> create(Context &ctx,IPSettings const &config);
+        static std::unique_ptr<IPBackwardData> create(const tart::device_ptr& device,IPSettings const &config);
     };
 
     ///
@@ -70,7 +70,7 @@ namespace core {
         /// Create optimal object for innter product calculation
         ///
         /// config - IP Settings,
-        static std::unique_ptr<IPBackwardFilter> create(Context &ctx,IPSettings const &config);
+        static std::unique_ptr<IPBackwardFilter> create(const tart::device_ptr& device,IPSettings const &config);
     };
 
 } // core

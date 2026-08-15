@@ -15,11 +15,11 @@ namespace dlprim {
 namespace core {
     class IPForwardImpl : public IPForward {
     public:
-        IPForwardImpl(Context &ctx,IPSettings const &cfg,bool bias,StandardActivations activation)
+        IPForwardImpl(const tart::device_ptr& device,IPSettings const &cfg,bool bias,StandardActivations activation)
         {
             int batch = cfg.optimal_batch_size;
             gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
-                ctx.device(), cfg.dtype, false, true,
+                device, cfg.dtype, false, true,
                 batch,cfg.outputs,cfg.inputs,
                 (bias ? gpu::GEMM::bias_N : gpu::GEMM::no_bias),
                 activation            
@@ -43,9 +43,9 @@ namespace core {
         std::unique_ptr<gpu::GEMM> gemm_;
     };
 
-    std::unique_ptr<IPForward> IPForward::create(Context &ctx,IPSettings const &config,bool bias,StandardActivations activation)
+    std::unique_ptr<IPForward> IPForward::create(const tart::device_ptr& device,IPSettings const &config,bool bias,StandardActivations activation)
     {
-        std::unique_ptr<IPForward> r(new IPForwardImpl(ctx,config,bias,activation));
+        std::unique_ptr<IPForward> r(new IPForwardImpl(device,config,bias,activation));
         return r;
     }
 
@@ -54,10 +54,10 @@ namespace core {
 
     class IPBackwardDataImpl : public IPBackwardData {
     public:
-        IPBackwardDataImpl(Context &ctx,IPSettings const &cfg)
+        IPBackwardDataImpl(const tart::device_ptr& device,IPSettings const &cfg)
         {
             gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
-                        ctx.device(), cfg.dtype,false,false,
+                        device, cfg.dtype,false,false,
                         cfg.optimal_batch_size,cfg.inputs,cfg.outputs,
                         gpu::GEMM::no_bias,
                         StandardActivations::identity            
@@ -85,18 +85,18 @@ namespace core {
         std::unique_ptr<gpu::GEMM> gemm_;
     };
 
-    std::unique_ptr<IPBackwardData> IPBackwardData::create(Context &ctx,IPSettings const &config)
+    std::unique_ptr<IPBackwardData> IPBackwardData::create(const tart::device_ptr& device,IPSettings const &config)
     {
-        std::unique_ptr<IPBackwardData> r(new IPBackwardDataImpl(ctx,config));
+        std::unique_ptr<IPBackwardData> r(new IPBackwardDataImpl(device,config));
         return r;
     }
 
     class IPBackwardFilterImpl : public IPBackwardFilter {
     public:
-        IPBackwardFilterImpl(Context &ctx,IPSettings const &config)
+        IPBackwardFilterImpl(const tart::device_ptr& device,IPSettings const &config)
         {
             gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
-                        ctx.device(), config.dtype,true,false,
+                        device, config.dtype,true,false,
                         config.outputs,config.inputs,config.optimal_batch_size,
                         gpu::GEMM::no_bias,
                         StandardActivations::identity            
@@ -124,9 +124,9 @@ namespace core {
         std::unique_ptr<gpu::GEMM> gemm_;
     };
     
-    std::unique_ptr<IPBackwardFilter> IPBackwardFilter::create(Context &ctx,IPSettings const &config)
+    std::unique_ptr<IPBackwardFilter> IPBackwardFilter::create(const tart::device_ptr& device,IPSettings const &config)
     {
-        std::unique_ptr<IPBackwardFilter> r(new IPBackwardFilterImpl(ctx,config));
+        std::unique_ptr<IPBackwardFilter> r(new IPBackwardFilterImpl(device,config));
         return r;
     }
 
@@ -136,7 +136,7 @@ namespace core {
     ///
     class BiasBackwardFilterImpl : public BiasBackwardFilter {
     public:
-        BiasBackwardFilterImpl(Context &ctx,Shape const &shape, const tart::DType& dt = tart::dtypes::float32) :
+        BiasBackwardFilterImpl(const tart::device_ptr& device,Shape const &shape, const tart::DType& dt = tart::dtypes::float32) :
             batch_(shape[0]),
             features_(shape[1]),
             rows_columns_(shape.size_no_batch() / shape[1]),
@@ -145,7 +145,7 @@ namespace core {
         {
             int total_size = batch_ * rows_columns_;
             two_stage_reduction_ = false;
-			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().bwd_bias(ctx.device(), mDtype);
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().bwd_bias(device, mDtype);
             if(total_size > 256 * 16) {
                 two_stage_reduction_ = true;
                 wg_ = 256;
@@ -254,9 +254,9 @@ namespace core {
 		tart::kernel_ptr kernel2_ = nullptr;
         tart::DType mDtype;
     };
-    std::unique_ptr<BiasBackwardFilter> BiasBackwardFilter::create(Context &ctx,Shape const &sp, const tart::DType& dt)
+    std::unique_ptr<BiasBackwardFilter> BiasBackwardFilter::create(const tart::device_ptr& device,Shape const &sp, const tart::DType& dt)
     {
-        std::unique_ptr<BiasBackwardFilter> r(new BiasBackwardFilterImpl(ctx,sp,dt));
+        std::unique_ptr<BiasBackwardFilter> r(new BiasBackwardFilterImpl(device,sp,dt));
         return r;
     }
 
