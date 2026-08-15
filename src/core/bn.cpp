@@ -17,7 +17,7 @@ namespace core {
 	public:
 		virtual ~BatchNormImpl() {}
 
-		BatchNormImpl(Context &ctx,Shape const &s, const tart::DType& dtype = tart::dtypes::float32) :
+		BatchNormImpl(const tart::device_ptr& device,Shape const &s, const tart::DType& dtype = tart::dtypes::float32) :
 			mDType(dtype)
 		{
 			DLPRIM_CHECK(mDType == tart::dtypes::float32);
@@ -45,8 +45,8 @@ namespace core {
 					second_reduce_ = 64;
 				ws_ += second_reduce_ * 2 * mDType.size() * features_;
 			}
-			tart::program_ptr sums = gpu::PerDeviceProgramCache::instance().bn_sums(ctx.device(), mDType);
-			tart::program_ptr utils = gpu::PerDeviceProgramCache::instance().bn_utils(ctx.device(), mDType);
+			tart::program_ptr sums = gpu::PerDeviceProgramCache::instance().bn_sums(device, mDType);
+			tart::program_ptr utils = gpu::PerDeviceProgramCache::instance().bn_utils(device, mDType);
 			if(second_reduce_ > 1)
 			{
 				sums_ = sums->getKernel("compute_reduce");
@@ -528,9 +528,9 @@ namespace core {
 		Tensor null_;
 	};
 
-	std::unique_ptr<BatchNormFwdBwd> BatchNormFwdBwd::create(Context &ctx,Shape const &s, const tart::DType& dt)
+	std::unique_ptr<BatchNormFwdBwd> BatchNormFwdBwd::create(const tart::device_ptr& device,Shape const &s, const tart::DType& dt)
 	{
-		std::unique_ptr<BatchNormFwdBwd> r(new BatchNormImpl(ctx,s,dt));
+		std::unique_ptr<BatchNormFwdBwd> r(new BatchNormImpl(device,s,dt));
 		return r;
 	}
 
