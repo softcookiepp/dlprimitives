@@ -62,7 +62,7 @@ namespace core {
 	///
 	class SliceCopy {
 	public:
-		SliceCopy(Context &ctx, const tart::DType& dt = tart::dtypes::float32);
+		SliceCopy(const tart::device_ptr& device, const tart::DType& dt = tart::dtypes::float32);
 		~SliceCopy();
 		
 		///

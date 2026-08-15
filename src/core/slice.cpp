@@ -11,10 +11,10 @@
 #include <dlprim/gpu/tiered_cache.hpp>
 namespace dlprim {
 namespace core {
-    SliceCopy::SliceCopy(Context &ctx, const tart::DType& dtype) : mDtype(dtype)
+    SliceCopy::SliceCopy(const tart::device_ptr& device, const tart::DType& dtype) : mDtype(dtype)
     {
-		mDevice = ctx.device();
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy(ctx.device(), mDtype);
+		mDevice = device;
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy(device, mDtype);
         kernel_ = prog->getKernel("copy");
     }
     SliceCopy::~SliceCopy()
