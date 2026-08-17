@@ -101,6 +101,15 @@ public:
 	tart::program_ptr getPointwiseOperation(const tart::device_ptr& device, std::vector<Tensor>& xs,
 		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code);
 	
+	tart::program_ptr getPointwiseBroadcastOperation(
+		const tart::device_ptr& device,
+		const std::vector<Tensor>& xs,
+		const std::vector<Tensor>& ys,
+		const std::vector<double>& ws,
+		const std::vector<tart::DType>& dts,
+		const std::string &code,
+		const bool shrinkDims);
+	
 	inline const tart::program_ptr& activation(const tart::device_ptr& device) { return getAllPrograms(device, {}).mActivationProgram; }
 	inline const tart::program_ptr& axpby(const tart::device_ptr& device) { return getAllPrograms(device, {}).mAxpbyProgram; }
 	

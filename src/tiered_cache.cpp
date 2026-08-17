@@ -121,6 +121,20 @@ tart::program_ptr PerDeviceProgramCache::getPointwiseOperation(const tart::devic
 	return getPointwiseCache(device).getPointwiseOperation(xs, ys, ws, code);
 }
 
+tart::program_ptr PerDeviceProgramCache::getPointwiseBroadcastOperation(
+	const tart::device_ptr& device,
+	const std::vector<Tensor>& xs,
+	const std::vector<Tensor>& ys,
+	const std::vector<double>& ws,
+	const std::vector<tart::DType>& dts,
+	const std::string &code,
+	const bool shrinkDims)
+{
+	//return getPointwiseCache(device).getPointwiseBroadcastOperation(xs, ys, ws, code);
+	throw std::runtime_error("not implemented");
+	return nullptr;
+}
+
 AllPrograms& PerDeviceProgramCache::getAllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes)
 {
 	std::uintptr_t key = (std::uintptr_t)device.get();
