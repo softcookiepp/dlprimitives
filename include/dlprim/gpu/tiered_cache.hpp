@@ -90,10 +90,16 @@ public:
 class PerDeviceProgramCache
 {
 	std::map<std::uintptr_t, std::unique_ptr<ProgramsPerDtypes>> mProgramsPerDtypes;
+	std::map<std::uintptr_t, std::unique_ptr<PointwiseCache>> mPointwiseCaches;
+	
+	PointwiseCache& getPointwiseCache(const tart::device_ptr& device);
 public:
 	AllPrograms& getAllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes);
 	
 	static PerDeviceProgramCache& instance();
+	
+	tart::program_ptr getPointwiseOperation(const tart::device_ptr& device, std::vector<Tensor>& xs,
+		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code);
 	
 	inline const tart::program_ptr& activation(const tart::device_ptr& device) { return getAllPrograms(device, {}).mActivationProgram; }
 	inline const tart::program_ptr& axpby(const tart::device_ptr& device) { return getAllPrograms(device, {}).mAxpbyProgram; }

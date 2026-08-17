@@ -115,6 +115,12 @@ PerDeviceProgramCache& PerDeviceProgramCache::instance()
 	return cache;
 }
 
+tart::program_ptr PerDeviceProgramCache::getPointwiseOperation(const tart::device_ptr& device, std::vector<Tensor>& xs,
+	std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code)
+{
+	return getPointwiseCache(device).getPointwiseOperation(xs, ys, ws, code);
+}
+
 AllPrograms& PerDeviceProgramCache::getAllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes)
 {
 	std::uintptr_t key = (std::uintptr_t)device.get();
@@ -124,6 +130,16 @@ AllPrograms& PerDeviceProgramCache::getAllPrograms(const tart::device_ptr& devic
 		mProgramsPerDtypes[key] = std::make_unique<ProgramsPerDtypes>(device);
 	}
 	return mProgramsPerDtypes[key]->getAllPrograms(dtypes);
+}
+
+PointwiseCache& PerDeviceProgramCache::getPointwiseCache(const tart::device_ptr& device)
+{
+	std::uintptr_t key = (std::uintptr_t)device.get();
+	if (mPointwiseCaches.find(key) == mPointwiseCaches.end())
+	{
+		mPointwiseCaches[key] = std::make_unique<PointwiseCache>(device);
+	}
+	return *mPointwiseCaches[key];
 }
 
 ProgramsPerDtypes::ProgramsPerDtypes(const tart::device_ptr& device) :

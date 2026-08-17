@@ -47,73 +47,92 @@ namespace core {
 			device = tensorDevice(ys[0]);
 		else
 			throw std::runtime_error("no tensors provided!");
-        Shape ref;
-        tart::DType ref_type = tart::dtypes::float32;
-        DLPRIM_CHECK(xs.size() + ys.size() > 0);
-        if(xs.empty()) {
-            ref = ys[0].shape();
-            ref_type = ys[0].tDtype();
-        }
-        else {
-            ref = xs[0].shape();
-            ref_type = xs[0].tDtype();
-        }
-
-        for(size_t i=0;i<xs.size();i++) {
-            DLPRIM_CHECK(ref == xs[i].shape());
-            DLPRIM_CHECK(ref_type == xs[i].tDtype());
-        }
-        for(size_t i=0;i<ys.size();i++) {
-            DLPRIM_CHECK(ref == ys[i].shape());
-            DLPRIM_CHECK(ref_type == ys[i].tDtype());
-        }
-        std::ostringstream params,loads,saves;
-		size_t bindingIndex = 0;
-		std::stringstream bufferDefs;
-		for (size_t i = 0; i < xs.size(); i += 1)
-		{
-			// wait. we can't have macros within macros. this will not work.
+		#if 0
 			
-			//params << "\n#if USE_BDA\n dtype_addr_ro px" << i << ";\n#endif\n"
-			//	<< "uint px" << i << "_offset;\n";
-			params << "uint px" << i << "_offset; ";
-			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
-				<< i << "_buf { dtype px" << i << "[]; }; ";
-			loads << "	dtype x" << i << " = px" << i << "[index + px" << i << "_offset]; ";
-			bindingIndex += 1;
-		}
-		for (size_t i = 0; i < ys.size(); i += 1)
-		{
-			//params << "\n#if USE_BDA\ndtype_addr_rw py" << i << "; #endif\n"
-			//	<< "uint py" << i << "_offset;\n";
-			params << "uint py" << i << "_offset; ";
-			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
-				<< i << "_buf { dtype py" << i << "[]; }; ";
-			loads << "dtype y" << i << "; ";
-			saves << "py" << i << "[index] = y" << i << "; "; // no offset?
-			bindingIndex += 1;
-		}
+			
+			tart::DType ref_type = tart::dtypes::float32;
+			
+			if(xs.empty())
+			{
+				ref = ys[0].shape();
+				ref_type = ys[0].tDtype();
+			}
+			else
+			{
+				ref = xs[0].shape();
+				ref_type = xs[0].tDtype();
+			}
+
+		#else
+			Shape ref;
+			tart::DType ref_type = tart::dtypes::float32;
+			DLPRIM_CHECK(xs.size() + ys.size() > 0);
+			if(xs.empty()) {
+				ref = ys[0].shape();
+				ref_type = ys[0].tDtype();
+			}
+			else {
+				ref = xs[0].shape();
+				ref_type = xs[0].tDtype();
+			}
+
+			for(size_t i=0;i<xs.size();i++) {
+				DLPRIM_CHECK(ref == xs[i].shape());
+				DLPRIM_CHECK(ref_type == xs[i].tDtype());
+			}
+			for(size_t i=0;i<ys.size();i++) {
+				DLPRIM_CHECK(ref == ys[i].shape());
+				DLPRIM_CHECK(ref_type == ys[i].tDtype());
+			}
+			std::ostringstream params,loads,saves;
+			size_t bindingIndex = 0;
+			std::stringstream bufferDefs;
+			for (size_t i = 0; i < xs.size(); i += 1)
+			{
+				// wait. we can't have macros within macros. this will not work.
+				
+				//params << "\n#if USE_BDA\n dtype_addr_ro px" << i << ";\n#endif\n"
+				//	<< "uint px" << i << "_offset;\n";
+				params << "uint px" << i << "_offset; ";
+				bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
+					<< i << "_buf { dtype px" << i << "[]; }; ";
+				loads << "	dtype x" << i << " = px" << i << "[index + px" << i << "_offset]; ";
+				bindingIndex += 1;
+			}
+			for (size_t i = 0; i < ys.size(); i += 1)
+			{
+				//params << "\n#if USE_BDA\ndtype_addr_rw py" << i << "; #endif\n"
+				//	<< "uint py" << i << "_offset;\n";
+				params << "uint py" << i << "_offset; ";
+				bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
+					<< i << "_buf { dtype py" << i << "[]; }; ";
+				loads << "dtype y" << i << "; ";
+				saves << "py" << i << "[index] = y" << i << "; "; // no offset?
+				bindingIndex += 1;
+			}
+			
+			std::string param_dtype = ref_type.glsl();
+			for (size_t i = 0; i < ws.size(); i += 1)
+			{
+				params << param_dtype << " w" << i << "; ";
+			}
+			
+			// what is this for? we will find out later I guess
+			std::ostringstream code_fixed;
+			for(size_t i=0;i<code.size();i++)
+				if(code[i]=='\n')
+					code_fixed << "\\\n";
+				else
+					code_fixed << code[i];
+			tart::program_ptr prog = gpu::Cache::instance().get_program(device, "pointwise",
+																			   "dtype", ref_type.glsl(),
+																			   "#BUFFER_DEFS", bufferDefs.str(),
+																			   "#PARAMS",params.str(),
+																			   "#LOADS",loads.str(),
+																			   "#SAVES",saves.str(),
+																			   "#CALC",code_fixed.str());
+		#endif
 		
-		std::string param_dtype = ref_type.glsl();
-		for (size_t i = 0; i < ws.size(); i += 1)
-		{
-			params << param_dtype << " w" << i << "; ";
-		}
-		
-		// what is this for? we will find out later I guess
-		std::ostringstream code_fixed;
-        for(size_t i=0;i<code.size();i++)
-            if(code[i]=='\n')
-                code_fixed << "\\\n";
-            else
-                code_fixed << code[i];
-        tart::program_ptr prog = gpu::Cache::instance().get_program(device, "pointwise",
-                                                                           "dtype", ref_type.glsl(),
-                                                                           "#BUFFER_DEFS", bufferDefs.str(),
-                                                                           "#PARAMS",params.str(),
-                                                                           "#LOADS",loads.str(),
-                                                                           "#SAVES",saves.str(),
-                                                                           "#CALC",code_fixed.str());
         tart::kernel_ptr k = prog->getKernel("exec");
         uint32_t total = ref.total_size();
         int p=0;
