@@ -1,11 +1,113 @@
-#include <dlprim/gpu/tiered_cache.hpp>
+#include <dlprim/core/common.hpp>
+#include <dlprim/core/pointwise.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
+#include <sstream>
 
 namespace dlprim
 {
 
 namespace gpu
 {
+
+bool PointwiseOpKey::operator<(const PointwiseOpKey& other) const
+{
+	return (
+		xtypes != other.xtypes &&
+		ytypes != other.ytypes &&
+		wcount < other.wcount &&
+		code != other.code);
+}
+
+PointwiseCache::PointwiseCache(const tart::device_ptr& device) : mDevice(device) {}
+
+tart::program_ptr 
+	PointwiseCache::getPointwiseOperation(std::vector<Tensor>& xs,
+		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code)
+{
+	tart::device_ptr device = mDevice.lock();
+	PointwiseOpKey k;
+	k.xtypes.resize(xs.size());
+	k.ytypes.resize(ys.size());
+	k.wcount = ws.size();
+	for (size_t i = 0; i < k.xtypes.size(); i += 1) k.xtypes[i] = xs[i].dtype();
+	for (size_t i = 0; i < k.ytypes.size(); i += 1) k.ytypes[i] = ys[i].dtype();
+	
+	tart::program_ptr prog = nullptr;
+	if (mPointwisePrograms.find(k) == mPointwisePrograms.end())
+	{
+		Shape ref;
+		tart::DType ref_type = tart::dtypes::float32;
+		DLPRIM_CHECK(xs.size() + ys.size() > 0);
+		if(xs.empty()) {
+			ref = ys[0].shape();
+			ref_type = ys[0].tDtype();
+		}
+		else {
+			ref = xs[0].shape();
+			ref_type = xs[0].tDtype();
+		}
+
+		for(size_t i=0;i<xs.size();i++)
+		{
+			DLPRIM_CHECK(ref == xs[i].shape());
+			DLPRIM_CHECK(ref_type == xs[i].tDtype());
+		}
+		for(size_t i=0;i<ys.size();i++)
+		{
+			DLPRIM_CHECK(ref == ys[i].shape());
+			DLPRIM_CHECK(ref_type == ys[i].tDtype());
+		}
+		std::ostringstream params,loads,saves;
+		size_t bindingIndex = 0;
+		std::stringstream bufferDefs;
+		for (size_t i = 0; i < xs.size(); i += 1)
+		{
+			// wait. we can't have macros within macros. this will not work.
+			
+			//params << "\n#if USE_BDA\n dtype_addr_ro px" << i << ";\n#endif\n"
+			//	<< "uint px" << i << "_offset;\n";
+			params << "uint px" << i << "_offset; ";
+			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
+				<< i << "_buf { dtype px" << i << "[]; }; ";
+			loads << "	dtype x" << i << " = px" << i << "[index + px" << i << "_offset]; ";
+			bindingIndex += 1;
+		}
+		for (size_t i = 0; i < ys.size(); i += 1)
+		{
+			//params << "\n#if USE_BDA\ndtype_addr_rw py" << i << "; #endif\n"
+			//	<< "uint py" << i << "_offset;\n";
+			params << "uint py" << i << "_offset; ";
+			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
+				<< i << "_buf { dtype py" << i << "[]; }; ";
+			loads << "dtype y" << i << "; ";
+			saves << "py" << i << "[index] = y" << i << "; "; // no offset?
+			bindingIndex += 1;
+		}
+		
+		std::string param_dtype = ref_type.glsl();
+		for (size_t i = 0; i < ws.size(); i += 1)
+		{
+			params << param_dtype << " w" << i << "; ";
+		}
+		
+		// what is this for? we will find out later I guess
+		std::ostringstream code_fixed;
+		for(size_t i=0;i<code.size();i++)
+			if(code[i]=='\n')
+				code_fixed << "\\\n";
+			else
+				code_fixed << code[i];
+		prog = gpu::Cache::instance().get_program(device, "pointwise",
+																		   "dtype", ref_type.glsl(),
+																		   "#BUFFER_DEFS", bufferDefs.str(),
+																		   "#PARAMS",params.str(),
+																		   "#LOADS",loads.str(),
+																		   "#SAVES",saves.str(),
+																		   "#CALC",code_fixed.str());
+	}
+	return prog;
+}
 	
 PerDeviceProgramCache& PerDeviceProgramCache::instance()
 {

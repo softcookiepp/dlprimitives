@@ -16,16 +16,21 @@ typedef struct PointwiseOpKey
 {
 	std::vector<tart::DType> xtypes;
 	std::vector<tart::DType> ytypes;
+	size_t wcount = 0;
 	std::string code;
+	
+	bool operator<(const PointwiseOpKey& other) const;
 } PointwiseOpKey;
 
 class PointwiseCache
 {
-	
+	tart::device_ref mDevice;
+	std::map<PointwiseOpKey, tart::program_ptr> mPointwisePrograms;
 public:
 	PointwiseCache(const tart::device_ptr& device);
 	
-	tart::program_ptr getPointwiseOperation();
+	tart::program_ptr getPointwiseOperation(std::vector<Tensor>& xs,
+		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code);
 };
 
 class PerDeviceProgramCache;
