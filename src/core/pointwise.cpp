@@ -241,7 +241,7 @@ namespace core {
         loads << '\n';
         saves <<'\n';
 		tart::program_ptr prog = gpu::Cache::instance().get_program(device,  "pointwise_broadcast",
-                                                                           "DIMS",ref.size(),
+                                                                           //"DIMS",ref.size(),
                                                                            "$TYPEDEFS", typeDefs.str(),
                                                                            "#BUFFER_DEFS", bufferDefs.str(),
                                                                            "#PARAMS",params.str(),
@@ -267,7 +267,9 @@ namespace core {
         // well this is going to be a pain in the bum
         //device->validateWorkSize(range);
         range.resize(3, 1);
-		k->enqueue(range, local);
+        
+        auto glPair = device->chooseGlobalAndLocalSize(range);
+		k->enqueue(glPair.first, {glPair.second[0], glPair.second[1], glPair.second[2], ref.size()});
     }
 
     ///

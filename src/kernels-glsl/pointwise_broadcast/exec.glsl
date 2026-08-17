@@ -1,5 +1,7 @@
 #version 450
 #include "../common/defs.glsl"
+#include "../common/workgroup.glsl"
+layout(constant_id = 3) const uint DIMS = 1;
 #include "../common/broadcast_dims.glsl"
 
 #if USE_BDA == 0
