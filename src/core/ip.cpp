@@ -260,12 +260,12 @@ namespace core {
         return r;
     }
     
-    void enqueueBackwardBiasFilter(Tensor& dy, Tensor& dw, Tensor& ws, float beta)
+    void enqueueBackwardBiasFilter(Tensor& dy, Tensor& dw, float beta)
     {
 		// Ok, this is gonna be dumb.
 		tart::device_ptr device = tensorDevice(dy);
 		const Shape& shape = dy.shape();
-		DLPRIM_CHECK(dy.dtype() == dw.dtype() && dw.dtype() == ws.dtype());
+		DLPRIM_CHECK(dy.dtype() == dw.dtype());
 		const tart::DType& dt = dy.dtype();
 		
 		uint32_t batch_(shape[0]);
