@@ -183,9 +183,8 @@ namespace core {
         DLPRIM_CHECK(!xs.empty());
         DLPRIM_CHECK(!ys.empty());
         DLPRIM_CHECK(ws.size() == dts.size());
-        
         tart::device_ptr device = tensorDevice(xs[0]);
-
+        
         std::vector<Shape> shapes(xs.size() + ys.size());
         for(size_t i=0;i<xs.size();i++)
             shapes[i] = xs[i].shape();
@@ -262,12 +261,7 @@ namespace core {
             bind_as_dtype(k,p,ws[i], dts[i]);
         }
         std::vector<uint32_t> range = get_broadcast_ndrange(ref);
-        std::vector<uint32_t> local(3, 1);
-        local.resize(k->getSpecConstantSize() / sizeof(uint32_t));
-        // well this is going to be a pain in the bum
-        //device->validateWorkSize(range);
         range.resize(3, 1);
-        
         auto glPair = device->chooseGlobalAndLocalSize(range);
 		k->enqueue(glPair.first, {glPair.second[0], glPair.second[1], glPair.second[2], ref.size()});
     }

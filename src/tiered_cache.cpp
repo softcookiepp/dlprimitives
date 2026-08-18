@@ -108,6 +108,17 @@ tart::program_ptr
 	}
 	return prog;
 }
+
+tart::program_ptr PointwiseCache::getPointwiseBroadcastOperation(
+		const std::vector<Tensor>& xs,
+		const std::vector<Tensor>& ys,
+		const std::vector<double>& ws,
+		const std::vector<tart::DType>& dts,
+		const std::string &code,
+		const bool shrinkDims)
+{
+	return nullptr;
+}
 	
 PerDeviceProgramCache& PerDeviceProgramCache::instance()
 {

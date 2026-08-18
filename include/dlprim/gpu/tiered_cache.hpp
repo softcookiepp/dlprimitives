@@ -31,6 +31,14 @@ public:
 	
 	tart::program_ptr getPointwiseOperation(std::vector<Tensor>& xs,
 		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code);
+		
+	tart::program_ptr getPointwiseBroadcastOperation(
+		const std::vector<Tensor>& xs,
+		const std::vector<Tensor>& ys,
+		const std::vector<double>& ws,
+		const std::vector<tart::DType>& dts,
+		const std::string &code,
+		const bool shrinkDims);
 };
 
 class PerDeviceProgramCache;
