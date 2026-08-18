@@ -85,7 +85,10 @@ namespace core {
 	};
 	
 	// Functional version of SliceCopy
-	void tensorSliceCopy();
+	void tensorSliceCopy(int dim,size_t slice,
+		Tensor &target,size_t target_offset,
+		Tensor &source,size_t source_offset,
+		float scale);
 
 } // core
 } // dlprim
