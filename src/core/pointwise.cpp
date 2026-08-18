@@ -54,12 +54,12 @@ namespace core {
 		if(xs.empty())
 		{
 			ref = ys[0].shape();
-			ref_type = ys[0].tDtype();
+			ref_type = ys[0].dtype();
 		}
 		else
 		{
 			ref = xs[0].shape();
-			ref_type = xs[0].tDtype();
+			ref_type = xs[0].dtype();
 		}
 		
 		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().getPointwiseOperation(device, xs, ys, ws, code);
@@ -164,7 +164,7 @@ namespace core {
                                         std::vector<double> ws,
                                         std::string const &code)
     {
-        std::vector<tart::DType> dts(ws.size(),ys.at(0).tDtype());
+        std::vector<tart::DType> dts(ws.size(),ys.at(0).dtype());
         pointwise_operation_broadcast(xs,ys,ws,dts,code);
     }
 
@@ -190,7 +190,7 @@ namespace core {
             shrink_broadcast_ranges(shapes);
 
 		//
-        tart::DType target_type = ys[0].tDtype();
+        tart::DType target_type = ys[0].dtype();
         Shape ref = shapes[xs.size()]; // ys[0]
         for(size_t i=0;i<ys.size();i++) {
             DLPRIM_CHECK(shapes[i + xs.size()] == ref);
@@ -292,8 +292,8 @@ namespace core {
                     Tensor &y=ys[i];
                     y.set_arg(kernel_,p);
                     bind_shape(kernel_,p,strides_[stride_id++]);
-                    bind_as_dtype(kernel_,p,alpha.at(i), ys[i].tDtype());
-                    bind_as_dtype(kernel_,p,beta.at(i), ys[i].tDtype());
+                    bind_as_dtype(kernel_,p,alpha.at(i), ys[i].dtype());
+                    bind_as_dtype(kernel_,p,beta.at(i), ys[i].dtype());
                 }
                 else {
                     Tensor temp_y = workspace
@@ -656,7 +656,7 @@ namespace core {
             beta.push_back(0.0);
         }
         auto op = PointwiseOperationBroadcastReduce::create(device, xspec,yspec,
-                            ws.size(),ys[0].tDtype(),compute,reduce_init,reduce);
+                            ws.size(),ys[0].dtype(),compute,reduce_init,reduce);
         Tensor workspace;
         if(op->workspace() > 0)
             workspace = Tensor(device, Shape(op->workspace()),tart::dtypes::uint8);

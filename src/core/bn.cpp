@@ -170,7 +170,7 @@ namespace core {
 		{
 			split_ws_to_a_b(ws,a,b);
 
-			size_t msize = ws.shape().total_size() * ws.tDtype().size();
+			size_t msize = ws.shape().total_size() * ws.dtype().size();
 			size_t items = msize / mDType.size();
 			rest = ws.sub_tensor_target_offset(features_ * 2,Shape(items - features_ * 2),mDType);
 		}

@@ -265,7 +265,7 @@ namespace core {
         DLPRIM_CHECK(t.shape().size() >= 2);
         DLPRIM_CHECK(t.shape()[1] == bias.shape().total_size());
 
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().fwd_bias(tensorDevice(t), t.tDtype());
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().fwd_bias(tensorDevice(t), t.dtype());
         tart::kernel_ptr k = prog->getKernel("fwd_bias");
 
         Shape const &s = t.shape();

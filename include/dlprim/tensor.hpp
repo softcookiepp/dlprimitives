@@ -89,8 +89,6 @@ namespace dlprim {
         {
             return mDtype;
         }
-        
-        tart::DType tDtype() const { return mDtype; }
     private:
         friend class Tensor;
         Shape shape_;
@@ -170,8 +168,6 @@ namespace dlprim {
         {
             return specs_->dtype();
         }
-        
-		tart::DType tDtype() const { return specs_->tDtype(); }
 
         ///
         /// Reshape the tensor, the only requirement that ns.total_size() <= shape().total_size()
@@ -259,7 +255,7 @@ namespace dlprim {
         template<typename T>
         T *data()
         {
-			DLPRIM_CHECK(tart::getDType<T>() == tDtype());
+			DLPRIM_CHECK(tart::getDType<T>() == dtype());
             return static_cast<T*>(host_data());
         }
 

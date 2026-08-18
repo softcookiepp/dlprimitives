@@ -77,37 +77,37 @@ namespace dlprim {
 
     void Tensor::to_device(void *p,bool sync)
     {
-		buffer_->copyIn(p, memory_size(), offset_ * tDtype().size());
+		buffer_->copyIn(p, memory_size(), offset_ * dtype().size());
     }
 
     void Tensor::to_device(bool sync)
     {
-		buffer_->copyIn(host_data(), memory_size(), offset_ * tDtype().size());
+		buffer_->copyIn(host_data(), memory_size(), offset_ * dtype().size());
     }
     void Tensor::to_host(void *p,bool sync)
     {
         {
-			buffer_->copyOut(p, memory_size(), offset_ * tDtype().size());
+			buffer_->copyOut(p, memory_size(), offset_ * dtype().size());
 		}
     }
     void Tensor::to_host(bool sync)
     {
 		// all buffer copies in tart are sync, sorry :c
-		buffer_->copyOut(host_data(), memory_size(), offset_ * tDtype().size());
+		buffer_->copyOut(host_data(), memory_size(), offset_ * dtype().size());
     }
 
     Tensor Tensor::sub_tensor(size_t offset,Shape const &s,const tart::DType& d,bool trainable) const
     {
-        size_t offset_bytes = offset * tDtype().size();
-        DLPRIM_CHECK(shape().total_size()*tDtype().size() >= s.total_size() * d.size());
-        DLPRIM_CHECK((offset_ * tDtype().size() + offset_bytes) % d.size() == 0);
+        size_t offset_bytes = offset * dtype().size();
+        DLPRIM_CHECK(shape().total_size()*dtype().size() >= s.total_size() * d.size());
+        DLPRIM_CHECK((offset_ * dtype().size() + offset_bytes) % d.size() == 0);
         Tensor r;
         r.specs_.reset(new TensorSpecs(s,d,trainable));
         r.host_ = host_;
         r.buffer_ = buffer_;
         r.capacity_ = r.memory_size();
         r.full_capacity_ = full_capacity_;
-        r.offset_ = (offset_ * tDtype().size()  + offset_bytes) / d.size();
+        r.offset_ = (offset_ * dtype().size()  + offset_bytes) / d.size();
         return r;
     }
 
@@ -118,7 +118,7 @@ namespace dlprim {
 		{
 			host_->alloc(full_capacity_);
 		}
-		return (char*)(host_->mHostMem.data()) + offset_ * tDtype().size();
+		return (char*)(host_->mHostMem.data()) + offset_ * dtype().size();
     }
 };
 /// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

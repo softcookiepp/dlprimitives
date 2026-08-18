@@ -19,7 +19,7 @@ namespace core {
     {
 		Shape t = target.shape().split_and_merge_over_axis(dim);
         Shape s = source.shape().split_and_merge_over_axis(dim);
-		DLPRIM_CHECK(target.tDtype() == source.dtype());
+		DLPRIM_CHECK(target.dtype() == source.dtype());
         DLPRIM_CHECK(s[0] == t[0]);
         DLPRIM_CHECK(source_offset + slice <= s[1]);
         DLPRIM_CHECK(target_offset + slice <= t[1]);

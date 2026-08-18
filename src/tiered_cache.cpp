@@ -64,22 +64,22 @@ tart::program_ptr
 		DLPRIM_CHECK(xs.size() + ys.size() > 0);
 		if(xs.empty()) {
 			ref = ys[0].shape();
-			ref_type = ys[0].tDtype();
+			ref_type = ys[0].dtype();
 		}
 		else {
 			ref = xs[0].shape();
-			ref_type = xs[0].tDtype();
+			ref_type = xs[0].dtype();
 		}
 
 		for(size_t i=0;i<xs.size();i++)
 		{
 			DLPRIM_CHECK(ref == xs[i].shape());
-			DLPRIM_CHECK(ref_type == xs[i].tDtype());
+			DLPRIM_CHECK(ref_type == xs[i].dtype());
 		}
 		for(size_t i=0;i<ys.size();i++)
 		{
 			DLPRIM_CHECK(ref == ys[i].shape());
-			DLPRIM_CHECK(ref_type == ys[i].tDtype());
+			DLPRIM_CHECK(ref_type == ys[i].dtype());
 		}
 		std::ostringstream params,loads,saves;
 		size_t bindingIndex = 0;
@@ -144,14 +144,14 @@ tart::program_ptr PointwiseCache::getPointwiseBroadcastOperation(
 	auto k = makeKey(xs, ys, ws, dts, code, shrinkDims);
 	if (mPointwisePrograms.find(k) == mPointwisePrograms.end())
 	{
-		tart::DType target_type = ys[0].tDtype();
+		tart::DType target_type = ys[0].dtype();
 		
 		size_t bindingIndex = 0;
 		std::stringstream bufferDefs;
 		std::stringstream typeDefs;
         std::ostringstream params,loads,saves;
         for(size_t i=0;i<xs.size();i++) {
-            std::string type = xs[i].tDtype().glsl();
+            std::string type = xs[i].dtype().glsl();
             params << "uint px" << i << "_offset; Shape strides" << i << "; ";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
 				<< i << "_buf { " << type << " px" << i << "[]; }; ";
@@ -160,7 +160,7 @@ tart::program_ptr PointwiseCache::getPointwiseBroadcastOperation(
             typeDefs << "#define typeof_x" << i << " " << type << "\n";
         }
         for(size_t i=0;i<ys.size();i++) {
-            std::string type = ys[i].tDtype().glsl();
+            std::string type = ys[i].dtype().glsl();
             params << "uint py" << i << "_offset; ";
 			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
 				<< i << "_buf { " << type << " py" << i << "[]; }; ";
