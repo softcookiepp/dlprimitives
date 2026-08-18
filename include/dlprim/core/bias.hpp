@@ -33,6 +33,9 @@ namespace core {
         ///
         static std::unique_ptr<BiasBackwardFilter> create(const tart::device_ptr& device,Shape const &dy_shape, const tart::DType&  = tart::dtypes::float32);
     };
+    
+    // functional version of the thingy above
+    void enqueueBackwardBiasFilter(Tensor& dy, Tensor& dw, Tensor& ws, float beta);
 
     ///
     /// Add bias to t over dimentsion 1: t[:,i,:,:] = b[i]
