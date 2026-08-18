@@ -117,7 +117,54 @@ tart::program_ptr PointwiseCache::getPointwiseBroadcastOperation(
 		const std::string &code,
 		const bool shrinkDims)
 {
-	return nullptr;
+	tart::device_ptr device = mDevice.lock();
+	tart::program_ptr prog = nullptr;
+	if(!prog)
+	{
+		tart::DType target_type = ys[0].tDtype();
+		
+		size_t bindingIndex = 0;
+		std::stringstream bufferDefs;
+		std::stringstream typeDefs;
+        std::ostringstream params,loads,saves;
+        for(size_t i=0;i<xs.size();i++) {
+            std::string type = xs[i].tDtype().glsl();
+            params << "uint px" << i << "_offset; Shape strides" << i << "; ";
+			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
+				<< i << "_buf { " << type << " px" << i << "[]; }; ";
+			bindingIndex += 1;
+            loads<<type << " x"<<i<<"=px"<<i<<"[get_offset(index,strides" << i << ",px"<<i<<"_offset)]; ";
+            typeDefs << "#define typeof_x" << i << " " << type << "\n";
+        }
+        for(size_t i=0;i<ys.size();i++) {
+            std::string type = ys[i].tDtype().glsl();
+            params << "uint py" << i << "_offset; ";
+			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
+				<< i << "_buf { " << type << " py" << i << "[]; }; ";
+			bindingIndex += 1;
+            loads<<type << " y"<<i<<";\\\n";
+            saves<<"py"<<i<<"[get_direct_offset(index,limit,py"<<i<<"_offset)]=y"<<i<<";\n";
+            typeDefs << "#define typeof_y" << i << " " << type << "\n";
+        }
+        typeDefs << "#define target_type " << target_type.glsl() << "\n";
+
+        for(size_t i=0;i<ws.size();i++) {
+            std::string type = dts[i].glsl();
+            params << type << " w" << i << "; ";
+            typeDefs << "#define typeof_w" << i << " " << type << "\n";
+        }
+
+        loads << '\n';
+        saves <<'\n';
+		prog = gpu::Cache::instance().get_program(device,  "pointwise_broadcast",
+			"$TYPEDEFS", typeDefs.str(),
+			"#BUFFER_DEFS", bufferDefs.str(),
+			"#PARAMS", params.str(),
+			"#LOADS", loads.str(),
+			"#SAVES", saves.str(),
+			"#CALC", core::format_code(code));
+	}
+	return prog;
 }
 	
 PerDeviceProgramCache& PerDeviceProgramCache::instance()

@@ -194,7 +194,7 @@ namespace core {
         if(shrink_dims)
             shrink_broadcast_ranges(shapes);
 
-
+		//
         tart::DType target_type = ys[0].tDtype();
         Shape ref = shapes[xs.size()]; // ys[0]
         for(size_t i=0;i<ys.size();i++) {
