@@ -9,32 +9,9 @@
 #include <dlprim/tensor.hpp>
 #include <dlprim/context.hpp>
 namespace dlprim {
-namespace core {
-    ///
-    /// Calculate filter
-    ///
-    class BiasBackwardFilter {
-    public:
-        virtual ~BiasBackwardFilter() {}
-        ///
-        /// return required workspace size in bytes
-        ///
-        virtual size_t workspace() = 0;
-        ///
-        /// make sure you provide worksapce of size workspace() for operations
-        ///
-        /// if workspace() == 0 you can provide non initialized tensor
-        ///
-        virtual void enqueue(Tensor &dy,Tensor &dw,Tensor &ws,float beta) = 0;
-        ///
-        /// Create operator for backward bias calculation. dy_shape is the shape of output tesnor
-        /// for IP it should be (B,feaures_out), for Conv2d (B,feaures_out,H,W)
-        /// features is number of output features - size of bias tensor
-        ///
-        static std::unique_ptr<BiasBackwardFilter> create(const tart::device_ptr& device,Shape const &dy_shape, const tart::DType&  = tart::dtypes::float32);
-    };
-    
-    // functional version of the thingy above
+namespace core
+{    
+    // functional version of backward bias
     void enqueueBackwardBiasFilter(Tensor& dy, Tensor& dw, float beta);
 
     ///
