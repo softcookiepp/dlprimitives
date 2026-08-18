@@ -1,18 +1,24 @@
 #version 450
 
-#ifndef REDUCE_DIMS
-#error "REDUCE_DIMS must be defined"
-#endif
-#ifndef DIMS
-#error "DIMS must be defined"
-#endif
-
 #include "../common/defs.glsl"
 #include "../common/broadcast_dims.glsl"
-#if SMALL_REDUCTION
+#if 1//SMALL_REDUCTION
 	#include "../common/workgroup.glsl"
 #else
 	layout(local_size_x = WG_SIZE, local_size_y = 1, local_size_z = 1) in;
+#endif
+
+#if 0
+	layout(constant_id = 3) const uint REDUCE_DIMS = 1;
+	layout(constant_id = 4) const uint REDUCE_DIMS = 1;
+	
+#else
+	#ifndef REDUCE_DIMS
+		#error "REDUCE_DIMS must be defined"
+	#endif
+	#ifndef DIMS
+		#error "DIMS must be defined"
+	#endif
 #endif
 
 #define NORMAL_DIMS (DIMS - REDUCE_DIMS)
@@ -185,7 +191,7 @@ bool valid_pos(Shape pos,Shape limits)
 #if SMALL_REDUCTION == 1
 	#define REDUCE_INIT(type,I) type reduce_y##I, y##I
 #else
-	#define REDUCE_INIT(type,I) shared type my_reduce_##I[WG_SIZE]; type reduce_y##I, y##I 
+	#define REDUCE_INIT(type,I) shared type my_reduce_##I[localSizeX]; type reduce_y##I, y##I 
 #endif    
 
 #define SAVE_REDUCE(I) my_reduce_##I[lid] = reduce_y##I;
@@ -282,7 +288,7 @@ void main()
 		SAVE_REDUCE_ALL
 		
 		barrier(); 
-		for(uint i= WG_SIZE / 2;i>0; i>>= 1) { 
+		for(uint i= localSizeX / 2;i>0; i>>= 1) { 
 			if(lid < i) { 
 				uint nxt = lid+i;
 				LOAD_REDUCE_ALL

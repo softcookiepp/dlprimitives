@@ -322,9 +322,11 @@ namespace core {
 			for (size_t i = 0; i < glob.size(); i += 1)
 				glob[i] = range_[i]/wg_range_[i];
 			glob.resize(3, 1);
-			if (fixed_wg_)
-				wg_range_.resize(0);
-			else
+			#if 0
+				if (fixed_wg_)
+					wg_range_.resize(0);
+				else
+			#endif
 			{
 				#if 0 // Looks like there absolutely *has* to be a local size of 1, 1, 1. This is sub-optimal, but not worth changing for now at least
 					auto glPair = device->chooseGlobalAndLocalSize(glob);
@@ -332,6 +334,8 @@ namespace core {
 					wg_range_ = glPair.second;
 				#else
 					wg_range_.resize(3, 1);
+					// just for safesies
+					if (wg_range_[0] == 0) wg_range_[0] += 1;
 				#endif
 			}
 				
