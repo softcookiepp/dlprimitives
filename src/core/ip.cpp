@@ -266,25 +266,22 @@ namespace core {
 		tart::device_ptr device = tensorDevice(dy);
 		const Shape& shape = dy.shape();
 		DLPRIM_CHECK(dy.dtype() == dw.dtype());
-		const tart::DType& dt = dy.dtype();
 		
-		uint32_t batch_(shape[0]);
 		uint32_t features_(shape[1]);
 		uint32_t rows_columns_(shape.size_no_batch() / shape[1]);
 		
 		// taken from constructor
-		int total_size = batch_ * rows_columns_;
-		bool two_stage_reduction_ = false;
+		int total_size = shape[0] * rows_columns_;
 		uint32_t wg_;
 		uint32_t items_per_wi_;
 		uint32_t wg2_;
 		uint32_t items_per_wi2_;
 		uint32_t size2_;
 		
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().bwd_bias(device, dt);
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().bwd_bias(device, dy.dtype());
 		tart::kernel_ptr kernel2_ = nullptr;
-		if(total_size > 256 * 16) {
-			two_stage_reduction_ = true;
+		if(total_size > 256 * 16)
+		{
 			wg_ = 256;
 			items_per_wi_ = 16;
 			int reduce_1st = wg_ * items_per_wi_;
@@ -299,7 +296,6 @@ namespace core {
 			kernel2_ = prog->getKernel("bwd_bias");
 		}
 		else {
-			two_stage_reduction_ = false;
 			size2_ = 1;
 			if(total_size <= 64)
 				wg_ = 64;
@@ -312,18 +308,18 @@ namespace core {
 		tart::kernel_ptr kernel_ = prog->getKernel("bwd_bias");
 		
 		DLPRIM_CHECK(features_ == int(dw.shape()[0]));
+		
 		std::vector<uint32_t> spec = {
 			wg_, 1, 1, // local size
 			items_per_wi_, // ITEMS_PER_WI
 			rows_columns_ // SIZE_2D
 		};
-		if(two_stage_reduction_)
+		
+		if(kernel2_) // 2-stage
 		{
-			#if 1
-				tart::buffer_ptr float_ws = device->allocateBuffer(features_ * size2_ * tart::dtypes::float32.size());
-			#else
-				Tensor float_ws = ws.workspace_as_type(dt);
-			#endif
+			// Why require user to pass workspace buffer when we can just make one here? c:
+			// Maybe in the future we bring it back, but for now I don't care.
+			tart::buffer_ptr float_ws = device->allocateBuffer(features_ * size2_ * tart::dtypes::float32.size());
 			std::vector<uint32_t> l({wg_, 1});
 			std::vector<uint32_t> g = gpu::round_range(wg_ * size2_,features_,l);
 			g[0] = g[0]/l[0];
@@ -331,12 +327,8 @@ namespace core {
 			kernel_->setArg(p++,features_);
 			kernel_->setArg(p++,total_size);
 			dy.set_arg(kernel_,p);
-			#if 1
-				kernel_->setArg(p++, float_ws);
-				kernel_->setArg(p++, 0);
-			#else
-				float_ws.set_arg(kernel_,p);
-			#endif
+			kernel_->setArg(p++, float_ws);
+			kernel_->setArg(p++, 0);
 			kernel_->setArg(p++,size2_);
 			kernel_->setArg(p++,0.0f);
 			g.resize(3, 1);
@@ -344,12 +336,8 @@ namespace core {
 			p=0;
 			kernel2_->setArg(p++,features_);
 			kernel2_->setArg(p++,size2_);
-			#if 1
-				kernel2_->setArg(p++, float_ws);
-				kernel2_->setArg(p++, 0);
-			#else
-				float_ws.set_arg(kernel2_, p);
-			#endif
+			kernel2_->setArg(p++, float_ws);
+			kernel2_->setArg(p++, 0);
 			dw.set_arg(kernel2_, p); 
 			kernel2_->setArg(p++, 1);
 			kernel2_->setArg(p++, beta);
