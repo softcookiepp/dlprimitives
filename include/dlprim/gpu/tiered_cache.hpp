@@ -16,7 +16,9 @@ typedef std::tuple<
 	std::vector<tart::DType>, // xtypes
 	std::vector<tart::DType>, // ytypes
 	size_t, // weight count
-	std::string // code
+	std::vector<tart::DType>, // wtypes
+	std::string, // code
+	bool // shrink dims
 > PointwiseOpKey;
 
 class PointwiseCache

@@ -24,11 +24,14 @@ tart::program_ptr PointwiseCache::findProgram(const PointwiseOpKey& k)
 	return nullptr;
 }
 
-tart::program_ptr 
-	PointwiseCache::getPointwiseOperation(std::vector<Tensor>& xs,
-		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code)
+PointwiseOpKey makeKey(
+	const std::vector<Tensor>& xs,
+	const std::vector<Tensor>& ys,
+	const std::vector<double>& ws,
+	const std::vector<tart::DType>& dts,
+	const std::string &code,
+	const bool shrinkDims)
 {
-	tart::device_ptr device = mDevice.lock();
 	PointwiseOpKey k;
 	std::get<0>(k).resize(xs.size());
 	std::get<1>(k).resize(ys.size());
@@ -41,7 +44,34 @@ tart::program_ptr
 	{
 		std::get<1>(k)[i] = ys[i].dtype();
 	}
-	std::get<3>(k) = code;
+	std::get<3>(k) = dts;
+	std::get<4>(k) = code;
+	std::get<5>(k) = shrinkDims;
+	return k;
+}
+
+tart::program_ptr 
+	PointwiseCache::getPointwiseOperation(std::vector<Tensor>& xs,
+		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code)
+{
+	tart::device_ptr device = mDevice.lock();
+	#if 1
+		PointwiseOpKey k = makeKey(xs, ys, ws, {}, code, false);
+	#else
+		PointwiseOpKey k;
+		std::get<0>(k).resize(xs.size());
+		std::get<1>(k).resize(ys.size());
+		std::get<2>(k) = ws.size();
+		for (size_t i = 0; i < xs.size(); i += 1)
+		{
+			std::get<0>(k)[i] = xs[i].dtype();
+		}
+		for (size_t i = 0; i < std::get<1>(k).size(); i += 1)
+		{
+			std::get<1>(k)[i] = ys[i].dtype();
+		}
+		std::get<3>(k) = code;
+	#endif
 	
 	if (mPointwisePrograms.find(k) == mPointwisePrograms.end())
 	{
