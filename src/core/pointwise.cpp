@@ -322,22 +322,18 @@ namespace core {
 			for (size_t i = 0; i < glob.size(); i += 1)
 				glob[i] = range_[i]/wg_range_[i];
 			glob.resize(3, 1);
-			#if 0
-				if (fixed_wg_)
-					wg_range_.resize(0);
-				else
+			#if 0 // Looks like there absolutely *has* to be a local size of 1, 1, 1. This is sub-optimal, but not worth changing for now at least
+				auto glPair = device->chooseGlobalAndLocalSize(glob);
+				glob = glPair.first;
+				wg_range_ = glPair.second;
+			#else
+				wg_range_.resize(6, 1);
+				wg_range_[3] = mReduceDims;
+				wg_range_[4] = mDims;
+				wg_range_[5] = mItemsPerWi;
+				// just for safesies
+				if (wg_range_[0] == 0) wg_range_[0] += 1;
 			#endif
-			{
-				#if 0 // Looks like there absolutely *has* to be a local size of 1, 1, 1. This is sub-optimal, but not worth changing for now at least
-					auto glPair = device->chooseGlobalAndLocalSize(glob);
-					glob = glPair.first;
-					wg_range_ = glPair.second;
-				#else
-					wg_range_.resize(3, 1);
-					// just for safesies
-					if (wg_range_[0] == 0) wg_range_[0] += 1;
-				#endif
-			}
 				
 			
 			if(second_stage_stride_ == 1) {
@@ -535,26 +531,23 @@ namespace core {
 			mDims = ref.size();
 			mWgSize = wg_size;
 			mItemsPerWi = items_per_wi;
-            tart::program_ptr prog = gpu::Cache::instance().get_program(device,  "pointwise_broadcast_reduce",
-                                                                               "REDUCE_DIMS", mReduceDims,
-                                                                               "SMALL_REDUCTION",small_reduction,
-                                                                               "DIMS", mDims,
-                                                                               "WG_SIZE", mWgSize,
-                                                                               "ITEMS_PER_WI", mItemsPerWi,
-                                                                               "TWO_STAGE_REDUCTION",(second_stage_stride_ == 1 ? 0 : 1),
-                                                                               "$TYPE_DEFS", TYPE_DEFS.str(),
-                                                                               "#BUFFER_DEFS", BUFFER_DEFS.str(),
-                                                                               "#BUFFER_OFFSETS", BUFFER_OFFSETS.str(),
-                                                                               "#PARAMS",PARAMS.str(),
-                                                                               "#PREPARE_LOAD_INPUT_ALL",PREPARE_LOAD_INPUT_ALL.str(),
-                                                                               "#REDUCE_INIT_ALL",REDUCE_INIT_ALL.str(),
-                                                                               "#REDUCE_INIT_SHARED", REDUCE_INIT_SHARED.str(),
-                                                                               "#LOAD_INPUT_ALL",LOAD_INPUT_ALL.str(),
-                                                                               "#LOAD_REDUCE_ALL",LOAD_REDUCE_ALL.str(),
-                                                                               "#SAVE_REDUCE_ALL",SAVE_REDUCE_ALL.str(),
-                                                                               "#LOAD_REDUCED_SAVE_GLOBAL_ALL",LOAD_REDUCED_SAVE_GLOBAL_ALL.str(),
-                                                                               "#REDUCE",format_code(reduce),
-                                                                               "#CALC",format_code(compute_code));
+            tart::program_ptr prog = gpu::Cache::instance().get_program(
+				device, "pointwise_broadcast_reduce",
+				"SMALL_REDUCTION",small_reduction,
+				"TWO_STAGE_REDUCTION",(second_stage_stride_ == 1 ? 0 : 1),
+				"$TYPE_DEFS", TYPE_DEFS.str(),
+				"#BUFFER_DEFS", BUFFER_DEFS.str(),
+				"#BUFFER_OFFSETS", BUFFER_OFFSETS.str(),
+				"#PARAMS",PARAMS.str(),
+				"#PREPARE_LOAD_INPUT_ALL",PREPARE_LOAD_INPUT_ALL.str(),
+				"#REDUCE_INIT_ALL",REDUCE_INIT_ALL.str(),
+				"#REDUCE_INIT_SHARED", REDUCE_INIT_SHARED.str(),
+				"#LOAD_INPUT_ALL",LOAD_INPUT_ALL.str(),
+				"#LOAD_REDUCE_ALL",LOAD_REDUCE_ALL.str(),
+				"#SAVE_REDUCE_ALL",SAVE_REDUCE_ALL.str(),
+				"#LOAD_REDUCED_SAVE_GLOBAL_ALL",LOAD_REDUCED_SAVE_GLOBAL_ALL.str(),
+				"#REDUCE",format_code(reduce),
+				"#CALC",format_code(compute_code));
             kernel_ = prog->getKernel("exec");
             std::vector<uint32_t> range;
             std::vector<uint32_t> wg_range;

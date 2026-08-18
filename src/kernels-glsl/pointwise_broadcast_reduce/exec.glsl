@@ -1,41 +1,19 @@
 #version 450
-
 #include "../common/defs.glsl"
+#include "../common/workgroup.glsl"
+layout(constant_id = 3) const uint REDUCE_DIMS = 1;
+layout(constant_id = 4) const uint DIMS = 1;
+layout(constant_id = 5) const uint ITEMS_PER_WI = 1;
 #include "../common/broadcast_dims.glsl"
-#if 1//SMALL_REDUCTION
-	#include "../common/workgroup.glsl"
-#else
-	layout(local_size_x = WG_SIZE, local_size_y = 1, local_size_z = 1) in;
-#endif
-
-#if 0
-	layout(constant_id = 3) const uint REDUCE_DIMS = 1;
-	layout(constant_id = 4) const uint REDUCE_DIMS = 1;
-	
-#else
-	#ifndef REDUCE_DIMS
-		#error "REDUCE_DIMS must be defined"
-	#endif
-	#ifndef DIMS
-		#error "DIMS must be defined"
-	#endif
-#endif
 
 #define NORMAL_DIMS (DIMS - REDUCE_DIMS)
 
-#if REDUCE_DIMS > DIMS
-#error "REDUCE_DIMS must be <= DIMS"
-#endif
-#if REDUCE_DIMS < 0
-#error "Need at least 1 dim for reduction"
-#endif
-
 #ifndef SMALL_REDUCTION
-#define SMALL_REDUCTION 0
+	#define SMALL_REDUCTION 0
 #endif
 
 #ifndef TWO_STAGE_REDUCTION
-#define TWO_STAGE_REDUCTION 0
+	#define TWO_STAGE_REDUCTION 0
 #endif
 
 
