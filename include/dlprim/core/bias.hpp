@@ -35,7 +35,7 @@ namespace core {
     };
     
     // functional version of the thingy above
-    void enqueueBackwardBiasFilter(Tensor& dy, Tensor& dw, Tensor& ws, float beta);
+    void enqueueBackwardBiasFilter(Tensor& dy, Tensor& dw, float beta);
 
     ///
     /// Add bias to t over dimentsion 1: t[:,i,:,:] = b[i]
