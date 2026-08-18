@@ -83,8 +83,9 @@ namespace core {
 		tart::kernel_ptr kernel_;
 		tart::DType mDtype;
 	};
-
-
+	
+	// Functional version of SliceCopy
+	void tensorSliceCopy();
 
 } // core
 } // dlprim
