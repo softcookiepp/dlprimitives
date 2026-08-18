@@ -201,52 +201,10 @@ namespace core {
             strides[i] = shapes[i].broadcast_strides(ref);
         }
         
-        size_t bindingIndex = 0;
-		std::stringstream bufferDefs;
-		std::stringstream typeDefs;
-        std::ostringstream params,loads,saves;
-        for(size_t i=0;i<xs.size();i++) {
-            std::string type = xs[i].tDtype().glsl();
-            params << "uint px" << i << "_offset; Shape strides" << i << "; ";
-			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) readonly buffer px"
-				<< i << "_buf { " << type << " px" << i << "[]; }; ";
-			bindingIndex += 1;
-            loads<<type << " x"<<i<<"=px"<<i<<"[get_offset(index,strides" << i << ",px"<<i<<"_offset)]; ";
-            typeDefs << "#define typeof_x" << i << " " << type << "\n";
-        }
-        for(size_t i=0;i<ys.size();i++) {
-            std::string type = ys[i].tDtype().glsl();
-            params << "uint py" << i << "_offset; ";
-			bufferDefs << "	layout(binding = " << bindingIndex << ", std430) buffer py"
-				<< i << "_buf { " << type << " py" << i << "[]; }; ";
-			bindingIndex += 1;
-            loads<<type << " y"<<i<<";\\\n";
-            saves<<"py"<<i<<"[get_direct_offset(index,limit,py"<<i<<"_offset)]=y"<<i<<";\n";
-            typeDefs << "#define typeof_y" << i << " " << type << "\n";
-        }
-        typeDefs << "#define target_type " << target_type.glsl() << "\n";
-
-        for(size_t i=0;i<ws.size();i++) {
-            std::string type = dts[i].glsl();
-            params << type << " w" << i << "; ";
-            typeDefs << "#define typeof_w" << i << " " << type << "\n";
-        }
-
-        loads << '\n';
-        saves <<'\n';
-        #if 1
-			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().getPointwiseBroadcastOperation(
-				device, xs, ys, ws, dts, code, shrink_dims);
-        #else
-			tart::program_ptr prog = gpu::Cache::instance().get_program(device,  "pointwise_broadcast",
-																			   //"DIMS",ref.size(),
-																			   "$TYPEDEFS", typeDefs.str(),
-																			   "#BUFFER_DEFS", bufferDefs.str(),
-																			   "#PARAMS",params.str(),
-																			   "#LOADS",loads.str(),
-																			   "#SAVES",saves.str(),
-																			   "#CALC",format_code(code));
-		#endif
+      
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().getPointwiseBroadcastOperation(
+			device, xs, ys, ws, dts, code, shrink_dims);
+				
         tart::kernel_ptr k = prog->getKernel("exec");
         int p=0;
         bind_shape(k,p,ref);
