@@ -189,6 +189,19 @@ tart::program_ptr PointwiseCache::getPointwiseBroadcastOperation(
 	}
 	return mPointwisePrograms[k];
 }
+
+tart::program_ptr PointwiseCache::getPointwiseBroadcastReduceOperation(
+	std::vector<TensorSpecs>& xs,
+	std::vector<TensorSpecs>& ys,
+	int weights_count,
+	const tart::DType& weights_type,
+	const std::string& compute_code,
+	const std::string& reduce_init,
+	const std::string& reduce)
+{
+	throw std::runtime_error("not implemented");
+}
+
 	
 PerDeviceProgramCache& PerDeviceProgramCache::instance()
 {

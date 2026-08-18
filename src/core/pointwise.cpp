@@ -506,7 +506,8 @@ namespace core {
                     nd_range = (total_reduce + mpl - 1) / mpl * wg_size;
                 }
             }
-            else {
+            else // small_reduction == 0
+            {
                 items_per_wi = total_reduce;
                 nd_range = 1; 
             }
@@ -556,6 +557,10 @@ namespace core {
             strides_ = std::move(strides);
         }
     private:
+		// spec constant-compliant params
+		
+		
+		// original params
         size_t ws_size_;
         std::vector<TensorSpecs> xs_specs_,ys_specs_;
         std::vector<Shape> strides_;

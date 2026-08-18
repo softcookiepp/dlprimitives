@@ -36,7 +36,7 @@
 uint get_base_offset(Shape s, Shape strides, uint offset)
 {
     uint r = offset;
-    //#pragma unroll
+    UNROLL(REDUCE_DIMS)
     for(uint i=REDUCE_DIMS;i<DIMS;i++) {
         r+= s.s[i]*strides.s[i];
     }
@@ -54,38 +54,32 @@ uint get_reduce_offset(Shape s, Shape strides)
 }
 
 // because GLSL doesn't support local pointers :c
-#if REDUCE_DIMS == 0
-	#define next_pos(limits, pos) {} // nothing
-#elif REDUCE_DIMS == 1
-	#define next_pos(limits, pos) { pos.s[0] += 1; }
-#elif REDUCE_DIMS == 2
-	#define next_pos(limits, pos) \
+#define next_pos(limits, pos) \
+if (REDUCE_DIMS == 0) {} \
+else if (REDUCE_DIMS == 1) { pos.s[0] += 1; } \
+else if (REDUCE_DIMS == 2) \
+{ \
+	pos.s[1] += 1; \
+	if (pos.s[1] == limits.s[1]) \
 	{ \
-		pos.s[1] += 1; \
-		if (pos.s[1] == limits.s[1]) \
+		pos.s[1] = 0; \
+		pos.s[0] += 1; \
+	} \
+} \
+else if (REDUCE_DIMS == 3) \
+{ \
+	pos.s[2]++; \
+	if(pos.s[2] == limits.s[2]) \
+	{ \
+		pos.s[2] = 0; \
+		pos.s[1] ++; \
+		if(pos.s[1] == limits.s[1]) \
 		{ \
 			pos.s[1] = 0; \
-			pos.s[0] += 1; \
+			pos.s[0] ++; \
 		} \
-	}
-#elif REDUCE_DIMS == 3
-	#define next_pos(limits, pos) \
-	{ \
-		pos.s[2]++; \
-		if(pos.s[2] == limits.s[2]) \
-		{ \
-			pos.s[2] = 0; \
-			pos.s[1] ++; \
-			if(pos.s[1] == limits.s[1]) \
-			{ \
-				pos.s[1] = 0; \
-				pos.s[0] ++; \
-			} \
-		} \
-	}
-#else
-	#error "Too many reduction dims"
-#endif
+	} \
+}
 
 #if REDUCE_DIMS >= 1
 Shape get_pos(Shape limits, uint reduce_item)

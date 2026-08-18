@@ -41,6 +41,15 @@ public:
 		const std::vector<tart::DType>& dts,
 		const std::string &code,
 		const bool shrinkDims);
+	
+	tart::program_ptr getPointwiseBroadcastReduceOperation(
+		std::vector<TensorSpecs>& xs,
+		std::vector<TensorSpecs>& ys,
+		int weights_count,
+		const tart::DType& weights_type,
+		const std::string& compute_code,
+		const std::string& reduce_init,
+		const std::string& reduce);
 };
 
 class PerDeviceProgramCache;
@@ -119,6 +128,16 @@ public:
 		const std::vector<tart::DType>& dts,
 		const std::string &code,
 		const bool shrinkDims);
+	
+	tart::program_ptr getPointwiseBroadcastReduceOperation(
+		const tart::device_ptr& device,
+		std::vector<TensorSpecs>& xs,
+		std::vector<TensorSpecs>& ys,
+		int weights_count,
+		const tart::DType& weights_type,
+		const std::string& compute_code,
+		const std::string& reduce_init,
+		const std::string& reduce);
 	
 	inline const tart::program_ptr& activation(const tart::device_ptr& device) { return getAllPrograms(device, {}).mActivationProgram; }
 	inline const tart::program_ptr& axpby(const tart::device_ptr& device) { return getAllPrograms(device, {}).mAxpbyProgram; }
