@@ -185,6 +185,8 @@ namespace core {
 			rows_columns_ // SIZE_2D
 		};
 		
+		tart::buffer_ptr wsBuf = kernel2_ ? device->allocateBuffer(features_ * size2_ * tart::dtypes::float32.size()) : dw.device_buffer();
+		size_t wsOffset = kernel2_ ? 0 : dw.device_offset();
 		if(kernel2_) // 2-stage
 		{
 			// Why require user to pass workspace buffer when we can just make one here? c:
