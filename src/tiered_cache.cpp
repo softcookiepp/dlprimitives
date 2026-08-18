@@ -46,7 +46,7 @@ tart::program_ptr
 	for (size_t i = 0; i < k.ytypes.size(); i += 1) k.ytypes[i] = ys[i].dtype();
 	
 	tart::program_ptr prog = findProgram(k);
-	if (true)//(!prog)
+	if (!prog)
 	{
 		Shape ref;
 		tart::DType ref_type = tart::dtypes::float32;
