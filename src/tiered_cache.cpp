@@ -36,7 +36,6 @@ tart::program_ptr
 	for (size_t i = 0; i < std::get<0>(k).size(); i += 1) std::get<0>(k)[i] = xs[i].dtype();
 	for (size_t i = 0; i < std::get<1>(k).size(); i += 1) std::get<1>(k)[i] = ys[i].dtype();
 	
-	tart::program_ptr prog = nullptr;
 	if (mPointwisePrograms.find(k) == mPointwisePrograms.end())
 	{
 		Shape ref;
@@ -101,17 +100,15 @@ tart::program_ptr
 				code_fixed << "\\\n";
 			else
 				code_fixed << code[i];
-		prog = gpu::Cache::instance().get_program(device, "pointwise",
+		mPointwisePrograms[k] = gpu::Cache::instance().get_program(device, "pointwise",
 																		   "dtype", ref_type.glsl(),
 																		   "#BUFFER_DEFS", bufferDefs.str(),
 																		   "#PARAMS",params.str(),
 																		   "#LOADS",loads.str(),
 																		   "#SAVES",saves.str(),
 																		   "#CALC",code_fixed.str());
-		auto prog2 = prog;
-		mPointwisePrograms[k] = prog2;
 	}
-	return prog;
+	return mPointwisePrograms[k];
 }
 
 tart::program_ptr PointwiseCache::getPointwiseBroadcastOperation(
