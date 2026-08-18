@@ -36,8 +36,8 @@ tart::program_ptr
 	for (size_t i = 0; i < std::get<0>(k).size(); i += 1) std::get<0>(k)[i] = xs[i].dtype();
 	for (size_t i = 0; i < std::get<1>(k).size(); i += 1) std::get<1>(k)[i] = ys[i].dtype();
 	
-	tart::program_ptr prog = findProgram(k);
-	if (true)//(!prog)
+	tart::program_ptr prog = nullptr;
+	if (mPointwisePrograms.find(k) == mPointwisePrograms.end())
 	{
 		Shape ref;
 		tart::DType ref_type = tart::dtypes::float32;
