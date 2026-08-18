@@ -264,6 +264,7 @@ namespace core {
                              std::vector<double> alpha,
                              std::vector<double> beta)
         {
+			tart::device_ptr device = tensorDevice(xs[0]);
             DLPRIM_CHECK(xs.size() == xs_specs_.size());
             DLPRIM_CHECK(ys.size() == ys_specs_.size());
             DLPRIM_CHECK(ws_size_ == 0 || workspace.memory_size() >= ws_size_);
@@ -320,11 +321,21 @@ namespace core {
 			if (wg_size_ > 0) wg_range_[0] = wg_size_; 
 			for (size_t i = 0; i < glob.size(); i += 1)
 				glob[i] = range_[i]/wg_range_[i];
+			glob.resize(3, 1);
 			if (fixed_wg_)
 				wg_range_.resize(0);
 			else
-				wg_range_.resize(3, 1);
-			glob.resize(3, 1);
+			{
+				#if 0 // Looks like there absolutely *has* to be a local size of 1, 1, 1. This is sub-optimal, but not worth changing for now at least
+					auto glPair = device->chooseGlobalAndLocalSize(glob);
+					glob = glPair.first;
+					wg_range_ = glPair.second;
+				#else
+					wg_range_.resize(3, 1);
+				#endif
+			}
+				
+			
 			if(second_stage_stride_ == 1) {
 				kernel_->enqueue(glob, wg_range_);
             }
@@ -515,13 +526,17 @@ namespace core {
 //#define DEBUG_2STAGE            
 #ifdef DEBUG_2STAGE
             std::cerr << "Items per thread/wg_size/nd_range:" << items_per_wi << "/" << wg_size << "/" << nd_range<< std::endl;
-#endif            
+#endif
+			mReduceDims = reduce_dims.size();
+			mDims = ref.size();
+			mWgSize = wg_size;
+			mItemsPerWi = items_per_wi;
             tart::program_ptr prog = gpu::Cache::instance().get_program(device,  "pointwise_broadcast_reduce",
-                                                                               "REDUCE_DIMS",reduce_dims.size(),
+                                                                               "REDUCE_DIMS", mReduceDims,
                                                                                "SMALL_REDUCTION",small_reduction,
-                                                                               "DIMS",ref.size(),
-                                                                               "WG_SIZE",wg_size,
-                                                                               "ITEMS_PER_WI",items_per_wi,
+                                                                               "DIMS", mDims,
+                                                                               "WG_SIZE", mWgSize,
+                                                                               "ITEMS_PER_WI", mItemsPerWi,
                                                                                "TWO_STAGE_REDUCTION",(second_stage_stride_ == 1 ? 0 : 1),
                                                                                "$TYPE_DEFS", TYPE_DEFS.str(),
                                                                                "#BUFFER_DEFS", BUFFER_DEFS.str(),
@@ -558,7 +573,10 @@ namespace core {
         }
     private:
 		// spec constant-compliant params
-		
+		uint32_t mReduceDims;
+		uint32_t mDims;
+		uint32_t mWgSize;
+		uint32_t mItemsPerWi;
 		
 		// original params
         size_t ws_size_;
