@@ -10,16 +10,28 @@ namespace dlprim
 namespace gpu
 {
 
-bool PointwiseOpKey::operator<(const PointwiseOpKey& other) const
+bool PointwiseOpKey::operator==(const PointwiseOpKey& other) const
 {
 	return (
-		xtypes != other.xtypes &&
-		ytypes != other.ytypes &&
-		wcount < other.wcount &&
-		code != other.code);
+		xtypes == other.xtypes &&
+		ytypes == other.ytypes &&
+		wcount == other.wcount &&
+		code == other.code);
 }
 
 PointwiseCache::PointwiseCache(const tart::device_ptr& device) : mDevice(device) {}
+
+tart::program_ptr PointwiseCache::findProgram(const PointwiseOpKey& k)
+{
+	for (auto& pair : mPointwisePrograms)
+	{
+		if (pair.first == k)
+		{
+			return pair.second;
+		}
+	}
+	return nullptr;
+}
 
 tart::program_ptr 
 	PointwiseCache::getPointwiseOperation(std::vector<Tensor>& xs,
@@ -33,8 +45,8 @@ tart::program_ptr
 	for (size_t i = 0; i < k.xtypes.size(); i += 1) k.xtypes[i] = xs[i].dtype();
 	for (size_t i = 0; i < k.ytypes.size(); i += 1) k.ytypes[i] = ys[i].dtype();
 	
-	tart::program_ptr prog = nullptr;
-	if (mPointwisePrograms.find(k) == mPointwisePrograms.end())
+	tart::program_ptr prog = findProgram(k);
+	if (!prog)
 	{
 		Shape ref;
 		tart::DType ref_type = tart::dtypes::float32;
@@ -105,6 +117,8 @@ tart::program_ptr
 																		   "#LOADS",loads.str(),
 																		   "#SAVES",saves.str(),
 																		   "#CALC",code_fixed.str());
+		auto prog2 = prog;
+		mPointwisePrograms.push_back(std::make_pair(k, prog2));
 	}
 	return prog;
 }

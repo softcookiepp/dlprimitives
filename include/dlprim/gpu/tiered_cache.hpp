@@ -19,13 +19,16 @@ typedef struct PointwiseOpKey
 	size_t wcount = 0;
 	std::string code;
 	
-	bool operator<(const PointwiseOpKey& other) const;
+	bool operator==(const PointwiseOpKey& other) const;
 } PointwiseOpKey;
 
 class PointwiseCache
 {
 	tart::device_ref mDevice;
-	std::map<PointwiseOpKey, tart::program_ptr> mPointwisePrograms;
+	//std::map<PointwiseOpKey, tart::program_ptr> mPointwisePrograms;
+	std::vector<std::pair<PointwiseOpKey, tart::program_ptr>> mPointwisePrograms;
+	
+	tart::program_ptr findProgram(const PointwiseOpKey& key);
 public:
 	PointwiseCache(const tart::device_ptr& device);
 	
