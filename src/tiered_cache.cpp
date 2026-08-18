@@ -211,9 +211,7 @@ tart::program_ptr PerDeviceProgramCache::getPointwiseBroadcastOperation(
 	const std::string &code,
 	const bool shrinkDims)
 {
-	//return getPointwiseCache(device).getPointwiseBroadcastOperation(xs, ys, ws, code);
-	throw std::runtime_error("not implemented");
-	return nullptr;
+	return getPointwiseCache(device).getPointwiseBroadcastOperation(xs, ys, ws, dts, code, shrinkDims);
 }
 
 AllPrograms& PerDeviceProgramCache::getAllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes)

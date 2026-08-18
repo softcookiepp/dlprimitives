@@ -234,14 +234,19 @@ namespace core {
 
         loads << '\n';
         saves <<'\n';
-		tart::program_ptr prog = gpu::Cache::instance().get_program(device,  "pointwise_broadcast",
-                                                                           //"DIMS",ref.size(),
-                                                                           "$TYPEDEFS", typeDefs.str(),
-                                                                           "#BUFFER_DEFS", bufferDefs.str(),
-                                                                           "#PARAMS",params.str(),
-                                                                           "#LOADS",loads.str(),
-                                                                           "#SAVES",saves.str(),
-                                                                           "#CALC",format_code(code));
+        #if 1
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().getPointwiseBroadcastOperation(
+				device, xs, ys, ws, dts, code, shrink_dims);
+        #else
+			tart::program_ptr prog = gpu::Cache::instance().get_program(device,  "pointwise_broadcast",
+																			   //"DIMS",ref.size(),
+																			   "$TYPEDEFS", typeDefs.str(),
+																			   "#BUFFER_DEFS", bufferDefs.str(),
+																			   "#PARAMS",params.str(),
+																			   "#LOADS",loads.str(),
+																			   "#SAVES",saves.str(),
+																			   "#CALC",format_code(code));
+		#endif
         tart::kernel_ptr k = prog->getKernel("exec");
         int p=0;
         bind_shape(k,p,ref);
