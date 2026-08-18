@@ -21,8 +21,7 @@ namespace core {
 			mStrideSize({s[0], s[1]}),
 			mPadSize({p[0], p[1]}),
 			mPoolMode(static_cast<uint32_t>(avg)),
-			mIncludePad(inc_pad),
-			scal_(dt)
+			mIncludePad(inc_pad)
 		{
 			wg_size_ = 8;
 			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(device, dt);
@@ -126,7 +125,6 @@ namespace core {
 		uint32_t mPoolMode;
 		uint32_t mIncludePad;
 	
-		Scale scal_;
 		int wg_size_;
 		tart::kernel_ptr kernel_;
 		tart::kernel_ptr bwd_kernel_;

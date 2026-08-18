@@ -11,18 +11,6 @@
 namespace dlprim {
 namespace core {
 
-	///
-	/// Scale tensor by factor inplace, if s==0 fills with zero
-	/// so nan is not propagated of s==0
-	///
-	class Scale {
-	public:
-		Scale(const tart::DType& dt = tart::dtypes::float32);
-		void enqueue(float s,Tensor &t);
-	private:
-		tart::kernel_ptr k_;
-	};
-
 	void add_tensors(Tensor &a,Tensor &b,Tensor &sum);
 	///
 	/// Scale tensor by factor inplace, if s==0 fills with zero
