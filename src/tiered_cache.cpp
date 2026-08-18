@@ -10,15 +10,6 @@ namespace dlprim
 namespace gpu
 {
 
-bool PointwiseOpKey::operator==(const PointwiseOpKey& other) const
-{
-	return (
-		xtypes == other.xtypes &&
-		ytypes == other.ytypes &&
-		wcount == other.wcount &&
-		code == other.code);
-}
-
 PointwiseCache::PointwiseCache(const tart::device_ptr& device) : mDevice(device) {}
 
 tart::program_ptr PointwiseCache::findProgram(const PointwiseOpKey& k)
@@ -39,11 +30,11 @@ tart::program_ptr
 {
 	tart::device_ptr device = mDevice.lock();
 	PointwiseOpKey k;
-	k.xtypes.resize(xs.size());
-	k.ytypes.resize(ys.size());
-	k.wcount = ws.size();
-	for (size_t i = 0; i < k.xtypes.size(); i += 1) k.xtypes[i] = xs[i].dtype();
-	for (size_t i = 0; i < k.ytypes.size(); i += 1) k.ytypes[i] = ys[i].dtype();
+	std::get<0>(k).resize(xs.size());
+	std::get<1>(k).resize(ys.size());
+	std::get<2>(k) = ws.size();
+	for (size_t i = 0; i < std::get<0>(k).size(); i += 1) std::get<0>(k)[i] = xs[i].dtype();
+	for (size_t i = 0; i < std::get<1>(k).size(); i += 1) std::get<1>(k)[i] = ys[i].dtype();
 	
 	tart::program_ptr prog = findProgram(k);
 	if (true)//(!prog)
@@ -118,7 +109,7 @@ tart::program_ptr
 																		   "#SAVES",saves.str(),
 																		   "#CALC",code_fixed.str());
 		auto prog2 = prog;
-		mPointwisePrograms.push_back(std::make_pair(k, prog2));
+		mPointwisePrograms[k] = prog2;
 	}
 	return prog;
 }

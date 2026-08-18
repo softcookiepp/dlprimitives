@@ -12,21 +12,18 @@ namespace gpu
 {
 
 // The fundamental distinguishing factor of each pointwise op.
-typedef struct PointwiseOpKey
-{
-	std::vector<tart::DType> xtypes;
-	std::vector<tart::DType> ytypes;
-	size_t wcount = 0;
-	std::string code;
-	
-	bool operator==(const PointwiseOpKey& other) const;
-} PointwiseOpKey;
+typedef std::tuple<
+	std::vector<tart::DType>, // xtypes
+	std::vector<tart::DType>, // ytypes
+	size_t, // weight count
+	std::string // code
+> PointwiseOpKey;
 
 class PointwiseCache
 {
 	tart::device_ref mDevice;
-	//std::map<PointwiseOpKey, tart::program_ptr> mPointwisePrograms;
-	std::vector<std::pair<PointwiseOpKey, tart::program_ptr>> mPointwisePrograms;
+	std::map<PointwiseOpKey, tart::program_ptr> mPointwisePrograms;
+	//std::vector<std::pair<PointwiseOpKey, tart::program_ptr>> mPointwisePrograms;
 	
 	tart::program_ptr findProgram(const PointwiseOpKey& key);
 public:
