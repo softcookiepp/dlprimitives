@@ -479,8 +479,6 @@ namespace core {
             int items_per_wi,nd_range;
             if(small_reduction == 0)
             {
-				fixed_wg_ = true;
-
                 items_per_wi = (total_reduce + wg_size - 1) / wg_size;
                 if(items_per_wi >= 256) {
                     second_stage_stride_ = 256;
@@ -533,8 +531,8 @@ namespace core {
 			mItemsPerWi = items_per_wi;
             tart::program_ptr prog = gpu::Cache::instance().get_program(
 				device, "pointwise_broadcast_reduce",
-				"SMALL_REDUCTION",small_reduction,
-				"TWO_STAGE_REDUCTION",(second_stage_stride_ == 1 ? 0 : 1),
+				//"SMALL_REDUCTION",small_reduction,
+				//"TWO_STAGE_REDUCTION",(second_stage_stride_ == 1 ? 0 : 1),
 				"$TYPE_DEFS", TYPE_DEFS.str(),
 				"#BUFFER_DEFS", BUFFER_DEFS.str(),
 				"#BUFFER_OFFSETS", BUFFER_OFFSETS.str(),
@@ -548,7 +546,21 @@ namespace core {
 				"#LOAD_REDUCED_SAVE_GLOBAL_ALL",LOAD_REDUCED_SAVE_GLOBAL_ALL.str(),
 				"#REDUCE",format_code(reduce),
 				"#CALC",format_code(compute_code));
-            kernel_ = prog->getKernel("exec");
+			if (small_reduction)
+			{
+				kernel_ = prog->getKernel("exec_small");
+			}
+			else
+			{
+				if (second_stage_stride_ > 1)
+				{
+					kernel_ = prog->getKernel("exec_2_stage");
+				}
+				else
+				{
+					kernel_ = prog->getKernel("exec");
+				}
+			}
             std::vector<uint32_t> range;
             std::vector<uint32_t> wg_range;
             int zero = reduce_dims.size();
@@ -586,7 +598,6 @@ namespace core {
         size_t wg_size_;
 		std::vector<uint32_t> range_,wg_range_;
         tart::kernel_ptr kernel_;
-        bool fixed_wg_ = false;
         Shape ref_;
         std::unique_ptr<PointwiseOperationBroadcastReduceImpl> second_stage_;
     };

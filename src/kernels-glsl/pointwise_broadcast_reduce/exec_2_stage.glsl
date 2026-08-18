@@ -1,4 +1,6 @@
 #version 450
+#define SMALL_REDUCTION 0
+#define TWO_STAGE_REDUCTION 1
 #include "exec_template.glsl"
 void main()
 {
