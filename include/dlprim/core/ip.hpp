@@ -8,6 +8,7 @@
 #pragma once
 #include <dlprim/tensor.hpp>
 #include <dlprim/context.hpp>
+#include <optional>
 namespace dlprim {
 ///
 /// All Basic Operations on GPU
@@ -44,6 +45,8 @@ namespace core {
                                                  bool bias,
                                                  StandardActivations activation = StandardActivations::identity);
     };
+    
+    void ipForward(Tensor& x, Tensor& w, Tensor& y, StandardActivations activations  = StandardActivations::identity, std::optional<Tensor> bias = {});
 
     ///
     /// Perform InnerProduct/FullyConnected/Dense backward data calculations

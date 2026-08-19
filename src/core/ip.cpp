@@ -49,7 +49,29 @@ namespace core {
         return r;
     }
 
-
+	void ipForward(Tensor& x, Tensor& w, Tensor& y, StandardActivations activation, std::optional<Tensor> bias)
+	{
+		tart::device_ptr device = tensorDevice(x);
+		int batch = x.shape()[0];
+		int inps  = x.shape().size_no_batch();
+		int outs  = y.shape()[1];
+		auto gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
+			device, x.dtype(), false, true,
+			batch, outs, inps,
+			(bias ? gpu::GEMM::bias_N : gpu::GEMM::no_bias),
+			activation            
+		));
+		
+		
+		int bias_offset = bias ? bias->device_offset() : 0;
+		tart::buffer_ptr bias_buffer = bias ? bias->device_buffer() :  nullptr;
+		gemm_->gemm(batch,outs,inps,
+			x.device_buffer(),x.device_offset(),inps,
+			w.device_buffer(),w.device_offset(),inps,
+			y.device_buffer(),y.device_offset(),outs,
+			bias_buffer,bias_offset,0.0f,
+			y.shape().total_size());
+	}
 
 
     class IPBackwardDataImpl : public IPBackwardData {
