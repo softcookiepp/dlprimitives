@@ -27,7 +27,6 @@ namespace core
 			activation            
 		));
 		
-		
 		int bias_offset = bias ? bias->device_offset() : 0;
 		tart::buffer_ptr bias_buffer = bias ? bias->device_buffer() :  nullptr;
 		gemm_->gemm(batch,outs,inps,
@@ -77,6 +76,32 @@ namespace core
         std::unique_ptr<IPBackwardData> r(new IPBackwardDataImpl(device,config));
         return r;
     }
+    
+    void ipBackwardData(Tensor& dx, Tensor& M, Tensor& dy, float factor)
+    {
+		tart::device_ptr device = tensorDevice(dx);
+		int outputs = dy.shape()[1];
+		int inputs  = dx.shape().size_no_batch();
+		auto gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
+			device, dy.dtype(),false,false,
+			dy.shape()[0], inputs, outputs,
+			gpu::GEMM::no_bias,
+			StandardActivations::identity            
+			));
+		gemm_->gemm(dy.shape()[0],inputs,outputs,
+			dy.device_buffer(),
+			dy.device_offset(),
+			outputs,
+			M.device_buffer(),
+			M.device_offset(),
+			M.shape()[1],
+			dx.device_buffer(),
+			dx.device_offset(),
+			inputs,
+			nullptr,0,
+			factor,
+			dx.shape().total_size());
+	}
 
     class IPBackwardFilterImpl : public IPBackwardFilter {
     public:
