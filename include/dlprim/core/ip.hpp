@@ -44,6 +44,8 @@ namespace core {
         /// config - IP Settings,
         static std::unique_ptr<IPBackwardData> create(const tart::device_ptr& device,IPSettings const &config);
     };
+    
+    void ipBackwardData(Tensor& dx, Tensor& M, Tensor& dy, float factor);
 
     ///
     /// Perform InnerProduct/FullyConnected/Dense backward filter calcilations
