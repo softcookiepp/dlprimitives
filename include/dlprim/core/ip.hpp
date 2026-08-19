@@ -27,25 +27,8 @@ namespace core {
     
     ///
     /// Perform InnerProduct/FullyConnected/Dense forward calulations, allow fusing bias and activation
-    /// into same GPU kernel
+    /// into same GPU kernel (not quite ported yet)
     /// 
-    class IPForward {
-    public:
-        virtual ~IPForward() {}
-        virtual void enqueue(Tensor &x,Tensor &w,Tensor *bias,Tensor &y) = 0;
-        ///
-        /// Create optimal object for innter product calculation
-        ///
-        /// config - IP Settings,
-        /// bias - apply bias
-        /// activation - apply activation
-        ///
-        static std::unique_ptr<IPForward> create(const tart::device_ptr& device,
-                                                 IPSettings const &config,
-                                                 bool bias,
-                                                 StandardActivations activation = StandardActivations::identity);
-    };
-    
     void ipForward(Tensor& x, Tensor& w, Tensor& y, StandardActivations activations  = StandardActivations::identity, std::optional<Tensor> bias = {});
 
     ///

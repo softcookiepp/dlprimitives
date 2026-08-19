@@ -12,43 +12,8 @@
 #include <dlprim/gpu/tiered_cache.hpp>
 
 namespace dlprim {
-namespace core {
-    class IPForwardImpl : public IPForward {
-    public:
-        IPForwardImpl(const tart::device_ptr& device,IPSettings const &cfg,bool bias,StandardActivations activation)
-        {
-            int batch = cfg.optimal_batch_size;
-            gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
-                device, cfg.dtype, false, true,
-                batch,cfg.outputs,cfg.inputs,
-                (bias ? gpu::GEMM::bias_N : gpu::GEMM::no_bias),
-                activation            
-            ));
-        }
-        virtual void enqueue(Tensor &x,Tensor &w,Tensor *bias,Tensor &y)
-        {
-            int batch = x.shape()[0];
-            int inps  = x.shape().size_no_batch();
-            int outs  = y.shape()[1];
-            int bias_offset = bias ? bias->device_offset() : 0;
-			tart::buffer_ptr bias_buffer = bias ? bias->device_buffer() :  nullptr;
-            gemm_->gemm(batch,outs,inps,
-                    x.device_buffer(),x.device_offset(),inps,
-                    w.device_buffer(),w.device_offset(),inps,
-                    y.device_buffer(),y.device_offset(),outs,
-                    bias_buffer,bias_offset,0.0f,
-                    y.shape().total_size());
-        }
-    private:
-        std::unique_ptr<gpu::GEMM> gemm_;
-    };
-
-    std::unique_ptr<IPForward> IPForward::create(const tart::device_ptr& device,IPSettings const &config,bool bias,StandardActivations activation)
-    {
-        std::unique_ptr<IPForward> r(new IPForwardImpl(device,config,bias,activation));
-        return r;
-    }
-
+namespace core
+{
 	void ipForward(Tensor& x, Tensor& w, Tensor& y, StandardActivations activation, std::optional<Tensor> bias)
 	{
 		tart::device_ptr device = tensorDevice(x);
