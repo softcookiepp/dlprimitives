@@ -122,5 +122,6 @@ namespace core {
     
     void pooling2dFwd(bool avg, std::array<uint32_t, 2> poolSize, std::array<uint32_t, 2> padSize, std::array<uint32_t, 2> strideSize, bool includePad, Tensor& in, Tensor& out);
     void pooling2dBwd(bool avg, const std::array<uint32_t, 2>& poolSize, const std::array<uint32_t, 2>& padSize, const std::array<uint32_t, 2>& strideSize, bool includePad, Tensor* x, Tensor& dx, Tensor& dy, float factor);
+    void globalPoolingFwd(bool avg, Tensor& input, Tensor& output);
 } // core
 } //dlprim
