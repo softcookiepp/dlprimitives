@@ -137,53 +137,57 @@ namespace core {
 
 		void backward(Tensor *x,Tensor &dx,Tensor &dy,float factor)
 		{
-			int bc = dx.shape()[0]*dx.shape()[1];
+			#if 1
+				pooling2dBwd(mPoolMode, {mPoolSize[0], mPoolSize[1]}, {mPadSize[0], mPadSize[1]}, {mStrideSize[0], mStrideSize[1]}, mIncludePad, x, dx, dy, factor);
+			#else
+				int bc = dx.shape()[0]*dx.shape()[1];
 
-			int in_h = dx.shape()[2];
-			int in_w = dx.shape()[3];
+				int in_h = dx.shape()[2];
+				int in_w = dx.shape()[3];
 
-			int out_h = dy.shape()[2];
-			int out_w = dy.shape()[3];
+				int out_h = dy.shape()[2];
+				int out_w = dy.shape()[3];
 
-			int p=0;
+				int p=0;
 
-			scale_tensor(factor, dx);
-			bwd_kernel_->setArg(p++,bc);
-			bwd_kernel_->setArg(p++,in_h);
-			bwd_kernel_->setArg(p++,in_w);
-			bwd_kernel_->setArg(p++,out_h);
-			bwd_kernel_->setArg(p++,out_w);
-			if(x == nullptr)
-			{
-				// use placeholder
-				dy.set_arg(bwd_kernel_,p);
-			}
-			else
-			{
-				x->set_arg(bwd_kernel_,p);
-			}
-			dy.set_arg(bwd_kernel_,p);
-			// one for regular, one for atomic. The path taken will depend on spec constants
-			dx.set_arg(bwd_kernel_,p);
-			bwd_kernel_->setArg(p++, dx.device_buffer());
-
-			std::vector<uint32_t> wg({wg_size_,wg_size_,1});
-			std::vector<uint32_t> gr = gpu::round_range(out_h,out_w,bc,wg);
-			for (size_t i = 0; i < wg.size(); i += 1)
-				gr[i] = gr[i]/wg[i];
-			gr.resize(3, 1);
-			bwd_kernel_->enqueue(gr, {
-					wg_size_,
-					mPoolSize[0],
-					mPoolSize[1],
-					mStrideSize[0],
-					mStrideSize[1],
-					mPadSize[0],
-					mPadSize[1],
-					mPoolMode,
-					mIncludePad
+				scale_tensor(factor, dx);
+				bwd_kernel_->setArg(p++,bc);
+				bwd_kernel_->setArg(p++,in_h);
+				bwd_kernel_->setArg(p++,in_w);
+				bwd_kernel_->setArg(p++,out_h);
+				bwd_kernel_->setArg(p++,out_w);
+				if(x == nullptr)
+				{
+					// use placeholder
+					dy.set_arg(bwd_kernel_,p);
 				}
-			);
+				else
+				{
+					x->set_arg(bwd_kernel_,p);
+				}
+				dy.set_arg(bwd_kernel_,p);
+				// one for regular, one for atomic. The path taken will depend on spec constants
+				dx.set_arg(bwd_kernel_,p);
+				bwd_kernel_->setArg(p++, dx.device_buffer());
+
+				std::vector<uint32_t> wg({wg_size_,wg_size_,1});
+				std::vector<uint32_t> gr = gpu::round_range(out_h,out_w,bc,wg);
+				for (size_t i = 0; i < wg.size(); i += 1)
+					gr[i] = gr[i]/wg[i];
+				gr.resize(3, 1);
+				bwd_kernel_->enqueue(gr, {
+						wg_size_,
+						mPoolSize[0],
+						mPoolSize[1],
+						mStrideSize[0],
+						mStrideSize[1],
+						mPadSize[0],
+						mPadSize[1],
+						mPoolMode,
+						mIncludePad
+					}
+				);
+			#endif
 		}
 	private:
 		// spec constant parameters
