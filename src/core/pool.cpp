@@ -293,7 +293,8 @@ namespace core {
 			this->backward(nullptr,dX,dY,factor);
 		}
 	};
-   
+	
+	#if 0
 	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_global_max_pooling(const tart::device_ptr& device,Shape const &in_shape, const tart::DType& dt)
 	{
 		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<GlobalPoolingFWBWImpl>(device,false,in_shape,dt));
@@ -328,7 +329,7 @@ namespace core {
 		std::unique_ptr<AvgPooling2DBackward> r(new BackwardAvg<GlobalPoolingFWBWImpl>(device,true,s,dt));
 		return r;
 	}
-
+	#endif
 
 } // core
 } // dlprim
