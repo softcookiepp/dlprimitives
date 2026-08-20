@@ -132,44 +132,7 @@ namespace core {
 
 		void forward(Tensor &in,Tensor &out)
 		{
-			#if 1
-				pooling2dFwd(mPoolMode, {mPoolSize[0], mPoolSize[1]}, {mPadSize[0], mPadSize[1]}, {mStrideSize[0], mStrideSize[1]}, mIncludePad, in, out);
-			#else
-				int bc = in.shape()[0]*in.shape()[1];
-
-				int in_h = in.shape()[2];
-				int in_w = in.shape()[3];
-
-				int out_h = out.shape()[2];
-				int out_w = out.shape()[3];
-
-				int p=0;
-				kernel_->setArg(p++,bc);
-				kernel_->setArg(p++,in_h);
-				kernel_->setArg(p++,in_w);
-				kernel_->setArg(p++,out_h);
-				kernel_->setArg(p++,out_w);
-				in.set_arg(kernel_,p);
-				out.set_arg(kernel_,p);
-
-				std::vector<uint32_t> wg({wg_size_,wg_size_,1});
-				std::vector<uint32_t> gr = gpu::round_range(out_h,out_w,bc,wg);
-				gr[0] = gr[0]/wg[0];
-				gr[1] = gr[1]/wg[1];
-				gr.resize(3, 1);
-				kernel_->enqueue(gr, {
-						wg_size_,
-						mPoolSize[0],
-						mPoolSize[1],
-						mStrideSize[0],
-						mStrideSize[1],
-						mPadSize[0],
-						mPadSize[1],
-						mPoolMode,
-						mIncludePad
-					}
-				);
-			#endif
+			pooling2dFwd(mPoolMode, {mPoolSize[0], mPoolSize[1]}, {mPadSize[0], mPadSize[1]}, {mStrideSize[0], mStrideSize[1]}, mIncludePad, in, out);
 		}
 
 		void backward(Tensor *x,Tensor &dx,Tensor &dy,float factor)
