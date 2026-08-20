@@ -42,17 +42,6 @@ namespace core {
         /// where op is either ceil or floor
         ///
         virtual void enqueue(Tensor &X,Tensor &Y) = 0;
-
-        ///
-        /// Create max pooling for kernel, pad, stride
-        ///
-        /// if count_include_pad == true than average is normalized by sizeof kernel otherwise by actual
-        /// amount of pixel participated
-        ///
-        static std::unique_ptr<Pooling2DForward> create_avg_pooling(
-                    const tart::device_ptr& device,
-                    int kernel[2],int pad[2],int stride[2],bool count_include_pad=false,
-                    const tart::DType& dt = tart::dtypes::float32);
         
         /// Max global pooling
         static std::unique_ptr<Pooling2DForward> create_global_max_pooling(

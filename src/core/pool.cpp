@@ -151,7 +151,42 @@ namespace core {
 		tart::kernel_ptr kernel_;
 		tart::kernel_ptr bwd_kernel_;
 	};
+	
+	void globalPoolingFwd(bool avg, Tensor& input, Tensor& output)
+	{
+		tart::device_ptr device = tensorDevice(input);
+		const tart::DType& dt = input.dtype();
+		Shape in_shape = input.shape();
+		DLPRIM_CHECK(in_shape.size() == 4);
+		uint32_t sm_range = input.shape()[2]*input.shape()[3];
+		uint32_t wg_size_;
+		if(sm_range <= 64)
+			wg_size_ = 64;
+		else if(sm_range <= 128)
+			wg_size_ = 128;
+		else 
+			wg_size_ = 256;
+		uint32_t items_per_wi_ = (sm_range + wg_size_ - 1) / wg_size_;
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().global_pooling(device, dt);
+		auto kernel_ = prog->getKernel("global_pooling");
+		//auto kernel_bwd_ = prog->getKernel("global_pooling_bwd");
 
+		uint32_t mpl = wg_size_ * items_per_wi_;
+		uint32_t nd_range_ = (sm_range + mpl - 1) / mpl * wg_size_;
+		
+		int p=0;
+		kernel_->setArg(p++, int(in_shape[0]*in_shape[1]));
+		kernel_->setArg(p++, sm_range);
+		kernel_->setArg(p++, float(1.0f / (in_shape[2]*in_shape[3])));
+		input.set_arg(kernel_, p);
+		output.set_arg(kernel_, p);
+
+		std::vector<uint32_t> gr({in_shape[0]*in_shape[1], nd_range_/wg_size_});
+		//std::vector<uint32_t> wg({1, wg_size_});
+		gr.resize(3, 1);
+		kernel_->enqueue(gr, {wg_size_, items_per_wi_, static_cast<uint32_t>(avg)});
+	}
+	
 	class GlobalPoolingFWBWImpl  {
 	public:
 		GlobalPoolingFWBWImpl(const tart::device_ptr& device,bool avg,Shape const &sh, const tart::DType& dt = tart::dtypes::float32) 
@@ -258,12 +293,6 @@ namespace core {
 			this->backward(nullptr,dX,dY,factor);
 		}
 	};
-
-	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_avg_pooling(const tart::device_ptr& device,int k[2],int p[2],int s[2],bool cip, const tart::DType& dt)
-	{
-		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<Pooling2DFWBDImpl>(device,true,k,p,s,cip,dt));
-		return r;
-	}
    
 	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_global_max_pooling(const tart::device_ptr& device,Shape const &in_shape, const tart::DType& dt)
 	{
@@ -275,7 +304,7 @@ namespace core {
 		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<GlobalPoolingFWBWImpl>(device,true,in_shape,dt));
 		return r;
 	}
-
+	
 	std::unique_ptr<MaxPooling2DBackward>  MaxPooling2DBackward::create(const tart::device_ptr& device,int k[2],int p[2],int s[2], const tart::DType& dt)
 	{
 		std::unique_ptr<MaxPooling2DBackward> r(new BackwardMax<Pooling2DFWBDImpl>(device,false,k,p,s,false,dt));
