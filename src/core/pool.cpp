@@ -259,11 +259,6 @@ namespace core {
 		}
 	};
 
-	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_max_pooling(const tart::device_ptr& device,int k[2],int p[2],int s[2], const tart::DType& dt)
-	{
-		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<Pooling2DFWBDImpl>(device,false,k,p,s,false, dt));
-		return r;
-	}
 	std::unique_ptr<Pooling2DForward> Pooling2DForward::create_avg_pooling(const tart::device_ptr& device,int k[2],int p[2],int s[2],bool cip, const tart::DType& dt)
 	{
 		std::unique_ptr<Pooling2DForward> r(new ForwardImpl<Pooling2DFWBDImpl>(device,true,k,p,s,cip,dt));

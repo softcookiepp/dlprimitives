@@ -46,14 +46,6 @@ namespace core {
         ///
         /// Create max pooling for kernel, pad, stride
         ///
-        static std::unique_ptr<Pooling2DForward> create_max_pooling(
-                            const tart::device_ptr& device,
-                            int kernel[2],int pad[2],int stride[2],
-                            const tart::DType& dt = tart::dtypes::float32);
-
-        ///
-        /// Create max pooling for kernel, pad, stride
-        ///
         /// if count_include_pad == true than average is normalized by sizeof kernel otherwise by actual
         /// amount of pixel participated
         ///
