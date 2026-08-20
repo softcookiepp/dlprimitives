@@ -49,6 +49,8 @@ namespace core {
         /// config - IP Settings,
         static std::unique_ptr<IPBackwardFilter> create(const tart::device_ptr& device,IPSettings const &config);
     };
+    
+    void ipBackwardFilter(Tensor& x,Tensor& dw,Tensor& dy, float factor);
 
 } // core
 } // dlprim

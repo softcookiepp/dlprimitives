@@ -102,6 +102,35 @@ namespace core
         return r;
     }
     
+    void ipBackwardFilter(Tensor& x,Tensor& dM,Tensor& dy,float factor)
+    {
+		tart::device_ptr device = tensorDevice(x);
+		int outputs = dy.shape()[1];
+		int inputs = x.shape().size_no_batch();
+		
+		auto gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
+					device, x.dtype(), true, false,
+					outputs, inputs, dy.shape()[0],
+					gpu::GEMM::no_bias,
+					StandardActivations::identity            
+		));
+		
+		
+		gemm_->gemm(outputs,inputs,dy.shape()[0],
+			dy.device_buffer(),
+			dy.device_offset(),
+			outputs,
+			x.device_buffer(),
+			x.device_offset(),
+			inputs,
+			dM.device_buffer(),
+			dM.device_offset(),
+			dM.shape()[1],
+			nullptr,0,
+			factor,
+			dM.shape().total_size());
+	}
+    
     void enqueueBackwardBiasFilter(Tensor& dy, Tensor& dw, float beta)
     {
 		// Ok, this is gonna be dumb.
