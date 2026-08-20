@@ -13,6 +13,107 @@
 namespace dlprim {
 namespace core {
 
+	void pooling2dFwd(bool avg, std::array<uint32_t, 2> poolSize, std::array<uint32_t, 2> padSize, std::array<uint32_t, 2> strideSize, bool includePad, Tensor& in, Tensor& out)
+	{
+		tart::device_ptr device = tensorDevice(in);
+		const tart::DType& dt = in.dtype();
+		const uint32_t wg_size_ = 8;
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(device, dt);
+		auto kernel_ = prog->getKernel("pooling");
+		//auto bwd_kernel_ = prog->getKernel("pooling_bw");
+		
+		int bc = in.shape()[0]*in.shape()[1];
+
+		int in_h = in.shape()[2];
+		int in_w = in.shape()[3];
+
+		int out_h = out.shape()[2];
+		int out_w = out.shape()[3];
+
+		int p=0;
+		kernel_->setArg(p++,bc);
+		kernel_->setArg(p++,in_h);
+		kernel_->setArg(p++,in_w);
+		kernel_->setArg(p++,out_h);
+		kernel_->setArg(p++,out_w);
+		in.set_arg(kernel_,p);
+		out.set_arg(kernel_,p);
+
+		std::vector<uint32_t> wg({wg_size_, wg_size_, 1});
+		std::vector<uint32_t> gr = gpu::round_range(out_h,out_w,bc,wg);
+		gr[0] = gr[0]/wg[0];
+		gr[1] = gr[1]/wg[1];
+		gr.resize(3, 1);
+		kernel_->enqueue(gr, {
+				wg_size_,
+				poolSize[0],
+				poolSize[1],
+				strideSize[0],
+				strideSize[1],
+				padSize[0],
+				padSize[1],
+				static_cast<uint32_t>(avg),
+				static_cast<uint32_t>(includePad)
+			}
+		);
+	}
+	
+	void pooling2dBwd(bool avg, const std::array<uint32_t, 2>& poolSize, const std::array<uint32_t, 2>& padSize, const std::array<uint32_t, 2>& strideSize, bool includePad, Tensor* x, Tensor& dx, Tensor& dy, float factor)
+	{
+		tart::device_ptr device = tensorDevice(dx);
+		const tart::DType& dt = dx.dtype();
+		const uint32_t wg_size_ = 8;
+		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().pooling(device, dt);
+		auto bwd_kernel_ = prog->getKernel("pooling_bw");
+		
+		int bc = dx.shape()[0]*dx.shape()[1];
+		int in_h = dx.shape()[2];
+		int in_w = dx.shape()[3];
+
+		int out_h = dy.shape()[2];
+		int out_w = dy.shape()[3];
+
+		int p=0;
+
+		scale_tensor(factor, dx);
+		bwd_kernel_->setArg(p++,bc);
+		bwd_kernel_->setArg(p++,in_h);
+		bwd_kernel_->setArg(p++,in_w);
+		bwd_kernel_->setArg(p++,out_h);
+		bwd_kernel_->setArg(p++,out_w);
+		if(x == nullptr)
+		{
+			// use placeholder
+			dy.set_arg(bwd_kernel_,p);
+		}
+		else
+		{
+			x->set_arg(bwd_kernel_,p);
+		}
+		dy.set_arg(bwd_kernel_,p);
+		// one for regular, one for atomic. The path taken will depend on spec constants
+		dx.set_arg(bwd_kernel_,p);
+		bwd_kernel_->setArg(p++, dx.device_buffer());
+
+		std::vector<uint32_t> wg({wg_size_,wg_size_,1});
+		std::vector<uint32_t> gr = gpu::round_range(out_h,out_w,bc,wg);
+		for (size_t i = 0; i < wg.size(); i += 1)
+			gr[i] = gr[i]/wg[i];
+		gr.resize(3, 1);
+		bwd_kernel_->enqueue(gr, {
+				wg_size_,
+				poolSize[0],
+				poolSize[1],
+				strideSize[0],
+				strideSize[1],
+				padSize[0],
+				padSize[1],
+				static_cast<uint32_t>(avg),
+				static_cast<uint32_t>(includePad)
+			}
+		);
+	}
+
 	class Pooling2DFWBDImpl {
 	public:
 		size_t workspace() { return 0; }
@@ -31,40 +132,44 @@ namespace core {
 
 		void forward(Tensor &in,Tensor &out)
 		{
-			int bc = in.shape()[0]*in.shape()[1];
+			#if 1
+				pooling2dFwd(mPoolMode, {mPoolSize[0], mPoolSize[1]}, {mPadSize[0], mPadSize[1]}, {mStrideSize[0], mStrideSize[1]}, mIncludePad, in, out);
+			#else
+				int bc = in.shape()[0]*in.shape()[1];
 
-			int in_h = in.shape()[2];
-			int in_w = in.shape()[3];
+				int in_h = in.shape()[2];
+				int in_w = in.shape()[3];
 
-			int out_h = out.shape()[2];
-			int out_w = out.shape()[3];
+				int out_h = out.shape()[2];
+				int out_w = out.shape()[3];
 
-			int p=0;
-			kernel_->setArg(p++,bc);
-			kernel_->setArg(p++,in_h);
-			kernel_->setArg(p++,in_w);
-			kernel_->setArg(p++,out_h);
-			kernel_->setArg(p++,out_w);
-			in.set_arg(kernel_,p);
-			out.set_arg(kernel_,p);
+				int p=0;
+				kernel_->setArg(p++,bc);
+				kernel_->setArg(p++,in_h);
+				kernel_->setArg(p++,in_w);
+				kernel_->setArg(p++,out_h);
+				kernel_->setArg(p++,out_w);
+				in.set_arg(kernel_,p);
+				out.set_arg(kernel_,p);
 
-			std::vector<uint32_t> wg({wg_size_,wg_size_,1});
-			std::vector<uint32_t> gr = gpu::round_range(out_h,out_w,bc,wg);
-			gr[0] = gr[0]/wg[0];
-			gr[1] = gr[1]/wg[1];
-			gr.resize(3, 1);
-			kernel_->enqueue(gr, {
-					wg_size_,
-					mPoolSize[0],
-					mPoolSize[1],
-					mStrideSize[0],
-					mStrideSize[1],
-					mPadSize[0],
-					mPadSize[1],
-					mPoolMode,
-					mIncludePad
-				}
-			);
+				std::vector<uint32_t> wg({wg_size_,wg_size_,1});
+				std::vector<uint32_t> gr = gpu::round_range(out_h,out_w,bc,wg);
+				gr[0] = gr[0]/wg[0];
+				gr[1] = gr[1]/wg[1];
+				gr.resize(3, 1);
+				kernel_->enqueue(gr, {
+						wg_size_,
+						mPoolSize[0],
+						mPoolSize[1],
+						mStrideSize[0],
+						mStrideSize[1],
+						mPadSize[0],
+						mPadSize[1],
+						mPoolMode,
+						mIncludePad
+					}
+				);
+			#endif
 		}
 
 		void backward(Tensor *x,Tensor &dx,Tensor &dy,float factor)
