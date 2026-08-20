@@ -34,17 +34,6 @@ namespace core {
     ///
     /// Perform InnerProduct/FullyConnected/Dense backward data calculations
     /// 
-    class IPBackwardData {
-    public:
-        virtual ~IPBackwardData() {}
-        virtual void enqueue(Tensor &dx,Tensor &w,Tensor &dy,float factor) = 0;
-        ///
-        /// Create optimal object for innter product calculation
-        ///
-        /// config - IP Settings,
-        static std::unique_ptr<IPBackwardData> create(const tart::device_ptr& device,IPSettings const &config);
-    };
-    
     void ipBackwardData(Tensor& dx, Tensor& M, Tensor& dy, float factor);
 
     ///

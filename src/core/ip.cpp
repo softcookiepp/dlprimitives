@@ -36,46 +36,6 @@ namespace core
 			bias_buffer,bias_offset,0.0f,
 			y.shape().total_size());
 	}
-
-
-    class IPBackwardDataImpl : public IPBackwardData {
-    public:
-        IPBackwardDataImpl(const tart::device_ptr& device,IPSettings const &cfg)
-        {
-            gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
-                        device, cfg.dtype,false,false,
-                        cfg.optimal_batch_size,cfg.inputs,cfg.outputs,
-                        gpu::GEMM::no_bias,
-                        StandardActivations::identity            
-                        ));
-        }
-        virtual void enqueue(Tensor &dx,Tensor &M,Tensor &dy,float factor) 
-        {
-            int outputs = dy.shape()[1];
-            int inputs  = dx.shape().size_no_batch();
-            gemm_->gemm(dy.shape()[0],inputs,outputs,
-                        dy.device_buffer(),
-                        dy.device_offset(),
-                        outputs,
-                        M.device_buffer(),
-                        M.device_offset(),
-                        M.shape()[1],
-                        dx.device_buffer(),
-                        dx.device_offset(),
-                        inputs,
-                        nullptr,0,
-                        factor,
-                        dx.shape().total_size());
-        }
-    private:
-        std::unique_ptr<gpu::GEMM> gemm_;
-    };
-
-    std::unique_ptr<IPBackwardData> IPBackwardData::create(const tart::device_ptr& device,IPSettings const &config)
-    {
-        std::unique_ptr<IPBackwardData> r(new IPBackwardDataImpl(device,config));
-        return r;
-    }
     
     void ipBackwardData(Tensor& dx, Tensor& M, Tensor& dy, float factor)
     {
