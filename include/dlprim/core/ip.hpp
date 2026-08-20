@@ -39,17 +39,6 @@ namespace core {
     ///
     /// Perform InnerProduct/FullyConnected/Dense backward filter calcilations
     ///
-    class IPBackwardFilter {
-    public:
-        virtual ~IPBackwardFilter() {}
-        virtual void enqueue(Tensor &x,Tensor &dw,Tensor &dy,float factor) = 0;
-        ///
-        /// Create optimal object for innter product calculation
-        ///
-        /// config - IP Settings,
-        static std::unique_ptr<IPBackwardFilter> create(const tart::device_ptr& device,IPSettings const &config);
-    };
-    
     void ipBackwardFilter(Tensor& x,Tensor& dw,Tensor& dy, float factor);
 
 } // core

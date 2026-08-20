@@ -62,45 +62,6 @@ namespace core
 			factor,
 			dx.shape().total_size());
 	}
-
-    class IPBackwardFilterImpl : public IPBackwardFilter {
-    public:
-        IPBackwardFilterImpl(const tart::device_ptr& device,IPSettings const &config)
-        {
-            gemm_ = std::move(gpu::GEMM::get_optimal_gemm(
-                        device, config.dtype,true,false,
-                        config.outputs,config.inputs,config.optimal_batch_size,
-                        gpu::GEMM::no_bias,
-                        StandardActivations::identity            
-            ));
-        }
-        virtual void enqueue(Tensor &x,Tensor &dM,Tensor &dy,float factor)
-        {
-            int outputs = dy.shape()[1];
-            int inputs = x.shape().size_no_batch();
-            gemm_->gemm(outputs,inputs,dy.shape()[0],
-                                dy.device_buffer(),
-                                dy.device_offset(),
-                                outputs,
-                                x.device_buffer(),
-                                x.device_offset(),
-                                inputs,
-                                dM.device_buffer(),
-                                dM.device_offset(),
-                                dM.shape()[1],
-                                nullptr,0,
-                                factor,
-                                dM.shape().total_size());
-        }
-    private:
-        std::unique_ptr<gpu::GEMM> gemm_;
-    };
-    
-    std::unique_ptr<IPBackwardFilter> IPBackwardFilter::create(const tart::device_ptr& device,IPSettings const &config)
-    {
-        std::unique_ptr<IPBackwardFilter> r(new IPBackwardFilterImpl(device,config));
-        return r;
-    }
     
     void ipBackwardFilter(Tensor& x,Tensor& dM,Tensor& dy,float factor)
     {
