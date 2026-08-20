@@ -138,5 +138,8 @@ namespace core {
         static std::unique_ptr<AvgPooling2DBackward> create_global(
                     const tart::device_ptr& device,Shape const &in_shape, const tart::DType& dt = tart::dtypes::float32);
     };
+    
+    void pooling2dFwd(bool avg, std::array<uint32_t, 2> poolSize, std::array<uint32_t, 2> padSize, std::array<uint32_t, 2> strideSize, bool includePad, Tensor& in, Tensor& out);
+    void pooling2dBwd(bool avg, const std::array<uint32_t, 2>& poolSize, const std::array<uint32_t, 2>& padSize, const std::array<uint32_t, 2>& strideSize, bool includePad, Tensor* x, Tensor& dx, Tensor& dy, float factor);
 } // core
 } //dlprim
