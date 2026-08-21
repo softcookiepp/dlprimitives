@@ -14,26 +14,8 @@
 //#define DEBUG_CACHE_TIMES 
 
 namespace dlprim {
-namespace gpu {
-
-
-#ifdef DEBUG_CACHE_TIMES
-class TimeWriter {
-public:
-    decltype(std::chrono::high_resolution_clock::now()) start;
-    std::string name;
-    TimeWriter(std::string const &n) : name(n)
-    {
-        start = std::chrono::high_resolution_clock::now();
-    }
-    ~TimeWriter()
-    {
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto passed = std::chrono::duration_cast<std::chrono::duration<double> > ((stop-start)).count();
-        std::cout << "Kernel " << name << " " << passed * 1e3 << " ms" << std::endl;
-    }
-};
-#endif
+namespace gpu
+{
 
 Cache &Cache::instance()
 {
@@ -43,18 +25,7 @@ Cache &Cache::instance()
 
 tart::program_ptr Cache::get_program(const tart::device_ptr& device, std::string const &source,std::vector<Parameter> const &params)
 {
-	#if 0
-	#else
-		std::string key = make_key(device, source, params);
-		std::unique_lock<std::mutex> g(mutex_);
-		auto p = cache_.find(key);
-		if(p == cache_.end())
-		{
-			auto prg = build_program(device, source, params);
-			cache_[key]=prg;
-		}
-		return cache_[key];
-	#endif
+	return build_program(device, source, params);
 }
 
 tart::program_ptr Cache::build_program(const tart::device_ptr& device, std::string const &source,std::vector<Parameter> const &params)
@@ -121,20 +92,6 @@ tart::program_ptr Cache::build_program(const tart::device_ptr& device, std::stri
 	return prg;
 	// end
 }
-
-std::string Cache::make_key(const tart::device_ptr& device,std::string const &src,std::vector<Parameter> const &params)
-{
-	std::uintptr_t ctx_ptr = (std::uintptr_t)(device.get());
-    std::ostringstream ss;
-    ss << "prg:" << ctx_ptr <<  "@" << src <<  "/?";
-    for(size_t i=0;i<params.size();i++) {
-        if(i > 0)
-            ss << '&';
-        ss << params[i].name << '=' << params[i].value;
-    }
-    return ss.str();
-}
-
 
 }
 }

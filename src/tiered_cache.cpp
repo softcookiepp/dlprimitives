@@ -391,6 +391,8 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 		mActivationProgram = gpu::Cache::instance().get_program(device, "activation");
 		
 		mInterpolate2dProgram = gpu::Cache::instance().get_program(device, "interpolate_2d");
+		
+		mBiasProgram = gpu::Cache::instance().get_program(device, "bias");
 	}
 	else if (dtypes.size() == 1)
 	{

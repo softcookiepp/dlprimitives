@@ -223,6 +223,24 @@ namespace core {
         auto glPair = device->chooseGlobalAndLocalSize(range);
 		k->enqueue(glPair.first, {glPair.second[0], glPair.second[1], glPair.second[2], ref.size()});
     }
+    
+    void getWorkgroupAndReductionType(bool& smallReduction, uint32_t& wgSize, size_t total_reduce)
+    {
+		smallReduction = 0;
+		if(total_reduce >= 256) {
+			wgSize = 256;
+		}
+		else if(total_reduce >= 128) {
+			wgSize = 128;
+		}
+		else if(total_reduce >= 64) {
+			wgSize = 64;
+		}
+		else {
+			wgSize = 0;
+			smallReduction = 1;
+		}
+	}
 
     ///
     /// Perform pointwise operation with both boradcasting and reduction
@@ -265,17 +283,7 @@ namespace core {
                              std::vector<double> beta)
         {
 			tart::device_ptr device = tensorDevice(xs[0]);
-            DLPRIM_CHECK(xs.size() == xs_specs_.size());
-            DLPRIM_CHECK(ys.size() == ys_specs_.size());
             DLPRIM_CHECK(ws_size_ == 0 || workspace.memory_size() >= ws_size_);
-            DLPRIM_CHECK(parameters.size() == params_count_);
-
-            for(size_t i=0;i<xs.size();i++) {
-                DLPRIM_CHECK(xs[i].specs() == xs_specs_[i]);
-            }
-            for(size_t i=0;i<ys.size();i++) {
-                DLPRIM_CHECK(ys[i].specs() == ys_specs_[i]);
-            }
             int p=0;
             
             bind_shape(kernel_,p,ref_);
@@ -318,7 +326,7 @@ namespace core {
             }
 			std::vector<uint32_t> glob(range_.size());
 			wg_range_.resize(3, 1);
-			if (wg_size_ > 0) wg_range_[0] = wg_size_; 
+			if (mWgSize > 0) wg_range_[0] = mWgSize; 
 			for (size_t i = 0; i < glob.size(); i += 1)
 				glob[i] = range_[i]/wg_range_[i];
 			glob.resize(3, 1);
@@ -329,7 +337,7 @@ namespace core {
 			#else
 				wg_range_.resize(6, 1);
 				wg_range_[3] = mReduceDims;
-				wg_range_[4] = mDims;
+				wg_range_[4] = ref_.size();
 				wg_range_[5] = mItemsPerWi;
 				// just for safesies
 				if (wg_range_[0] == 0) wg_range_[0] += 1;
@@ -355,143 +363,85 @@ namespace core {
 				std::string const &compute_code,
 				std::string const &reduce_init,
 				std::string const &reduce) :
-			target_type_(weights_type)
+			target_type_(weights_type),
+			strides_(xs.size() + ys.size())
         {
-            DLPRIM_CHECK(!xs.empty());
-            DLPRIM_CHECK(!ys.empty());
+			DLPRIM_CHECK(!xs.empty());
+			DLPRIM_CHECK(!ys.empty());
 
-            std::vector<Shape> shapes(xs.size() + ys.size());
-            for(size_t i=0;i<xs.size();i++)
-                shapes[i] = xs[i].shape();
-            for(size_t j=0;j<ys.size();j++)
-                shapes[j+xs.size()] = ys[j].shape();
+			std::vector<Shape> shapes(xs.size() + ys.size());
+			for(size_t i=0;i<xs.size();i++)
+				shapes[i] = xs[i].shape();
+			for(size_t j=0;j<ys.size();j++)
+				shapes[j+xs.size()] = ys[j].shape();
 
-            shrink_broadcast_ranges(shapes);
+			shrink_broadcast_ranges(shapes);
+			
+			ref_ = shapes[0]; // ys[0]
+			for(size_t i=1;i<shapes.size();i++) {
+				ref_ = broadcast(ref_,shapes[i]);
+			}
+			// all yes same
+			for(size_t i=xs.size()+1;i<shapes.size();i++) {
+				DLPRIM_CHECK(shapes[xs.size()] == shapes[i]);
+			}
+
+			//target_type_ = weights_type;
+			params_count_ = weights_count;
+			ws_size_ = 0;
+
+			for(size_t i=0;i<shapes.size();i++) {
+				strides_[i] = shapes[i].broadcast_strides(ref_);
+			}
+			
+			std::vector<int> reduce_dims,non_reduce_dims;
+			{
+				Shape ref_stride = strides_[xs.size()];
+				for(int dim = 0;dim < ref_.size();dim++) {
+					if(ref_stride[dim] == 0)
+						reduce_dims.push_back(dim);
+					else
+						non_reduce_dims.push_back(dim);
+				}
+			}
+
+			for(size_t i=0;i<shapes.size() + 1;i++) {
+				Shape &src = i < shapes.size() ? strides_[i] : ref_;
+				Shape tgt = src;
+				for(int dim=0;dim<ref_.size();dim++) {
+					int pos = 0;
+					for(auto indx : reduce_dims)
+						tgt[pos++] = src[indx];
+					for(auto indx : non_reduce_dims)
+						tgt[pos++] = src[indx];
+				}
+				src = tgt;
+			}
+
+			size_t total_reduce = 1;
+			second_stage_stride_ = 1;
+			for(unsigned i=0;i<reduce_dims.size();i++)
+				total_reduce *= ref_[i];
+
+			bool small_reduction = 0;
+			getWorkgroupAndReductionType(small_reduction, mWgSize, total_reduce);
             
-            Shape ref = shapes[0]; // ys[0]
-            for(size_t i=1;i<shapes.size();i++) {
-                ref = broadcast(ref,shapes[i]);
-            }
-            // all yes same
-            for(size_t i=xs.size()+1;i<shapes.size();i++) {
-                DLPRIM_CHECK(shapes[xs.size()] == shapes[i]);
-            }
-
-            //target_type_ = weights_type;
-            params_count_ = weights_count;
-            ws_size_ = 0;
-
-            std::vector<Shape> strides(xs.size() + ys.size());
-            for(size_t i=0;i<shapes.size();i++) {
-                strides[i] = shapes[i].broadcast_strides(ref);
-            }
-            
-            std::vector<int> reduce_dims,non_reduce_dims;
+            int nd_range;
+            if (!small_reduction)
             {
-                Shape ref_stride = strides[xs.size()];
-                for(int dim = 0;dim < ref.size();dim++) {
-                    if(ref_stride[dim] == 0)
-                        reduce_dims.push_back(dim);
-                    else
-                        non_reduce_dims.push_back(dim);
-                }
-            }
-
-            for(size_t i=0;i<shapes.size() + 1;i++) {
-                Shape &src = i < shapes.size() ? strides[i] : ref;
-                Shape tgt = src;
-                for(int dim=0;dim<ref.size();dim++) {
-                    int pos = 0;
-                    for(auto indx : reduce_dims)
-                        tgt[pos++] = src[indx];
-                    for(auto indx : non_reduce_dims)
-                        tgt[pos++] = src[indx];
-                }
-                src = tgt;
-            }
-
-
-            // all the defines
-            std::ostringstream PARAMS,PREPARE_LOAD_INPUT_ALL,REDUCE_INIT_ALL,LOAD_INPUT_ALL,
-                LOAD_REDUCE_ALL,SAVE_REDUCE_ALL,LOAD_REDUCED_SAVE_GLOBAL_ALL;
-            std::stringstream BUFFER_DEFS;
-            std::stringstream BUFFER_OFFSETS; // in order to emulate pointer math
-            std::stringstream TYPE_DEFS;
-            std::stringstream REDUCE_INIT_SHARED;
-            size_t bindIndex = 0;
-            for(size_t i=0;i<xs.size();i++) {
-                std::string type = xs[i].dtype().glsl();
-                std::string suffix = "(" + type + "," + std::to_string(i) + ") ";
-                std::string suffix_buf = "(" + type + "," + std::to_string(i) + ", " + std::to_string(bindIndex) + ") ";
-                TYPE_DEFS << "#define typeof_x" << i << " " << type << "\n";
-                BUFFER_DEFS << "PARAM_INPUT_BUF" << suffix_buf;
-                BUFFER_OFFSETS << "PARAM_INPUT_BUF_OFFSET" << suffix;
-                PARAMS << "PARAM_INPUT" << suffix;
-                PREPARE_LOAD_INPUT_ALL << "PREPARE_LOAD_INPUT" << suffix << ";\\\n";
-                LOAD_INPUT_ALL << "LOAD_INPUT(" << i << ");\\\n";
-                bindIndex += 1;
-            }
-
-            for(size_t i=0;i<ys.size();i++) {
-                std::string type = ys[i].dtype().glsl();
-                std::string ptype = ys[i].dtype().glsl();
-                std::string suffix_out = "(" + type + "," + ptype + "," + std::to_string(i) + ") ";
-                std::string suffix_out_buf = "(" + type + "," + ptype + "," + std::to_string(i) + ", " + std::to_string(bindIndex) + ") ";
-                std::string suffix = "(" + type + "," + std::to_string(i) + ") ";
-                TYPE_DEFS << "#define typeof_y" << i << " " << type << "\n";
-                BUFFER_DEFS << "PARAM_OUTPUT_BUF" << suffix_out_buf;
-                BUFFER_OFFSETS << "PARAM_OUTPUT_BUF_OFFSET" << suffix_out;
-                PARAMS << "PARAM_OUTPUT" << suffix_out;
-                REDUCE_INIT_SHARED << "REDUCE_INIT"<<suffix << ";";
-                LOAD_REDUCE_ALL << "LOAD_REDUCE("<<i<<");\\\n";
-                SAVE_REDUCE_ALL << "SAVE_REDUCE("<<i<<");\\\n";
-                LOAD_REDUCED_SAVE_GLOBAL_ALL << "LOAD_REDUCED_SAVE_GLOBAL("<<i<<");\\\n";
-                bindIndex += 1;
-            }
-            
-            REDUCE_INIT_ALL << format_code(reduce_init) << "\n";
-            for(size_t i=0;i<params_count_;i++) {
-                std::string type = target_type_.glsl();
-                PARAMS << type << " w" << i <<"; ";
-                TYPE_DEFS << "#define typeof_w" << i << " " << type << "\n";
-            }
-
-            size_t total_reduce = 1;
-            second_stage_stride_ = 1;
-            for(unsigned i=0;i<reduce_dims.size();i++)
-                total_reduce *= ref[i];
-
-            int wg_size;
-            bool small_reduction = 0;
-            if(total_reduce >= 256) {
-                wg_size = 256;
-            }
-            else if(total_reduce >= 128) {
-                wg_size = 128;
-            }
-            else if(total_reduce >= 64) {
-                wg_size = 64;
-            }
-            else {
-                wg_size = 0;
-                small_reduction = 1;
-            }
-            int items_per_wi,nd_range;
-            if(small_reduction == 0)
-            {
-                items_per_wi = (total_reduce + wg_size - 1) / wg_size;
-                if(items_per_wi >= 256) {
+                mItemsPerWi = (total_reduce + mWgSize - 1) / mWgSize;
+                if(mItemsPerWi >= 256) {
                     second_stage_stride_ = 256;
                 }
-                else if(items_per_wi >= 128) {
+                else if(mItemsPerWi >= 128) {
                     second_stage_stride_ = 128;
                 }
-                else if(items_per_wi >= 64) {
+                else if(mItemsPerWi >= 64) {
                     second_stage_stride_ = 64;
                 }
                 if(second_stage_stride_ > 1) {
-                    nd_range = wg_size * second_stage_stride_;
-                    items_per_wi = (total_reduce + nd_range - 1) / nd_range;
+                    nd_range = mWgSize * second_stage_stride_;
+                    mItemsPerWi = (total_reduce + nd_range - 1) / nd_range;
                     std::vector<TensorSpecs> big_ys;
                     std::vector<TensorSpecs> small_ys;
                     std::ostringstream code;
@@ -508,101 +458,64 @@ namespace core {
                     second_stage_.reset(new PointwiseOperationBroadcastReduceImpl(
                         device, big_ys,small_ys,0, tart::dtypes::float32,
                         code.str(),reduce_init,reduce));
+					auto secondProg = gpu::PerDeviceProgramCache::instance().getPointwiseBroadcastReduceOperation(
+						device, big_ys,small_ys,0, tart::dtypes::float32,
+                        code.str(),reduce_init,reduce);
+					mSecondStageKernel = nullptr;
                         
                 }
                 else {
-                    int mpl = wg_size * items_per_wi;
-                    nd_range = (total_reduce + mpl - 1) / mpl * wg_size;
+                    int mpl = mWgSize * mItemsPerWi;
+                    nd_range = (total_reduce + mpl - 1) / mpl * mWgSize;
                 }
             }
             else // small_reduction == 0
             {
-                items_per_wi = total_reduce;
+                mItemsPerWi = total_reduce;
                 nd_range = 1; 
             }
-      
+            
 //#define DEBUG_2STAGE            
 #ifdef DEBUG_2STAGE
-            std::cerr << "Items per thread/wg_size/nd_range:" << items_per_wi << "/" << wg_size << "/" << nd_range<< std::endl;
+            std::cerr << "Items per thread/wg_size/nd_range:" << mItemsPerWi << "/" << mWgSize << "/" << nd_range<< std::endl;
 #endif
 			mReduceDims = reduce_dims.size();
-			mDims = ref.size();
-			mWgSize = wg_size;
-			mItemsPerWi = items_per_wi;
-			#if 1
-				tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().getPointwiseBroadcastReduceOperation(
-					device, xs, ys, weights_count, weights_type, compute_code, reduce_init, reduce);
-			#else
-				tart::program_ptr prog = gpu::Cache::instance().get_program(
-					device, "pointwise_broadcast_reduce",
-					"$TYPE_DEFS", TYPE_DEFS.str(),
-					"#BUFFER_DEFS", BUFFER_DEFS.str(),
-					"#BUFFER_OFFSETS", BUFFER_OFFSETS.str(),
-					"#PARAMS",PARAMS.str(),
-					"#PREPARE_LOAD_INPUT_ALL",PREPARE_LOAD_INPUT_ALL.str(),
-					"#REDUCE_INIT_ALL",REDUCE_INIT_ALL.str(),
-					"#REDUCE_INIT_SHARED", REDUCE_INIT_SHARED.str(),
-					"#LOAD_INPUT_ALL",LOAD_INPUT_ALL.str(),
-					"#LOAD_REDUCE_ALL",LOAD_REDUCE_ALL.str(),
-					"#SAVE_REDUCE_ALL",SAVE_REDUCE_ALL.str(),
-					"#LOAD_REDUCED_SAVE_GLOBAL_ALL",LOAD_REDUCED_SAVE_GLOBAL_ALL.str(),
-					"#REDUCE",format_code(reduce),
-					"#CALC",format_code(compute_code));
-			#endif
-			if (small_reduction)
-			{
-				kernel_ = prog->getKernel("exec_small");
-			}
-			else
-			{
-				if (second_stage_stride_ > 1)
-				{
-					kernel_ = prog->getKernel("exec_2_stage");
-				}
-				else
-				{
-					kernel_ = prog->getKernel("exec");
-				}
-			}
-            std::vector<uint32_t> range;
-            std::vector<uint32_t> wg_range;
-            int zero = reduce_dims.size();
+			
+			int zero = reduce_dims.size();
             if(zero == 0) {
-                range = get_broadcast_ndrange(ref);
-                wg_range.resize(range.size(), 1);
+                range_ = get_broadcast_ndrange(ref_);
+                wg_range_.resize(range_.size(), 1);
             }
             else {
-                range = get_broadcast_reduce_ndrange(ref,zero,non_reduce_dims.size(),nd_range);
-                wg_range = wg_size == 0 ? std::vector<uint32_t>({1, 1, 1}) : std::vector<uint32_t>({wg_size, 1, 1});
+                range_ = get_broadcast_reduce_ndrange(ref_,zero,non_reduce_dims.size(),nd_range);
+                wg_range_ = mWgSize == 0 ? std::vector<uint32_t>({1, 1, 1}) : std::vector<uint32_t>({mWgSize, 1, 1});
             }
-            range_ = range;
-            wg_range_ = wg_range;
-            wg_size_ = wg_size;
-            ref_ = ref;
-            xs_specs_ = xs;
-            ys_specs_ = ys;
-            strides_ = std::move(strides);
+			
+			tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().getPointwiseBroadcastReduceOperation(
+				device, xs, ys, weights_count, weights_type, compute_code, reduce_init, reduce);
+			
+			kernel_ = small_reduction ? kernel_ = prog->getKernel("exec_small") :
+				(second_stage_stride_ > 1 ? kernel_ = prog->getKernel("exec_2_stage") : kernel_ = prog->getKernel("exec"));
+            
         }
     private:
 		// spec constant-compliant params
 		uint32_t mReduceDims;
-		uint32_t mDims;
 		uint32_t mWgSize;
 		uint32_t mItemsPerWi;
 		
 		// original params
         size_t ws_size_;
-        std::vector<TensorSpecs> xs_specs_,ys_specs_;
         std::vector<Shape> strides_;
         std::vector<std::pair<size_t,size_t> > ws_offsets_;
         size_t params_count_;
         size_t second_stage_stride_;
         tart::DType target_type_;
-        size_t wg_size_;
 		std::vector<uint32_t> range_,wg_range_;
         tart::kernel_ptr kernel_;
         Shape ref_;
         std::unique_ptr<PointwiseOperationBroadcastReduceImpl> second_stage_;
+        tart::kernel_ptr mSecondStageKernel = nullptr;
     };
 
 

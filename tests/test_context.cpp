@@ -8,6 +8,7 @@
 #include <dlprim/context.hpp>
 #include <dlprim/tensor.hpp>
 #include <dlprim/gpu/program_cache.hpp>
+#include <dlprim/gpu/tiered_cache.hpp>
 #include <iostream>
 #include "test.hpp"
 
@@ -34,7 +35,7 @@ int main(int argc,char **argv)
         for(unsigned i=0;i<a.shape()[0];i++)
             p[i] = -5.0 + i;
         a.to_device();
-        tart::program_ptr prg = dp::gpu::Cache::instance().get_program(ctx.device(), "bias");
+        tart::program_ptr prg = dp::gpu::PerDeviceProgramCache::instance().bias(ctx.device());
         tart::kernel_ptr k = prg->getKernel("activation_inplace");
         int pos=0;
         k->setArg(pos++,int(a.shape().total_size()));

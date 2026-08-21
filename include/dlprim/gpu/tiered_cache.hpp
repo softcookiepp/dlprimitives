@@ -66,6 +66,8 @@ class AllPrograms
 	tart::program_ptr mBnSumsProgram = nullptr;
 	tart::program_ptr mBnUtilsProgram = nullptr;
 	
+	tart::program_ptr mBiasProgram = nullptr;
+	
 	tart::program_ptr mBwdBiasProgram = nullptr;
 	
 	tart::program_ptr mCopyProgram = nullptr;
@@ -146,6 +148,8 @@ public:
 	
 	inline const tart::program_ptr& bn_sums(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mBnSumsProgram; }
 	inline const tart::program_ptr& bn_utils(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mBnUtilsProgram; }
+	
+	inline const tart::program_ptr& bias(const tart::device_ptr& device) { return getAllPrograms(device, {}).mBiasProgram; }
 	
 	inline const tart::program_ptr& bwd_bias(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mBwdBiasProgram; }
 	

@@ -14,6 +14,9 @@ namespace dlprim {
 namespace core {
     void softmax_forward(Tensor &x,Tensor &y,bool log_softmax)
     {
+#if 1
+		throw std::runtime_error("Don't use this function, it is very broken at the moment");
+#else
         DLPRIM_CHECK(x.shape().size() == 2 || x.shape().size() == 3);
         DLPRIM_CHECK(x.dtype() == tart::dtypes::float32);
         DLPRIM_CHECK(y.shape()==x.shape());
@@ -78,10 +81,15 @@ namespace core {
         cl::NDRange wg(1,wg_size,1);
         e.queue().enqueueNDRangeKernel(kernel,cl::NullRange,gr,wg,e.events(),e.event("softmax"));
 #endif
+    
+#endif
     }
 
     void softmax_backward(Tensor &dx,Tensor &y,Tensor &dy,bool log_softmax,float factor)
     {
+#if 1
+		throw std::runtime_error("Don't use this function, it is very broken at the moment");
+#else
         DLPRIM_CHECK(dx.shape().size() == 2 || dx.shape().size() == 3);
         DLPRIM_CHECK(dx.dtype() == tart::dtypes::float32);
         DLPRIM_CHECK(dy.shape() == dx.shape());
@@ -124,6 +132,7 @@ namespace core {
         //std::vector<uint32_t> wg({1,wg_size,1});
         //kernel->enqueue(gr, wg);
         kernel->enqueue({b0,nd_range/wg_size,b2}, {});
+#endif
     }
 
     ///
