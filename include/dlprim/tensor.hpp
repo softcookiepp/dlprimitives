@@ -51,6 +51,12 @@ namespace dlprim {
         {
             shape_=s;
         }
+        
+        // get strides
+        const Shape& stride() const
+        {
+			return mStride;
+		}
 
         ///
         /// return if tensor need to participate in gradient decent
@@ -96,6 +102,7 @@ namespace dlprim {
     private:
         friend class Tensor;
         Shape shape_;
+        Shape mStride;
         tart::DType mDtype;
         bool is_trainable_;
         
@@ -153,6 +160,12 @@ namespace dlprim {
         {
             return specs_->shape();
         }
+        
+        // get strides
+        const Shape& stride() const
+		{
+			return specs_->stride();
+		}
 
         ///
         /// return if tensor need to participate in gradient decent
