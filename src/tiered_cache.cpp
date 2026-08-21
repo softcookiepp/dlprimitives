@@ -50,6 +50,32 @@ PointwiseOpKey makeKey(
 	return k;
 }
 
+PointwiseOpKey makeKey(
+	const std::vector<TensorSpecs>& xs,
+	const std::vector<TensorSpecs>& ys,
+	const std::vector<double>& ws,
+	const std::vector<tart::DType>& dts,
+	const std::string &code,
+	const bool shrinkDims)
+{
+	PointwiseOpKey k;
+	std::get<0>(k).resize(xs.size());
+	std::get<1>(k).resize(ys.size());
+	std::get<2>(k) = ws.size();
+	for (size_t i = 0; i < xs.size(); i += 1)
+	{
+		std::get<0>(k)[i] = xs[i].dtype();
+	}
+	for (size_t i = 0; i < std::get<1>(k).size(); i += 1)
+	{
+		std::get<1>(k)[i] = ys[i].dtype();
+	}
+	std::get<3>(k) = dts;
+	std::get<4>(k) = code;
+	std::get<5>(k) = shrinkDims;
+	return k;
+}
+
 tart::program_ptr 
 	PointwiseCache::getPointwiseOperation(std::vector<Tensor>& xs,
 		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code)
@@ -191,8 +217,8 @@ tart::program_ptr PointwiseCache::getPointwiseBroadcastOperation(
 }
 
 tart::program_ptr PointwiseCache::getPointwiseBroadcastReduceOperation(
-	std::vector<Tensor>& xs,
-	std::vector<Tensor>& ys,
+	std::vector<TensorSpecs>& xs,
+	std::vector<TensorSpecs>& ys,
 	int weights_count,
 	const tart::DType& weights_type,
 	const std::string& compute_code,
@@ -201,6 +227,8 @@ tart::program_ptr PointwiseCache::getPointwiseBroadcastReduceOperation(
 {
 	DLPRIM_CHECK(!xs.empty());
 	DLPRIM_CHECK(!ys.empty());
+	
+	throw std::runtime_error("not implemented, keys, etc. need revision");
 
 	// all the defines
 	std::ostringstream PARAMS,PREPARE_LOAD_INPUT_ALL,REDUCE_INIT_ALL,LOAD_INPUT_ALL,

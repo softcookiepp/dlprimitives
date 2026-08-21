@@ -348,13 +348,18 @@ namespace core {
         }
 
         PointwiseOperationBroadcastReduceImpl(  const tart::device_ptr& device,
-                                                std::vector<TensorSpecs> xs,
-                                                std::vector<TensorSpecs> ys,
-                                                int weights_count,
-												const tart::DType& weights_type,
-                                                std::string const &compute_code,
-                                                std::string const &reduce_init,
-                                                std::string const &reduce) :
+			#if 0
+				std::vector<Tensor> xs,
+				std::vector<Tensor> ys,
+			#else
+				std::vector<TensorSpecs> xs,
+				std::vector<TensorSpecs> ys,
+			#endif
+				int weights_count,
+				const tart::DType& weights_type,
+				std::string const &compute_code,
+				std::string const &reduce_init,
+				std::string const &reduce) :
 			target_type_(weights_type)
         {
             DLPRIM_CHECK(!xs.empty());

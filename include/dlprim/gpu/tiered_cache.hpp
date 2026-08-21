@@ -43,8 +43,8 @@ public:
 		const bool shrinkDims);
 	
 	tart::program_ptr getPointwiseBroadcastReduceOperation(
-		std::vector<Tensor>& xs,
-		std::vector<Tensor>& ys,
+		std::vector<TensorSpecs>& xs,
+		std::vector<TensorSpecs>& ys,
 		int weights_count,
 		const tart::DType& weights_type,
 		const std::string& compute_code,
