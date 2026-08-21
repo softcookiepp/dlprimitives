@@ -191,15 +191,78 @@ tart::program_ptr PointwiseCache::getPointwiseBroadcastOperation(
 }
 
 tart::program_ptr PointwiseCache::getPointwiseBroadcastReduceOperation(
-	std::vector<TensorSpecs>& xs,
-	std::vector<TensorSpecs>& ys,
+	std::vector<Tensor>& xs,
+	std::vector<Tensor>& ys,
 	int weights_count,
 	const tart::DType& weights_type,
 	const std::string& compute_code,
 	const std::string& reduce_init,
 	const std::string& reduce)
 {
-	throw std::runtime_error("not implemented");
+	DLPRIM_CHECK(!xs.empty());
+	DLPRIM_CHECK(!ys.empty());
+
+	// all the defines
+	std::ostringstream PARAMS,PREPARE_LOAD_INPUT_ALL,REDUCE_INIT_ALL,LOAD_INPUT_ALL,
+		LOAD_REDUCE_ALL,SAVE_REDUCE_ALL,LOAD_REDUCED_SAVE_GLOBAL_ALL;
+	std::stringstream BUFFER_DEFS;
+	std::stringstream BUFFER_OFFSETS; // in order to emulate pointer math
+	std::stringstream TYPE_DEFS;
+	std::stringstream REDUCE_INIT_SHARED;
+	size_t bindIndex = 0;
+	for(size_t i=0;i<xs.size();i++) {
+		std::string type = xs[i].dtype().glsl();
+		std::string suffix = "(" + type + "," + std::to_string(i) + ") ";
+		std::string suffix_buf = "(" + type + "," + std::to_string(i) + ", " + std::to_string(bindIndex) + ") ";
+		TYPE_DEFS << "#define typeof_x" << i << " " << type << "\n";
+		BUFFER_DEFS << "PARAM_INPUT_BUF" << suffix_buf;
+		BUFFER_OFFSETS << "PARAM_INPUT_BUF_OFFSET" << suffix;
+		PARAMS << "PARAM_INPUT" << suffix;
+		PREPARE_LOAD_INPUT_ALL << "PREPARE_LOAD_INPUT" << suffix << ";\\\n";
+		LOAD_INPUT_ALL << "LOAD_INPUT(" << i << ");\\\n";
+		bindIndex += 1;
+	}
+
+	for(size_t i=0;i<ys.size();i++) {
+		std::string type = ys[i].dtype().glsl();
+		std::string ptype = ys[i].dtype().glsl();
+		std::string suffix_out = "(" + type + "," + ptype + "," + std::to_string(i) + ") ";
+		std::string suffix_out_buf = "(" + type + "," + ptype + "," + std::to_string(i) + ", " + std::to_string(bindIndex) + ") ";
+		std::string suffix = "(" + type + "," + std::to_string(i) + ") ";
+		TYPE_DEFS << "#define typeof_y" << i << " " << type << "\n";
+		BUFFER_DEFS << "PARAM_OUTPUT_BUF" << suffix_out_buf;
+		BUFFER_OFFSETS << "PARAM_OUTPUT_BUF_OFFSET" << suffix_out;
+		PARAMS << "PARAM_OUTPUT" << suffix_out;
+		REDUCE_INIT_SHARED << "REDUCE_INIT"<<suffix << ";";
+		LOAD_REDUCE_ALL << "LOAD_REDUCE("<<i<<");\\\n";
+		SAVE_REDUCE_ALL << "SAVE_REDUCE("<<i<<");\\\n";
+		LOAD_REDUCED_SAVE_GLOBAL_ALL << "LOAD_REDUCED_SAVE_GLOBAL("<<i<<");\\\n";
+		bindIndex += 1;
+	}
+	
+	REDUCE_INIT_ALL << core::format_code(reduce_init) << "\n";
+	for(size_t i=0;i< weights_count;i++) {
+		std::string type = weights_type.glsl();
+		PARAMS << type << " w" << i <<"; ";
+		TYPE_DEFS << "#define typeof_w" << i << " " << type << "\n";
+	}
+
+	tart::program_ptr prog = gpu::Cache::instance().get_program(
+		mDevice.lock(), "pointwise_broadcast_reduce",
+		"$TYPE_DEFS", TYPE_DEFS.str(),
+		"#BUFFER_DEFS", BUFFER_DEFS.str(),
+		"#BUFFER_OFFSETS", BUFFER_OFFSETS.str(),
+		"#PARAMS",PARAMS.str(),
+		"#PREPARE_LOAD_INPUT_ALL",PREPARE_LOAD_INPUT_ALL.str(),
+		"#REDUCE_INIT_ALL",REDUCE_INIT_ALL.str(),
+		"#REDUCE_INIT_SHARED", REDUCE_INIT_SHARED.str(),
+		"#LOAD_INPUT_ALL",LOAD_INPUT_ALL.str(),
+		"#LOAD_REDUCE_ALL",LOAD_REDUCE_ALL.str(),
+		"#SAVE_REDUCE_ALL",SAVE_REDUCE_ALL.str(),
+		"#LOAD_REDUCED_SAVE_GLOBAL_ALL",LOAD_REDUCED_SAVE_GLOBAL_ALL.str(),
+		"#REDUCE", core::format_code(reduce),
+		"#CALC", core::format_code(compute_code));
+	return prog;
 }
 
 	

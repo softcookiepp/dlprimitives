@@ -531,8 +531,6 @@ namespace core {
 			mItemsPerWi = items_per_wi;
             tart::program_ptr prog = gpu::Cache::instance().get_program(
 				device, "pointwise_broadcast_reduce",
-				//"SMALL_REDUCTION",small_reduction,
-				//"TWO_STAGE_REDUCTION",(second_stage_stride_ == 1 ? 0 : 1),
 				"$TYPE_DEFS", TYPE_DEFS.str(),
 				"#BUFFER_DEFS", BUFFER_DEFS.str(),
 				"#BUFFER_OFFSETS", BUFFER_OFFSETS.str(),
