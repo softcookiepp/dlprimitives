@@ -348,13 +348,8 @@ namespace core {
         }
 
         PointwiseOperationBroadcastReduceImpl(  const tart::device_ptr& device,
-			#if 0
-				std::vector<Tensor> xs,
-				std::vector<Tensor> ys,
-			#else
 				std::vector<TensorSpecs> xs,
 				std::vector<TensorSpecs> ys,
-			#endif
 				int weights_count,
 				const tart::DType& weights_type,
 				std::string const &compute_code,
@@ -534,21 +529,26 @@ namespace core {
 			mDims = ref.size();
 			mWgSize = wg_size;
 			mItemsPerWi = items_per_wi;
-            tart::program_ptr prog = gpu::Cache::instance().get_program(
-				device, "pointwise_broadcast_reduce",
-				"$TYPE_DEFS", TYPE_DEFS.str(),
-				"#BUFFER_DEFS", BUFFER_DEFS.str(),
-				"#BUFFER_OFFSETS", BUFFER_OFFSETS.str(),
-				"#PARAMS",PARAMS.str(),
-				"#PREPARE_LOAD_INPUT_ALL",PREPARE_LOAD_INPUT_ALL.str(),
-				"#REDUCE_INIT_ALL",REDUCE_INIT_ALL.str(),
-				"#REDUCE_INIT_SHARED", REDUCE_INIT_SHARED.str(),
-				"#LOAD_INPUT_ALL",LOAD_INPUT_ALL.str(),
-				"#LOAD_REDUCE_ALL",LOAD_REDUCE_ALL.str(),
-				"#SAVE_REDUCE_ALL",SAVE_REDUCE_ALL.str(),
-				"#LOAD_REDUCED_SAVE_GLOBAL_ALL",LOAD_REDUCED_SAVE_GLOBAL_ALL.str(),
-				"#REDUCE",format_code(reduce),
-				"#CALC",format_code(compute_code));
+			#if 1
+				tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().getPointwiseBroadcastReduceOperation(
+					device, xs, ys, weights_count, weights_type, compute_code, reduce_init, reduce);
+			#else
+				tart::program_ptr prog = gpu::Cache::instance().get_program(
+					device, "pointwise_broadcast_reduce",
+					"$TYPE_DEFS", TYPE_DEFS.str(),
+					"#BUFFER_DEFS", BUFFER_DEFS.str(),
+					"#BUFFER_OFFSETS", BUFFER_OFFSETS.str(),
+					"#PARAMS",PARAMS.str(),
+					"#PREPARE_LOAD_INPUT_ALL",PREPARE_LOAD_INPUT_ALL.str(),
+					"#REDUCE_INIT_ALL",REDUCE_INIT_ALL.str(),
+					"#REDUCE_INIT_SHARED", REDUCE_INIT_SHARED.str(),
+					"#LOAD_INPUT_ALL",LOAD_INPUT_ALL.str(),
+					"#LOAD_REDUCE_ALL",LOAD_REDUCE_ALL.str(),
+					"#SAVE_REDUCE_ALL",SAVE_REDUCE_ALL.str(),
+					"#LOAD_REDUCED_SAVE_GLOBAL_ALL",LOAD_REDUCED_SAVE_GLOBAL_ALL.str(),
+					"#REDUCE",format_code(reduce),
+					"#CALC",format_code(compute_code));
+			#endif
 			if (small_reduction)
 			{
 				kernel_ = prog->getKernel("exec_small");

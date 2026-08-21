@@ -18,7 +18,9 @@ typedef std::tuple<
 	size_t, // weight count
 	std::vector<tart::DType>, // wtypes
 	std::string, // code
-	bool // shrink dims
+	bool, // shrink dims
+	std::string, // reduce init code
+	std::string // reduce code
 > PointwiseOpKey;
 
 class PointwiseCache

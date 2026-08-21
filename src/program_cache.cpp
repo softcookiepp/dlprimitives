@@ -43,7 +43,7 @@ Cache &Cache::instance()
 
 tart::program_ptr Cache::get_program(const tart::device_ptr& device, std::string const &source,std::vector<Parameter> const &params)
 {
-	#if 1
+	#if 0
 	#else
 		std::string key = make_key(device, source, params);
 		std::unique_lock<std::mutex> g(mutex_);
