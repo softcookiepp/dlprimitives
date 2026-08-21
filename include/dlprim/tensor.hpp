@@ -84,16 +84,23 @@ namespace dlprim {
             return shape_.total_size() * mDtype.size();
         }
 
-
         const tart::DType& dtype() const
         {
             return mDtype;
         }
+        
+        // Whether or not the tensor is contiguous.
+        // Once strided tensors are implemented, this will actually do something.
+        inline bool isContiguous() const { return mContiguous; }
+        
     private:
         friend class Tensor;
         Shape shape_;
         tart::DType mDtype;
         bool is_trainable_;
+        
+        // all dlprim tensors will be contiguous for now.
+        bool mContiguous = true;
     };
 
 
@@ -275,6 +282,10 @@ namespace dlprim {
         /// Copy device memory to host, sync - for synchronoys copy
         ///
         void to_host(bool sync=true);
+        
+        // Whether or not the tensor is contiguous.
+        // Once strided tensors are implemented, this will actually do something.
+        inline bool isContiguous() const { return specs_->isContiguous(); }
 
         ///
         /// Assign buffer and offset as kernel argumnets, at position pos and pos+1, pos incrementeded twice
