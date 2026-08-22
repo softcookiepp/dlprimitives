@@ -59,8 +59,8 @@ tart::program_ptr Cache::build_program(const tart::device_ptr& device, std::stri
             options.push_back(optSS.str());
             if (params[i].name == "dtype" && params[i].value == "")
             {
-				//throw std::runtime_error("dtype cannot be empty");
-				params[i].value = "float";
+				throw std::runtime_error("dtype cannot be empty");
+				//params[i].value = "float";
 			}
         }
     }
