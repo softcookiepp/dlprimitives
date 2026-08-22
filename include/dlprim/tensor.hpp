@@ -55,7 +55,8 @@ namespace dlprim
 				const Shape& st = Shape(), // strides
 				const tart::DType& dt = tart::dtypes::float32, bool trainable = true):
 			shape_(sh),
-			mStride(st)
+			mStride(st),
+			mDtype(d)
 		{
 			DLPRIM_CHECK(sh.size() == st.size());
 			Shape contigStride = calcStridesFromShape(sh);
