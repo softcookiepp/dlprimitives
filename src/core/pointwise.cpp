@@ -366,6 +366,8 @@ namespace core {
 			target_type_(weights_type),
 			strides_(xs.size() + ys.size())
         {
+			// This is where the lack of strides in dlprim comes back to bite us.
+			// Since there are no strides stored in each tensor, any strides have to be re-computed every time this function is called.
 			DLPRIM_CHECK(!xs.empty());
 			DLPRIM_CHECK(!ys.empty());
 
