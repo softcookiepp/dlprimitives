@@ -48,6 +48,24 @@ namespace dlprim {
     {
         buffer_ = buffer;
     }
+    
+    Tensor::Tensor(
+			const tart::buffer_ptr& buffer,
+			uint64_t offset,
+			const Shape& sh, // shape
+			const Shape& st, // strides
+			const tart::DType& dt,
+			bool trainable):
+		specs_(std::make_shared<TensorSpecs>(sh, st, dt, trainable)),
+		host_(std::make_shared<HostMem>()),
+		offset_(offset),
+		capacity_(sh.total_size()*dt.size()), // todo: see if this actually needs to be different because of stride weirdness
+		full_capacity_(capacity_ + offset * dt.size())
+	{
+		throw std::runtime_error("not implemented");
+		buffer_ = buffer;
+	}
+    
     Tensor::Tensor(const tart::device_ptr& device, Shape const &s,const tart::DType& d,bool is_train):
         specs_(new TensorSpecs(s,d,is_train)),
 		host_(new Tensor::HostMem()),

@@ -41,11 +41,27 @@ namespace dlprim
         ///
         TensorSpecs(Shape const &s=Shape(), const tart::DType& d = tart::dtypes::float32, bool trainable = true) :
             shape_(s),
-            mDtype(d)
+            mDtype(d),
+            mContiguous(true)
         {
             is_trainable_ = trainable && d.isFloatingPoint();
             mStride = calcStridesFromShape(s);
         }
+        
+        // Like the other contructor, but there is also a strides field.
+        // contiguity is not guaranteed, so it must be validated
+        TensorSpecs(
+				const Shape& sh, // shape
+				const Shape& st = Shape(), // strides
+				const tart::DType& dt = tart::dtypes::float32, bool trainable = true):
+			shape_(sh),
+			mStride(st)
+		{
+			DLPRIM_CHECK(sh.size() == st.size());
+			Shape contigStride = calcStridesFromShape(sh);
+			mContiguous = (contigStride == st);
+			if (!mContiguous) throw std::runtime_error("non-contiguous tensors are not implemented");
+		}
         
         bool operator==(TensorSpecs const &other) const
         {
@@ -112,7 +128,6 @@ namespace dlprim
         }
         
         // Whether or not the tensor is contiguous.
-        // Once strided tensors are implemented, this will actually do something.
         inline bool isContiguous() const { return mContiguous; }
         
     private:
@@ -141,6 +156,13 @@ namespace dlprim
         /// 
         Tensor(const tart::device_ptr& device, Shape const &s, const tart::DType& dt = tart::dtypes::float32, bool is_trainable=true);
         
+        // Create a tensor with own memory, but specify strides as well as shape
+        Tensor(
+			const tart::device_ptr& device,
+			const Shape& sh, // shape
+			const Shape& st, // strides
+			const tart::DType& dt = tart::dtypes::float32, bool trainable = true);
+        
         ///
         /// Create a tensor from external buffer
         ///
@@ -149,6 +171,15 @@ namespace dlprim
 				buffer,
 				uint64_t
 				offset,Shape const &s, const tart::DType& dt = tart::dtypes::float32, bool is_trainable=true);
+		
+		// create tensor from external buffer, and specify strides
+		Tensor(
+			const tart::buffer_ptr& buffer,
+			uint64_t offset,
+			const Shape& sh, // shape
+			const Shape& st, // strides
+			const tart::DType& dt = tart::dtypes::float32,
+			bool trainable = true);
 
         ///
         /// Create null tensor, binding such a tensor to kernel will pass NULL pointer
@@ -313,7 +344,6 @@ namespace dlprim
         void to_host(bool sync=true);
         
         // Whether or not the tensor is contiguous.
-        // Once strided tensors are implemented, this will actually do something.
         inline bool isContiguous() const { return specs_->isContiguous(); }
 
         ///
