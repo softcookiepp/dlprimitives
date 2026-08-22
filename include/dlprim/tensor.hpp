@@ -9,7 +9,22 @@
 #include <dlprim/context.hpp>
 #include <dlprim/shape.hpp>
 #include <memory>
-namespace dlprim {
+namespace dlprim
+{
+	// calculate the strides from a given shape, assuming tensor is contiguous
+	inline Shape calcStridesFromShape(const Shape& shape)
+	{
+		Shape strides(shape);
+		for (size_t k = 0; k < strides.size(); k += 1)
+		{
+			strides[k] = 1;
+			for (size_t i = k + 1; i < strides.size(); i += 1)
+			{
+				strides[k] *= shape[i];
+			}
+		}
+		return strides;
+	}
 
     class Tensor;    
     ///
@@ -29,6 +44,7 @@ namespace dlprim {
             mDtype(d)
         {
             is_trainable_ = trainable && d.isFloatingPoint();
+            mStride = calcStridesFromShape(s);
         }
         
         bool operator==(TensorSpecs const &other) const
