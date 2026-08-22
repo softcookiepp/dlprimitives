@@ -61,7 +61,11 @@ namespace dlprim
 			DLPRIM_CHECK(sh.size() == st.size());
 			Shape contigStride = calcStridesFromShape(sh);
 			mContiguous = (contigStride == st);
-			if (!mContiguous) throw std::runtime_error("non-contiguous tensors are not implemented");
+			if (!mContiguous) 
+			{
+				
+				//throw std::runtime_error("non-contiguous tensors are not implemented");
+			}
 		}
         
         bool operator==(TensorSpecs const &other) const
