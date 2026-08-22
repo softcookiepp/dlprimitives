@@ -62,7 +62,6 @@ namespace dlprim {
 		capacity_(sh.total_size()*dt.size()), // todo: see if this actually needs to be different because of stride weirdness
 		full_capacity_(capacity_ + offset * dt.size())
 	{
-		throw std::runtime_error("not implemented");
 		buffer_ = buffer;
 	}
     
