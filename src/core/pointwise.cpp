@@ -372,16 +372,23 @@ namespace core {
 			DLPRIM_CHECK(!ys.empty());
 
 			std::vector<Shape> shapes(xs.size() + ys.size());
+			std::vector<Shape> strides(xs.size() + ys.size());
 			for(size_t i=0;i<xs.size();i++)
+			{
 				shapes[i] = xs[i].shape();
+				strides[i] = xs[i].stride();
+			}
 			for(size_t j=0;j<ys.size();j++)
+			{
 				shapes[j+xs.size()] = ys[j].shape();
+				strides[j+xs.size()] = ys[j].stride();
+			}
 
 			shrink_broadcast_ranges(shapes);
 			
 			ref_ = shapes[0]; // ys[0]
 			for(size_t i=1;i<shapes.size();i++) {
-				ref_ = broadcast(ref_,shapes[i]);
+				ref_ = broadcast(ref_, shapes[i]);
 			}
 			// all yes same
 			for(size_t i=xs.size()+1;i<shapes.size();i++) {
@@ -392,8 +399,24 @@ namespace core {
 			params_count_ = weights_count;
 			ws_size_ = 0;
 
-			for(size_t i=0;i<shapes.size();i++) {
+			for(size_t i=0;i<shapes.size();i++)
+			{
 				strides_[i] = shapes[i].broadcast_strides(ref_);
+				#if 0
+					if (strides_[i] != strides[i])
+					{
+						std::cout << "	shape: ";
+						for(size_t j = 0; j < shapes[i].size(); j += 1)
+							std::cout << shapes[i][j] << ", ";
+						std::cout << "\n	broadcasted strides: ";
+						for (size_t j = 0; j < strides_[i].size(); j += 1)
+							std::cout << strides_[i][j] << ", ";
+						std::cout << "\n	regular strides: ";
+						for (size_t j = 0; j < strides[i].size(); j += 1)
+							std::cout << strides[i][j] << ", ";
+						std::cout << std::endl;
+					}
+				#endif
 			}
 			
 			std::vector<int> reduce_dims,non_reduce_dims;

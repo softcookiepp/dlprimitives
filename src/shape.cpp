@@ -144,7 +144,7 @@ namespace dlprim {
     /// calculate numpy style broadcast shape
     Shape broadcast(Shape const &ain,Shape const &bin)
     {
-        Shape a=ain,b=bin;
+        Shape a=ain, b=bin;
         while(a.size() < b.size())
             a=a.unsqueeze(0);
         while(b.size() < a.size())
