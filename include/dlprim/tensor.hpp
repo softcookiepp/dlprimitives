@@ -25,6 +25,32 @@ namespace dlprim
 		}
 		return strides;
 	}
+	
+	// adapted from pytorch's at::_geometry_is_contiguous
+	inline bool geometryIsContiguous(const Shape& sizes, const Shape& strides)
+	{
+		// check for overflow, maaaybe later
+		//assert(!overflows<std::int64_t>(sizes.size()));
+		size_t dim = sizes.size();
+		size_t expected_stride = 1;
+		bool contig_if_nonempty = true;
+		for (size_t i = dim - 1; i >= 0; i--)
+		{
+			if (sizes[i] == 0)
+			{
+				return true;
+			}
+			if (contig_if_nonempty)
+			{
+				if (sizes[i] != 1 && strides[i] != expected_stride)
+				{
+					contig_if_nonempty = false;
+				}
+				expected_stride *= sizes[i];
+			}
+		}
+		return contig_if_nonempty;
+	}
 
     class Tensor;    
     ///
@@ -59,13 +85,7 @@ namespace dlprim
 			mDtype(dt)
 		{
 			DLPRIM_CHECK(sh.size() == st.size());
-			Shape contigStride = calcStridesFromShape(sh);
-			mContiguous = (contigStride == st);
-			if (!mContiguous) 
-			{
-				
-				//throw std::runtime_error("non-contiguous tensors are not implemented");
-			}
+			mContiguous = geometryIsContiguous(shape_, mStride);
 		}
         
         bool operator==(TensorSpecs const &other) const
