@@ -34,7 +34,45 @@ namespace core {
         else if (dt == tart::dtypes::uint8)   k->setArg(p++, uint8_t(value));
 		else throw std::runtime_error("Unsupported type");
     }
-
+	
+	void pointwiseOpStrided(
+			const std::vector<Tensor>& xs,
+			const std::vector<Tensor>& ys,
+			std::vector<float> ws,
+			const std::string& code
+		)
+	{
+		throw std::runtime_error("not implemented");
+		// This will be a starting point for implementing strided tensor functionality.
+		// A re-implementation of pointwise_operation, but supporting strided, non-contiguous tensors.
+		// In addition to this, it will also use pre-defined code 
+		uint32_t inputArity = xs.size();
+		uint32_t outputArity = ys.size();
+		
+		if (inputArity == 1)
+		{
+			if (outputArity == 1)
+			{
+				
+			}
+			else
+			{
+				throw std::runtime_error("outputArity != 1 not implemented");
+			}
+		}
+		else if (inputArity == 2)
+		{
+			if (outputArity == 1)
+			{
+				
+			}
+			else
+			{
+				throw std::runtime_error("outputArity != 1 not implemented");
+			}
+		}
+	}
+	
     void pointwise_operation(std::vector<Tensor> xs,
                              std::vector<Tensor> ys,
                              std::vector<double>  ws,
