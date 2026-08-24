@@ -423,15 +423,9 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 	}
 	else if (dtypes.size() == 2)
 	{
-		#if 1
-			bool use_io_type = (dtypes[0] == dtypes[1]);
-			tart::DType dt0 = dtypes[0];
-			tart::DType dt1 = dtypes[1];
-		#else
-			bool use_io_type = (dtypes[0] == dtypes[1]);
-			tart::DType dt0 = data_type_to_tart_dtype(dtypes[0], use_io_type);
-			tart::DType dt1 = data_type_to_tart_dtype(dtypes[1], use_io_type);
-		#endif
+		bool use_io_type = (dtypes[0] == dtypes[1]);
+		tart::DType dt0 = dtypes[0];
+		tart::DType dt1 = dtypes[1];
 		
 		// avoid compilation errors
 		if (dt1.isFloatingPoint())
@@ -440,6 +434,11 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 		}
 		mNullLossBwdProgram = gpu::Cache::instance().get_program(device, "nll_loss_bwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
 		mNullLossFwdProgram = gpu::Cache::instance().get_program(device, "nll_loss_fwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
+	}
+	else if(dtypes.size() == 3)
+	{
+		// And here it is.
+		mGemm2Program = gpu::Cache::instance().get_program(device, "gemm2", "A_TYPE", dtypes[0].glsl(), "B_TYPE", dtypes[1].glsl(), "D_TYPE", dtypes[2].glsl());
 	}
 }
 

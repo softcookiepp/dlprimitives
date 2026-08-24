@@ -78,6 +78,8 @@ class AllPrograms
 	
 	tart::program_ptr mFwdBiasProgram = nullptr;
 	
+	tart::program_ptr mGemm2Program = nullptr;
+	
 	tart::program_ptr mIm2colProgram = nullptr;
 	
 	tart::program_ptr mInterpolate2dProgram = nullptr;
@@ -160,6 +162,8 @@ public:
 	inline const tart::program_ptr& col2im(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mCol2imProgram; }
 	
 	inline const tart::program_ptr& fwd_bias(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mFwdBiasProgram; }
+	
+	inline const tart::program_ptr& gemm2(const tart::device_ptr& device, const tart::DType& atype, const tart::DType& btype, const tart::DType ctype) { return getAllPrograms(device, {atype, btype, ctype}).mGemm2Program; }
 	
 	inline const tart::program_ptr& im2col(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mIm2colProgram; }
 	
