@@ -33,6 +33,7 @@ namespace dlprim {
         Shape(size_t d1,size_t d2,size_t d3,size_t d4,size_t d5,size_t d6): shape_({d1,d2,d3,d4,d5,d6}),size_(6) {}
         Shape(size_t d1,size_t d2,size_t d3,size_t d4,size_t d5,size_t d6,size_t d7): shape_({d1,d2,d3,d4,d5,d6,d7}),size_(7) {}
         Shape(size_t d1,size_t d2,size_t d3,size_t d4,size_t d5,size_t d6,size_t d7,size_t d8): shape_({d1,d2,d3,d4,d5,d6,d7,d8}),size_(8) {}
+        Shape(size_t s, const std::array<size_t, max_tensor_dim>& otherData) : size_(s), shape_(otherData) {}
        
         ///
         /// Initialize from pair of iterators

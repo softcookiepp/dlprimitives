@@ -34,10 +34,53 @@ namespace core {
         else if (dt == tart::dtypes::uint8)   k->setArg(p++, uint8_t(value));
 		else throw std::runtime_error("Unsupported type");
     }
+    
+    Shape flatIndexToPos(size_t idx, const Shape& shape)
+    {
+		Shape pos = shape;
+		size_t coef = 1;
+		for (int i = shape.size() - 1; i >= 0; i -= 1)
+		{
+			size_t dLen = shape[i];
+			size_t mod = (idx/coef) % dLen;
+			pos[i] = mod;
+			coef *= dLen;
+		}
+		return pos;
+	}
+    
+    std::vector<uint32_t> calcStridedBatchOffsets(Tensor x, size_t batchDims = 1)
+    {
+		if (batchDims != 1) throw std::runtime_error("not implemented");
+		
+		// if x is just a single - dimension tensor, it only needs 1 batch
+		if (x.shape().size() == batchDims) return {x.device_offset()};
+		
+		std::array<size_t, max_tensor_dim> newShapeData;
+		for (size_t i = 0; i < x.shape().size() - 1; i += 1)
+		{
+			newShapeData[i] = x.shape()[i];
+		}
+		Shape batchShape(x.shape().size() - 1, newShapeData);
+		std::cout << "	Shape: " << x.shape() << "\n	Batch shape: " << batchShape << "\n	Strides: " << x.stride() << std::endl;
+		std::vector<uint32_t> offsets(batchShape.total_size());
+		for (size_t i = 0; i < batchShape.total_size(); i += 1)
+		{
+			Shape batchPos = flatIndexToPos(i, batchShape);
+			uint32_t offset = x.device_offset();
+			for (size_t j = 0; j < batchPos.size(); j += 1)
+			{
+				offset += (x.stride()[j]*batchPos[j]);
+			}
+			std::cout << "		offset at " << i << ": " << offset << std::endl;
+			offsets[i] = offset;
+		}
+		return offsets;
+	}
 	
 	void pointwiseOpStrided(
-			const std::vector<Tensor>& xs,
-			const std::vector<Tensor>& ys,
+			std::vector<Tensor> xs,
+			std::vector<Tensor> ys,
 			std::vector<float> ws,
 			const std::string& code
 		)
@@ -45,7 +88,15 @@ namespace core {
 		throw std::runtime_error("not implemented");
 		// This will be a starting point for implementing strided tensor functionality.
 		// A re-implementation of pointwise_operation, but supporting strided, non-contiguous tensors.
-		// In addition to this, it will also use pre-defined code 
+		// In addition to this, it will also use pre-defined code
+		DLPRIM_CHECK(xs.size() > 0 && ys.size() > 0);
+		uint32_t xTotal = xs[0].shape().total_size();
+		for (const auto& x : xs)
+			DLPRIM_CHECK(xTotal == x.shape().total_size());
+		for (const auto& y : ys)
+			DLPRIM_CHECK(xTotal == y.shape().total_size());
+		
+		
 		uint32_t inputArity = xs.size();
 		uint32_t outputArity = ys.size();
 		
@@ -53,7 +104,20 @@ namespace core {
 		{
 			if (outputArity == 1)
 			{
+				// first get the offsets and buffers
+				tart::buffer_ptr x0buf = xs[0].device_buffer();
+				uint32_t x0offset = xs[0].device_offset();
+				tart::buffer_ptr y0buf = ys[0].device_buffer();
+				uint32_t y0offset = ys[0].device_offset();
 				
+				// calculate the batch offsets for x0 and y0
+				std::vector<uint32_t> x0BatchOffsets = calcStridedBatchOffsets(xs[0]);
+				std::vector<uint32_t> y0BatchOffsets = calcStridedBatchOffsets(ys[0]);
+				DLPRIM_CHECK(x0BatchOffsets.size() == y0BatchOffsets.size());
+				for (size_t i = 0; i < x0BatchOffsets.size(); i += 1)
+				{
+					throw std::runtime_error("not implemented quite yet :c");
+				}
 			}
 			else
 			{
@@ -99,6 +163,16 @@ namespace core {
 			ref = xs[0].shape();
 			ref_type = xs[0].dtype();
 		}
+		
+		#if 0
+			// Just a little test
+			std::cout << "	Ref: " << ref << std::endl;
+			for (size_t i = 0; i < ref.total_size(); i += 1)
+			{
+				Shape pos = flatIndexToPos(i, ref);
+				std::cout << "		Ref pos at " << i << ": " << pos << std::endl;
+			}
+		#endif
 		
 		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().getPointwiseOperation(device, xs, ys, ws, code);
 		
@@ -215,6 +289,14 @@ namespace core {
     {
         DLPRIM_CHECK(!xs.empty());
         DLPRIM_CHECK(!ys.empty());
+        
+        #if 0
+			for (auto x: xs)
+				calcStridedBatchOffsets(x);
+			for (auto y: ys)
+				calcStridedBatchOffsets(y);
+        #endif
+        
         DLPRIM_CHECK(ws.size() == dts.size());
         tart::device_ptr device = tensorDevice(xs[0]);
         

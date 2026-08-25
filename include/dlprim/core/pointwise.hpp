@@ -18,6 +18,18 @@ namespace core {
     
     std::string format_code(std::string const &code);
     
+    enum class PointwiseOp
+    {
+		// unary x, unary y
+		eIdentity = 0,
+		eFill = 1
+	};
+    
+    void pointwiseOpStrided(std::vector<Tensor> xs,
+			std::vector<Tensor> ys,
+			std::vector<float> ws,
+			const PointwiseOp op);
+    
     ///
     /// per form operations function(xs,ws)->yw such that
     /// each tensor in xs and ys has same shape, ws are constant parameters
