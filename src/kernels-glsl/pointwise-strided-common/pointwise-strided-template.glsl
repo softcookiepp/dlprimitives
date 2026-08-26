@@ -85,6 +85,7 @@ layout(push_constant, std430) uniform push
 #define ROUTINE_MUL 4
 #define ROUTINE_DIV 5
 #define ROUTINE_AXPY 6
+#define ROUTINE_SCALE 7
 
 typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 {
@@ -93,6 +94,8 @@ typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 		y0 = typeof_y0(x0);
 	else if (POINTWISE_ROUTINE == ROUTINE_FILL)
 		y0 = typeof_y0(w[0]);
+	else if (POINTWISE_ROUTINE == ROUTINE_SCALE)
+		y0 = typeof_y0(x0)*typeof_y0(w[0]);
 	return y0;
 }
 
