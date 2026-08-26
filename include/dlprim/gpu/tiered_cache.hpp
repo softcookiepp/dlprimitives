@@ -87,6 +87,9 @@ class AllPrograms
 	tart::program_ptr mNullLossBwdProgram = nullptr;
 	tart::program_ptr mNullLossFwdProgram = nullptr;
 	
+	tart::program_ptr mPointwiseBinaryUnaryProgram = nullptr;
+	tart::program_ptr mPointwiseUnaryUnaryProgram = nullptr;
+	
 	tart::program_ptr mPoolingProgram = nullptr;
 	tart::program_ptr mGlobalPoolingProgram = nullptr;
 	
@@ -171,6 +174,9 @@ public:
 	
 	inline const tart::program_ptr& nll_loss_bwd(const tart::device_ptr& device, const tart::DType dt, const tart::DType it) { return getAllPrograms(device, {dt, it}).mNullLossBwdProgram; }
 	inline const tart::program_ptr& nll_loss_fwd(const tart::device_ptr& device, const tart::DType dt, const tart::DType it) { return getAllPrograms(device, {dt, it}).mNullLossFwdProgram; }
+	
+	inline const tart::program_ptr& pointwise_binary_unary(const tart::device_ptr& device, const tart::DType& x0t, const tart::DType& x1t, const tart::DType& yt) { return getAllPrograms(device, {x0t, x1t, yt}).mPointwiseBinaryUnaryProgram; }
+	inline const tart::program_ptr& pointwise_unary_unary(const tart::device_ptr& device, const tart::DType& xt, const tart::DType& yt) { return getAllPrograms(device, {xt, yt}).mPointwiseUnaryUnaryProgram; }
 	
 	inline const tart::program_ptr& pooling(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mPoolingProgram; }
 	inline const tart::program_ptr& global_pooling(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mGlobalPoolingProgram; }

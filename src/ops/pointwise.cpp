@@ -62,7 +62,11 @@ namespace dlprim {
 
     void Threshold::forward_gpu(Tensor &x,Tensor &y)
     {
-        core::pointwise_operation({x},{y},{cfg_.threshold},"y0 = typeof_y0(cmp_gt(x0, w0) ? 1 : 0);");
+		#if 0
+			core::pointwiseOpStrided();
+		#else
+			core::pointwise_operation({x},{y},{cfg_.threshold},"y0 = typeof_y0(cmp_gt(x0, w0) ? 1 : 0);");
+		#endif
     }
     void Threshold::backward_gpu(Tensor &,Tensor &dx,Tensor &,Tensor &,float beta)
     {

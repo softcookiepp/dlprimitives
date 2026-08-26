@@ -82,10 +82,9 @@ namespace core {
 			std::vector<Tensor> xs,
 			std::vector<Tensor> ys,
 			std::vector<float> ws,
-			const std::string& code
-		)
+			PointwiseOp op,
+			const bool forceBatched)
 	{
-		throw std::runtime_error("not implemented");
 		// This will be a starting point for implementing strided tensor functionality.
 		// A re-implementation of pointwise_operation, but supporting strided, non-contiguous tensors.
 		// In addition to this, it will also use pre-defined code
@@ -96,43 +95,116 @@ namespace core {
 		for (const auto& y : ys)
 			DLPRIM_CHECK(xTotal == y.shape().total_size());
 		
-		
-		uint32_t inputArity = xs.size();
-		uint32_t outputArity = ys.size();
-		
-		if (inputArity == 1)
+		tart::device_ptr device = tensorDevice(xs[0]);
+		bool allContiguous = true;
+		for (auto& x : xs)
 		{
-			if (outputArity == 1)
+			if (!x.isContiguous())
 			{
-				// first get the offsets and buffers
-				tart::buffer_ptr x0buf = xs[0].device_buffer();
-				uint32_t x0offset = xs[0].device_offset();
-				tart::buffer_ptr y0buf = ys[0].device_buffer();
-				uint32_t y0offset = ys[0].device_offset();
-				
-				// calculate the batch offsets for x0 and y0
-				std::vector<uint32_t> x0BatchOffsets = calcStridedBatchOffsets(xs[0]);
-				std::vector<uint32_t> y0BatchOffsets = calcStridedBatchOffsets(ys[0]);
-				DLPRIM_CHECK(x0BatchOffsets.size() == y0BatchOffsets.size());
-				for (size_t i = 0; i < x0BatchOffsets.size(); i += 1)
+				allContiguous = false;
+				break;
+			}
+		}
+		if (allContiguous)
+		{
+			for (auto& y : ys)
+			{
+				if (!y.isContiguous())
 				{
-					throw std::runtime_error("not implemented quite yet :c");
+					allContiguous = false;
+					break;
 				}
+			}
+		}
+		
+		tart::kernel_ptr k = nullptr;
+		if (xs.size() == 1)
+		{
+			if (ys.size() == 1)
+			{
+				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_unary_unary(device, xs[0].dtype(), ys[0].dtype());
+				k = prg->getKernel("exec");
 			}
 			else
 			{
 				throw std::runtime_error("outputArity != 1 not implemented");
 			}
 		}
-		else if (inputArity == 2)
+		else if (xs.size() == 2)
 		{
-			if (outputArity == 1)
+			if (ys.size() == 1)
 			{
-				
+				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_binary_unary(device,
+					xs[0].dtype(), xs[1].dtype(), ys[0].dtype());
+				k = prg->getKernel("exec");
 			}
 			else
 			{
 				throw std::runtime_error("outputArity != 1 not implemented");
+			}
+		}
+		
+		if (allContiguous && ! forceBatched)
+		{
+			// The entire operation can be done in one batch if both are contiguous.
+			
+			// get the offsets and buffers
+			tart::buffer_ptr x0buf = xs[0].device_buffer();
+			uint32_t x0offset = xs[0].device_offset();
+			tart::buffer_ptr y0buf = ys[0].device_buffer();
+			uint32_t y0offset = ys[0].device_offset();
+			
+			// Since all tensors are contiguous,
+			// it can be assumed that x0_inc == 1 and y0_inc == 1
+			const uint32_t inc = 1;
+			
+			size_t p = 0;
+			for (Tensor& x : xs)
+			{
+				k->setArg(p++, x.device_buffer());
+				k->setArg(p++, x.device_offset());
+				k->setArg(p++, inc);
+			}
+			for (Tensor& y : ys)
+			{
+				k->setArg(p++, y.device_buffer());
+				k->setArg(p++, y.device_offset());
+				k->setArg(p++, inc);
+			}
+			k->setArg(p++, xTotal);
+			k->setArg(p++, ws);
+			
+			auto glPair = device->chooseGlobalAndLocalSize({xTotal, 1, 1});
+			std::vector<uint32_t> spec = {
+				glPair.second[0],
+				glPair.second[1],
+				glPair.second[2],
+				static_cast<uint32_t>(ws.size()),
+				static_cast<uint32_t>(op)
+			};
+			k->enqueue(glPair.first, spec);
+		}
+		else
+		{
+			throw std::runtime_error("not implemented!");
+			
+			// Last dimensions need to be the same, since this determines the global size required
+			DLPRIM_CHECK(xs[0].shape().size() > 0 && xs[0].shape().size() > 0);
+			DLPRIM_CHECK(xs[0].shape()[xs[0].shape().size() - 1] == ys[0].shape()[ys[0].shape().size() - 1]);
+		
+			// first get the offsets and buffers
+			tart::buffer_ptr x0buf = xs[0].device_buffer();
+			uint32_t x0offset = xs[0].device_offset();
+			tart::buffer_ptr y0buf = ys[0].device_buffer();
+			uint32_t y0offset = ys[0].device_offset();
+			
+			// calculate the batch offsets for x0 and y0
+			std::vector<uint32_t> x0BatchOffsets = calcStridedBatchOffsets(xs[0]);
+			std::vector<uint32_t> y0BatchOffsets = calcStridedBatchOffsets(ys[0]);
+			DLPRIM_CHECK(x0BatchOffsets.size() == y0BatchOffsets.size());
+			for (size_t i = 0; i < x0BatchOffsets.size(); i += 1)
+			{
+				throw std::runtime_error("not implemented quite yet :c");
 			}
 		}
 	}

@@ -22,13 +22,19 @@ namespace core {
     {
 		// unary x, unary y
 		eIdentity = 0,
-		eFill = 1
+		eFill = 1,
+		eAdd = 2,
+		eSub = 3,
+		eMul = 4,
+		eDiv = 5,
+		eAxpy = 6
 	};
     
     void pointwiseOpStrided(std::vector<Tensor> xs,
 			std::vector<Tensor> ys,
 			std::vector<float> ws,
-			const PointwiseOp op);
+			const PointwiseOp op,
+			const bool forceBatched = false);
     
     ///
     /// per form operations function(xs,ws)->yw such that

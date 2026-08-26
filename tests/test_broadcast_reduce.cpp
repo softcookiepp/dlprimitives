@@ -238,7 +238,7 @@ void test_pointwise(const tart::device_ptr& q)
         auto ref=make_tensor<Type>(q,dp::Shape(3,2),{6,8,10,12,14,16});
         dp::Tensor c(q,dp::Shape(3,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation({a,b},{c},{},"y0=x0+x1;");
+		pointwiseOpStrided({a, b}, {c}, {}, dp::core::PointwiseOp::eAdd);
         TEST(equal(c,ref,q));
     }
     {
@@ -246,8 +246,7 @@ void test_pointwise(const tart::device_ptr& q)
         auto b=make_tensor<Type>(q,dp::Shape(3,2),{5,6,7,8,9,10});
         auto ref=make_tensor<Type>(q,dp::Shape(3,2),{-4,-4,-4,-4,-4,-4});
         dp::Tensor c(q,dp::Shape(3,2),a.dtype());
-        std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation({a,b},{c},{-1},"y0=x0+w0*x1;");
+		pointwiseOpStrided({b, a}, {c}, {-1}, dp::core::PointwiseOp::eAxpy);
         TEST(equal(c,ref,q));
     }
 }

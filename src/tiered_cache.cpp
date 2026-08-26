@@ -3,6 +3,7 @@
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/gpu/tiered_cache.hpp>
 #include <sstream>
+#include <iostream>
 
 namespace dlprim
 {
@@ -434,11 +435,18 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 		}
 		mNullLossBwdProgram = gpu::Cache::instance().get_program(device, "nll_loss_bwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
 		mNullLossFwdProgram = gpu::Cache::instance().get_program(device, "nll_loss_fwd", "dtype", dt0.glsl(), "itype", dt1.glsl());
+		
+		mPointwiseUnaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-unary-unary", "typeof_x0", dt0.glsl(), "typeof_y0", dt1.glsl());
 	}
 	else if(dtypes.size() == 3)
 	{
-		// And here it is.
-		mGemm2Program = gpu::Cache::instance().get_program(device, "gemm2", "A_TYPE", dtypes[0].glsl(), "B_TYPE", dtypes[1].glsl(), "D_TYPE", dtypes[2].glsl());
+		// Disable, as it currently does not compile
+		// mGemm2Program = gpu::Cache::instance().get_program(device, "gemm2", "A_TYPE", dtypes[0].glsl(), "B_TYPE", dtypes[1].glsl(), "D_TYPE", dtypes[2].glsl());
+		
+		mPointwiseBinaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-binary-unary",
+			"typeof_x0", dtypes[0].glsl(),
+			"typeof_x1", dtypes[1].glsl(),
+			"typeof_y0", dtypes[2].glsl());
 	}
 }
 

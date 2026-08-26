@@ -16,7 +16,11 @@ namespace dlprim
 
         {
             if(accum == 0)
-                core::pointwise_operation({src},{tgt},{},"y0=x0;");
+				#if 1
+					core::pointwiseOpStrided({src}, {tgt}, {}, core::PointwiseOp::eIdentity);
+				#else
+					core::pointwise_operation({src},{tgt},{},"y0=x0;");
+				#endif
             else
                 core::pointwise_operation({src,tgt},{tgt},{accum},"y0=x0+w0*x1;");
         }
