@@ -19,7 +19,7 @@ namespace dlprim {
 		DLPRIM_CHECK(dim <= sizes.getRawShape().size());
 		size_t expected_stride = 1;
 		bool contig_if_nonempty = true;
-		for (size_t i = dim - 1; i >= 0; i--)
+		for (int64_t i = dim - 1; i >= 0; i--)
 		{
 			if (sizes[i] == 0)
 			{
