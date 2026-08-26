@@ -86,6 +86,11 @@ layout(push_constant, std430) uniform push
 #define ROUTINE_DIV 5
 #define ROUTINE_AXPY 6
 #define ROUTINE_SCALE 7
+#define ROUTINE_ADD_SCALAR 8
+#define ROUTINE_SUB_SCALAR 9
+#define ROUTINE_DIV_SCALAR 10
+#define ROUTINE_RSUB_SCALAR 11
+#define ROUTINE_RDIV_SCALAR 12
 
 typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 {
@@ -96,6 +101,16 @@ typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 		y0 = typeof_y0(w[0]);
 	else if (POINTWISE_ROUTINE == ROUTINE_SCALE)
 		y0 = typeof_y0(x0)*typeof_y0(w[0]);
+	else if (POINTWISE_ROUTINE == ROUTINE_ADD_SCALAR)
+		y0 = typeof_y0(x0) + typeof_y0(w[0]);
+	else if (POINTWISE_ROUTINE == ROUTINE_SUB_SCALAR)
+		y0 = typeof_y0(x0) - typeof_y0(w[0]);
+	else if (POINTWISE_ROUTINE == ROUTINE_DIV_SCALAR)
+		y0 = typeof_y0(x0)/typeof_y0(w[0]);
+	else if (POINTWISE_ROUTINE == ROUTINE_RSUB_SCALAR)
+		y0 = typeof_y0(w[0]) - typeof_y0(x0);
+	else if (POINTWISE_ROUTINE == ROUTINE_RDIV_SCALAR)
+		y0 = typeof_y0(w[0])/typeof_y0(x0);
 	return y0;
 }
 

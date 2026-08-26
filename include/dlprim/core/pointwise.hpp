@@ -28,7 +28,12 @@ namespace core {
 		eMul = 4,
 		eDiv = 5,
 		eAxpy = 6,
-		eScale = 7
+		eScale = 7,
+		eAddScalar = 8,
+		eSubScalar = 9,
+		eDivScalar = 10,
+		eRsubScalar = 11,
+		eRdivScalar = 12
 	};
     
     void pointwiseOpStrided(std::vector<Tensor> xs,
