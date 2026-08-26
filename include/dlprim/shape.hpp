@@ -165,6 +165,8 @@ namespace dlprim {
         {
             return begin() + size_;
         }
+        
+        const std::array<size_t, max_tensor_dim>& getRawShape() const { return shape_; }
 
     private:
         std::array<size_t,max_tensor_dim> shape_;
