@@ -36,7 +36,8 @@ namespace core {
 		eRdivScalar = 12,
 		ePow = 13,
 		eAxpb = 14,
-		eAxpby = 15
+		eAxpby = 15,
+		eHardtanh = 16
 	};
     
     void pointwiseOpStrided(std::vector<Tensor> xs,
