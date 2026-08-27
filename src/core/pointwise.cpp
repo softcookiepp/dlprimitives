@@ -98,6 +98,7 @@ namespace core {
 		}
 		for (size_t i = 0; i < ys.size(); i += 1)
 		{
+			std::cout << "	y[" << i << "] offset: " << yOffsets[i] << std::endl;
 			k->setArg(p++, ys[i].device_buffer());
 			k->setArg(p++, yOffsets[i]);
 			k->setArg(p++, static_cast<uint32_t>(ys[i].stride()[ys[i].stride().size() - 1]));
