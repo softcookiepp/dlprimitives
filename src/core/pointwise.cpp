@@ -62,7 +62,7 @@ namespace core {
 			newShapeData[i] = x.shape()[i];
 		}
 		Shape batchShape(x.shape().size() - 1, newShapeData);
-		std::cout << "	Shape: " << x.shape() << "\n	Batch shape: " << batchShape << "\n	Strides: " << x.stride() << std::endl;
+		//std::cout << "	Shape: " << x.shape() << "\n	Batch shape: " << batchShape << "\n	Strides: " << x.stride() << std::endl;
 		std::vector<uint32_t> offsets(batchShape.total_size());
 		for (size_t i = 0; i < batchShape.total_size(); i += 1)
 		{
@@ -72,10 +72,48 @@ namespace core {
 			{
 				offset += (x.stride()[j]*batchPos[j]);
 			}
-			std::cout << "		offset at " << i << ": " << offset << std::endl;
+			//std::cout << "		offset at " << i << ": " << offset << std::endl;
 			offsets[i] = offset;
 		}
 		return offsets;
+	}
+	
+	void pointwiseOpSingleBatch(
+			const tart::device_ptr& device,
+			uint32_t total,
+			std::vector<Tensor> xs,
+			const std::vector<uint32_t>& xOffsets,
+			std::vector<Tensor> ys,
+			const std::vector<uint32_t>& yOffsets,
+			std::vector<float> ws,
+			PointwiseOp op,
+			const tart::kernel_ptr& k)
+	{		
+		size_t p = 0;
+		for (size_t i = 0; i < xs.size(); i += 1)
+		{
+			k->setArg(p++, xs[i].device_buffer());
+			k->setArg(p++, xOffsets[i]);
+			k->setArg(p++, static_cast<uint32_t>(xs[i].stride()[xs[i].stride().size() - 1]));
+		}
+		for (size_t i = 0; i < ys.size(); i += 1)
+		{
+			k->setArg(p++, ys[i].device_buffer());
+			k->setArg(p++, yOffsets[i]);
+			k->setArg(p++, static_cast<uint32_t>(ys[i].stride()[ys[i].stride().size() - 1]));
+		}
+		k->setArg(p++, total);
+		k->setArg(p++, ws);
+		
+		auto glPair = device->chooseGlobalAndLocalSize({total, 1, 1});
+		std::vector<uint32_t> spec = {
+			glPair.second[0],
+			glPair.second[1],
+			glPair.second[2],
+			static_cast<uint32_t>(ws.size()),
+			static_cast<uint32_t>(op)
+		};
+		k->enqueue(glPair.first, spec);
 	}
 	
 	void pointwiseOpStrided(
@@ -146,65 +184,39 @@ namespace core {
 		
 		if (allContiguous && ! forceBatched)
 		{
-			// The entire operation can be done in one batch if both are contiguous.
-			
-			// get the offsets and buffers
-			tart::buffer_ptr x0buf = xs[0].device_buffer();
-			uint32_t x0offset = xs[0].device_offset();
-			tart::buffer_ptr y0buf = ys[0].device_buffer();
-			uint32_t y0offset = ys[0].device_offset();
-			
-			// Since all tensors are contiguous,
-			// it can be assumed that x0_inc == 1 and y0_inc == 1
-			const uint32_t inc = 1;
-			
-			size_t p = 0;
-			for (Tensor& x : xs)
-			{
-				k->setArg(p++, x.device_buffer());
-				k->setArg(p++, x.device_offset());
-				k->setArg(p++, inc);
-			}
-			for (Tensor& y : ys)
-			{
-				k->setArg(p++, y.device_buffer());
-				k->setArg(p++, y.device_offset());
-				k->setArg(p++, inc);
-			}
-			k->setArg(p++, xTotal);
-			k->setArg(p++, ws);
-			
-			auto glPair = device->chooseGlobalAndLocalSize({xTotal, 1, 1});
-			std::vector<uint32_t> spec = {
-				glPair.second[0],
-				glPair.second[1],
-				glPair.second[2],
-				static_cast<uint32_t>(ws.size()),
-				static_cast<uint32_t>(op)
-			};
-			k->enqueue(glPair.first, spec);
+			std::vector<uint32_t> xOffsets(xs.size());
+			for (size_t i = 0; i < xs.size(); i += 1)
+				xOffsets[i] = xs[i].device_offset();
+			std::vector<uint32_t> yOffsets(ys.size());
+			for (size_t i = 0; i < ys.size(); i += 1)
+				yOffsets[i] = ys[i].device_offset();
+			pointwiseOpSingleBatch(device, xTotal, xs, xOffsets, ys, yOffsets, ws, op, k);
 		}
 		else
 		{
-			throw std::runtime_error("not implemented!");
-			
+			// This is a lot of code. It could probably use some refactoring
 			// Last dimensions need to be the same, since this determines the global size required
 			DLPRIM_CHECK(xs[0].shape().size() > 0 && xs[0].shape().size() > 0);
 			DLPRIM_CHECK(xs[0].shape()[xs[0].shape().size() - 1] == ys[0].shape()[ys[0].shape().size() - 1]);
 		
-			// first get the offsets and buffers
-			tart::buffer_ptr x0buf = xs[0].device_buffer();
-			uint32_t x0offset = xs[0].device_offset();
-			tart::buffer_ptr y0buf = ys[0].device_buffer();
-			uint32_t y0offset = ys[0].device_offset();
+			std::vector<std::vector<uint32_t>> xOffsetBatches(xs.size());
+			for (size_t i = 0; i < xs.size(); i += 1)
+				xOffsetBatches[i] = calcStridedBatchOffsets(xs[i]);
+			std::vector<std::vector<uint32_t>> yOffsetBatches(ys.size());
+			for (size_t i = 0; i < ys.size(); i += 1)
+				yOffsetBatches[i] = calcStridedBatchOffsets(ys[i]);
+			DLPRIM_CHECK(xOffsetBatches.size() == xs.size() && ys.size() == yOffsetBatches.size());
+			size_t numBatches = xOffsetBatches[0].size();
+			for (size_t i = 0; i < xOffsetBatches.size(); i += 1) DLPRIM_CHECK(xOffsetBatches[i].size() == numBatches);
+			for (size_t i = 0; i < yOffsetBatches.size(); i += 1) DLPRIM_CHECK(yOffsetBatches[i].size() == numBatches);
 			
-			// calculate the batch offsets for x0 and y0
-			std::vector<uint32_t> x0BatchOffsets = calcStridedBatchOffsets(xs[0]);
-			std::vector<uint32_t> y0BatchOffsets = calcStridedBatchOffsets(ys[0]);
-			DLPRIM_CHECK(x0BatchOffsets.size() == y0BatchOffsets.size());
-			for (size_t i = 0; i < x0BatchOffsets.size(); i += 1)
+			std::vector<uint32_t> xOffsets(xs.size());
+			std::vector<uint32_t> yOffsets(ys.size());
+			for (size_t batch = 0; batch < numBatches; batch += 1)
 			{
-				throw std::runtime_error("not implemented quite yet :c");
+				for (size_t i = 0; i < xs.size(); i += 1) xOffsets[i] = xOffsetBatches[i][batch];
+				for (size_t i = 0; i < ys.size(); i += 1) yOffsets[i] = yOffsetBatches[i][batch];
+				pointwiseOpSingleBatch(device, xTotal, xs, xOffsets, ys, yOffsets, ws, op, k);
 			}
 		}
 	}
