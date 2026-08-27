@@ -78,6 +78,11 @@ namespace core {
 		return offsets;
 	}
 	
+	uint32_t calcStridedBatchOffset(Tensor x, size_t batchDims = 1)
+	{
+		return 0;
+	}
+	
 	void pointwiseOpSingleBatch(
 			const tart::device_ptr& device,
 			uint32_t total,

@@ -92,6 +92,8 @@ layout(push_constant, std430) uniform push
 #define ROUTINE_RSUB_SCALAR 11
 #define ROUTINE_RDIV_SCALAR 12
 #define ROUTINE_POW 13
+#define ROUTINE_AXPB 14
+#define ROUTINE_AXPBY 15
 
 typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 {
@@ -113,8 +115,10 @@ typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 	else if (POINTWISE_ROUTINE == ROUTINE_RDIV_SCALAR)
 		y0 = typeof_y0(w[0])/typeof_y0(x0);
 	else if (POINTWISE_ROUTINE == ROUTINE_POW)
-		// compute as float, otherwise compiler errors arise too frequently
+		// compute as float, otherwise compiler errors arise too frequently due to missing overloads
 		y0 = typeof_y0(pow(dtype(x0), dtype(w[0])));
+	else if (POINTWISE_ROUTINE == ROUTINE_AXPB)
+		y0 = typeof_y0(w[0]*dtype(x0) + w[1]);
 	return y0;
 }
 
@@ -133,6 +137,8 @@ typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 			y0 = dtype(x0)/dtype(x1);
 		else if (POINTWISE_ROUTINE == ROUTINE_AXPY)
 			y0 = dtype(x0)*dtype(w[0]) + dtype(x1);
+		else if (POINTWISE_ROUTINE == ROUTINE_AXPBY)
+			y0 = dtype(dtype(x0)*dtype(w[0]) + dtype(w[1])*dtype(x1));
 		return typeof_y0(y0);
 	}
 #endif
