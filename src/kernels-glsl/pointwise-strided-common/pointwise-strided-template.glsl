@@ -106,6 +106,8 @@ typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 		y0 = typeof_y0(w[0]*dtype(x0) + w[1]);
 	else if (POINTWISE_ROUTINE == ROUTINE_HARDTANH)
 		y0 = max(typeof_y0(w[0]), min(typeof_y0(w[1]), typeof_y0(x0)));
+	else if (POINTWISE_ROUTINE == ROUTINE_HARDTANH_BWD)
+		y0 = (dtype(w[0]) <= dtype(x0) && dtype(x0) <= dtype(w[1])) ? typeof_y0(x1) : typeof_y0(0);
 	return y0;
 }
 
