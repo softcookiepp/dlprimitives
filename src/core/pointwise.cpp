@@ -62,7 +62,7 @@ namespace core {
 			newShapeData[i] = x.shape()[i];
 		}
 		Shape batchShape(x.shape().size() - 1, newShapeData);
-		//std::cout << "	Shape: " << x.shape() << "\n	Batch shape: " << batchShape << "\n	Strides: " << x.stride() << std::endl;
+		std::cout << "	Shape: " << x.shape() << "\n	Batch shape: " << batchShape << "\n	Strides: " << x.stride() << std::endl;
 		std::vector<uint32_t> offsets(batchShape.total_size());
 		for (size_t i = 0; i < batchShape.total_size(); i += 1)
 		{
@@ -72,7 +72,7 @@ namespace core {
 			{
 				offset += (x.stride()[j]*batchPos[j]);
 			}
-			//std::cout << "		offset at " << i << ": " << offset << std::endl;
+			std::cout << "		offset at " << i << ": " << offset << std::endl;
 			offsets[i] = offset;
 		}
 		return offsets;
