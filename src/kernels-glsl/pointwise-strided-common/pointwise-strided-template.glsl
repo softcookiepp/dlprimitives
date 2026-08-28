@@ -133,6 +133,12 @@ typeof_y0 pointwise_function_unary_unary(acctype x0)
 		y0 = x0 > A0 ? A0 : A1;
 	else if (POINTWISE_ROUTINE == ROUTINE_CLAMP)
 		y0 = max(acctype(w[0]), min(acctype(w[1]), x0));
+	else if (POINTWISE_ROUTINE == ROUTINE_CEIL)
+		y0 = ceil(x0);
+	else if (POINTWISE_ROUTINE == ROUTINE_GELU || POINTWISE_ROUTINE == ROUTINE_GELU_APPROXIMATE)
+		// For some reason, I simply couldn't get regular GELU to work.
+		// Until then, the approximate will always be used.
+		y0 = acctype(0.5f) * x0 * (A1 + tanh(acctype(0.7978845608028654f) * x0 * (A1 + acctype(0.044715f) * x0 * x0)));
 	return typeof_y0(y0);
 }
 
@@ -178,6 +184,15 @@ typeof_y0 pointwise_function_unary_unary(acctype x0)
 		}
 		else if (POINTWISE_ROUTINE == ROUTINE_LEAKY_RELU_BWD)
 			y0 = x0 > A0 ? x1 : acctype(w[0]) * x1;
+		else if (POINTWISE_ROUTINE == ROUTINE_GELU_BWD || POINTWISE_ROUTINE == ROUTINE_GELU_APPROXIMATE_BWD)
+		{
+			// just like the forward, the backward doesn't have the regular GELU implemented :c
+			acctype alpha = acctype(1.128379167095512558561f) * acctype(0.7071067811865475f);
+			acctype koeff = acctype(0.044715f);
+			acctype beta  = alpha * koeff * acctype(3.0f);
+			acctype Y = tanh(alpha * fma(koeff, x0*x0*x0,x0));
+			y0 = acctype(0.5f) * x1 * fma(fma(-x0, Y*Y, x0), fma(beta, x0*x0, alpha), A1 + Y);
+		}
 		return typeof_y0(y0);
 	}
 #endif
