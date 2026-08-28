@@ -106,7 +106,7 @@
 
 // intermediate type used for accumulation/calculation
 #ifndef acctype
-	#define acctype dtype
+	#define acctype float
 #endif
 
 #define INFINITY stype(uintBitsToFloat(0x7F800000))
