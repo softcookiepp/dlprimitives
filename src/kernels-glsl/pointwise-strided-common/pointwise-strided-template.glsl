@@ -116,13 +116,25 @@ typeof_y0 pointwise_function_unary_unary(acctype x0)
 		y0 = acctype(sqrt(dtype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_EXP)
 		y0 = acctype(exp(dtype(x0)));
+	else if (POINTWISE_ROUTINE == ROUTINE_SGN)
+		y0 = x0 < A0 ? AN1 : (x0 > A0 ? A1 : A0);
+	else if (POINTWISE_ROUTINE == ROUTINE_HARDSWISH)
+		y0 = x0 <= acctype(-3.0f) ? A0 : (x0 >= acctype(3.0f) ? x0 : x0*(x0+acctype(3.0f))/acctype(6.0f));
+	else if (POINTWISE_ROUTINE == ROUTINE_HARDSIGMOID)
+		y0 = x0 <= acctype(-3.0f) ? A0 : (x0 >= acctype(3.0f) ? A1 : x0/acctype(6.0f) + acctype(0.5f));
+	else if (POINTWISE_ROUTINE == ROUTINE_SILU)
+		y0 = x0 / (A1 + exp(-x0));
+	else if (POINTWISE_ROUTINE == ROUTINE_LEAKY_RELU)
+		y0 = x0 > A0 ? x0 : acctype(w[0]) * x0;
+	else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_NOT)
+		// this one gets weird
+		return typeof_y0(~iacctype(x0));
 	return typeof_y0(y0);
 }
 
 #if X_ARITY > 1
 	typeof_y0 pointwise_function_binary_unary(acctype x0, acctype x1)
 	{
-		// do calculation with dtype, then cast
 		precise acctype y0;
 		if (POINTWISE_ROUTINE == ROUTINE_ADD)
 			y0 = (x0) + (x1);
@@ -138,6 +150,30 @@ typeof_y0 pointwise_function_unary_unary(acctype x0)
 			y0 = ((x0)*(w[0]) + (w[1])*(x1));
 		else if (POINTWISE_ROUTINE == ROUTINE_HARDTANH_BWD)
 			y0 = ((w[0]) <= (x0) && (x0) <= (w[1])) ? (x1) : acctype(0);
+		else if (POINTWISE_ROUTINE == ROUTINE_HARDSIGMOID_BWD)
+			y0 = (acctype(-3) < x0 && x0 < acctype(3)) ? x1 / acctype(6) : A0;
+		else if (POINTWISE_ROUTINE == ROUTINE_HARDSWISH_BWD)
+		{
+			if (x0 < acctype(-3.0f))
+			{
+				y0 = A0;
+			}
+			else if (x0 <= acctype(3.0f))
+			{
+				y0 =  x1 * ((x0 / acctype(3.0f)) + acctype(0.5f));
+			}
+			else
+			{
+				y0 = x1;
+			}
+		}
+		else if (POINTWISE_ROUTINE == ROUTINE_SILU_BWD)
+		{
+			y0 = A1 / (A1 + exp(-x0));
+			y0 = x1 * y0 * ( A1 + x0 * (A1 - y0));
+		}
+		else if (POINTWISE_ROUTINE == ROUTINE_LEAKY_RELU_BWD)
+			y0 = x0 > A0 ? x1 : acctype(w[0]) * x1;
 		return typeof_y0(y0);
 	}
 #endif

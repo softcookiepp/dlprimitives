@@ -43,7 +43,17 @@ namespace core {
 		eAtan = 19,
 		eLog = 20,
 		eSqrt = 21,
-		eExp = 22
+		eExp = 22,
+		eSgn = 23,
+		eHardswish = 24,
+		eHardsigmoid = 25,
+		eHardsigmoidBwd = 26,
+		eHardswishBwd = 27,
+		eSilu = 28,
+		eSiluBwd = 29,
+		eLeakyRelu = 30,
+		eLeakyReluBwd = 31,
+		eBitwiseNot = 32
 	};
     
     void pointwiseOpStrided(std::vector<Tensor> xs,

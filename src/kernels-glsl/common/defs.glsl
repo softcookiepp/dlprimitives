@@ -82,6 +82,7 @@
 	#define dtype4 vec4
 	#define DTYPE_MAX FLT_MAX
 	#define DTYPE_MIN FLT_MIN
+	#define DZERO dtype(0)
 	#if ATOMIC_FLOAT32
 		#define atomic_dtype dtype
 		#define dtype_to_atomic(v) v
@@ -104,10 +105,16 @@
 	#endif
 #endif
 
-// intermediate type used for accumulation/calculation
+// intermediate types used for accumulation/calculation
+#ifndef iacctype
+	#define iacctype int
+#endif
 #ifndef acctype
 	#define acctype float
 #endif
+#define A0 acctype(0)
+#define A1 acctype(1)
+#define AN1 acctype(-1)
 
 #define INFINITY stype(uintBitsToFloat(0x7F800000))
 #define NAN stype(uintBitsToFloat(0x7FC00000))
