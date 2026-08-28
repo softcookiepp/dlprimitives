@@ -80,64 +80,64 @@ layout(push_constant, std430) uniform push
 
 #include "../pointwise-common/pointwise-enum.glsl"
 
-typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
+typeof_y0 pointwise_function_unary_unary(acctype x0)
 {
-	precise typeof_y0 y0;
+	precise acctype y0;
 	if (POINTWISE_ROUTINE == ROUTINE_IDENTITY)
-		y0 = typeof_y0(x0);
+		y0 = (x0);
 	else if (POINTWISE_ROUTINE == ROUTINE_FILL)
-		y0 = typeof_y0(w[0]);
+		y0 = acctype(w[0]);
 	else if (POINTWISE_ROUTINE == ROUTINE_SCALE)
-		y0 = typeof_y0(x0)*typeof_y0(w[0]);
+		y0 = (x0)*acctype(w[0]);
 	else if (POINTWISE_ROUTINE == ROUTINE_ADD_SCALAR)
-		y0 = typeof_y0(x0) + typeof_y0(w[0]);
+		y0 = (x0) + acctype(w[0]);
 	else if (POINTWISE_ROUTINE == ROUTINE_SUB_SCALAR)
-		y0 = typeof_y0(x0) - typeof_y0(w[0]);
+		y0 = (x0) - acctype(w[0]);
 	else if (POINTWISE_ROUTINE == ROUTINE_DIV_SCALAR)
-		y0 = typeof_y0(x0)/typeof_y0(w[0]);
+		y0 = (x0)/acctype(w[0]);
 	else if (POINTWISE_ROUTINE == ROUTINE_RSUB_SCALAR)
-		y0 = typeof_y0(w[0]) - typeof_y0(x0);
+		y0 = acctype(w[0]) - acctype(x0);
 	else if (POINTWISE_ROUTINE == ROUTINE_RDIV_SCALAR)
-		y0 = typeof_y0(w[0])/typeof_y0(x0);
+		y0 = acctype(w[0])/acctype(x0);
 	else if (POINTWISE_ROUTINE == ROUTINE_POW)
 		// compute as float, otherwise compiler errors arise too frequently due to missing overloads
-		y0 = typeof_y0(pow(dtype(x0), dtype(w[0])));
+		y0 = acctype(pow(dtype(x0), dtype(w[0])));
 	else if (POINTWISE_ROUTINE == ROUTINE_AXPB)
-		y0 = typeof_y0(w[0]*dtype(x0) + w[1]);
+		y0 = acctype(w[0]*dtype(x0) + w[1]);
 	else if (POINTWISE_ROUTINE == ROUTINE_HARDTANH)
-		y0 = typeof_y0(max(typeof_y0(w[0]), min(typeof_y0(w[1]), typeof_y0(x0))));
+		y0 = acctype(max(acctype(w[0]), min(acctype(w[1]), acctype(x0))));
 	else if (POINTWISE_ROUTINE == ROUTINE_ABS)
-		y0 = typeof_y0(abs(dtype(x0)));
+		y0 = acctype(abs(dtype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_ATAN)
-		y0 = typeof_y0(atan(dtype(x0)));
+		y0 = acctype(atan(dtype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_LOG)
-		y0 = typeof_y0(log(dtype(x0)));
+		y0 = acctype(log(dtype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_SQRT)
-		y0 = typeof_y0(sqrt(dtype(x0)));
+		y0 = acctype(sqrt(dtype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_EXP)
-		y0 = typeof_y0(exp(dtype(x0)));
-	return y0;
+		y0 = acctype(exp(dtype(x0)));
+	return typeof_y0(y0);
 }
 
 #if X_ARITY > 1
-	typeof_y0 pointwise_function_binary_unary(typeof_x0 x0, typeof_x1 x1)
+	typeof_y0 pointwise_function_binary_unary(acctype x0, acctype x1)
 	{
 		// do calculation with dtype, then cast
-		precise dtype y0;
+		precise acctype y0;
 		if (POINTWISE_ROUTINE == ROUTINE_ADD)
-			y0 = dtype(x0) + dtype(x1);
+			y0 = (x0) + (x1);
 		else if (POINTWISE_ROUTINE == ROUTINE_SUB)
-			y0 = dtype(x0) - dtype(x1);
+			y0 = (x0) - (x1);
 		else if (POINTWISE_ROUTINE == ROUTINE_MUL)
-			y0 = dtype(x0)*dtype(x1);
+			y0 = (x0)*(x1);
 		else if (POINTWISE_ROUTINE == ROUTINE_DIV)
-			y0 = dtype(x0)/dtype(x1);
+			y0 = (x0)/(x1);
 		else if (POINTWISE_ROUTINE == ROUTINE_AXPY)
-			y0 = dtype(x0)*dtype(w[0]) + dtype(x1);
+			y0 = (x0)*(w[0]) + (x1);
 		else if (POINTWISE_ROUTINE == ROUTINE_AXPBY)
-			y0 = dtype(dtype(x0)*dtype(w[0]) + dtype(w[1])*dtype(x1));
+			y0 = ((x0)*(w[0]) + (w[1])*(x1));
 		else if (POINTWISE_ROUTINE == ROUTINE_HARDTANH_BWD)
-			y0 = (dtype(w[0]) <= dtype(x0) && dtype(x0) <= dtype(w[1])) ? dtype(x1) : dtype(0);
+			y0 = ((w[0]) <= (x0) && (x0) <= (w[1])) ? (x1) : acctype(0);
 		return typeof_y0(y0);
 	}
 #endif
@@ -156,9 +156,9 @@ void pointwise_strided_impl()
 	
 	uint y0_pos = y0_offset + gid*y0_inc;
 	#if X_ARITY == 1
-		y0_data[y0_pos] = pointwise_function_unary_unary(x0);
+		y0_data[y0_pos] = pointwise_function_unary_unary(acctype(x0));
 	#elif X_ARITY == 2
-		y0_data[y0_pos] = pointwise_function_binary_unary(x0, x1);
+		y0_data[y0_pos] = pointwise_function_binary_unary(acctype(x0), acctype(x1));
 	#else
 		#error "not implemented"
 	#endif

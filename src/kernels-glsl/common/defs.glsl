@@ -104,6 +104,11 @@
 	#endif
 #endif
 
+// intermediate type used for accumulation/calculation
+#ifndef acctype
+	#define acctype dtype
+#endif
+
 #define INFINITY stype(uintBitsToFloat(0x7F800000))
 #define NAN stype(uintBitsToFloat(0x7FC00000))
 #define PI stype(double(3.14159265358979323846))
