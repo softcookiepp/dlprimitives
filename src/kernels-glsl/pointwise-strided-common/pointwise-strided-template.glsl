@@ -105,9 +105,9 @@ typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 	else if (POINTWISE_ROUTINE == ROUTINE_AXPB)
 		y0 = typeof_y0(w[0]*dtype(x0) + w[1]);
 	else if (POINTWISE_ROUTINE == ROUTINE_HARDTANH)
-		y0 = max(typeof_y0(w[0]), min(typeof_y0(w[1]), typeof_y0(x0)));
+		y0 = typeof_y0(max(typeof_y0(w[0]), min(typeof_y0(w[1]), typeof_y0(x0))));
 	else if (POINTWISE_ROUTINE == ROUTINE_ABS)
-		y0 = typeof_y0(abs(x0));
+		y0 = typeof_y0(abs(dtype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_ATAN)
 		y0 = typeof_y0(atan(dtype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_LOG)
@@ -137,7 +137,7 @@ typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 		else if (POINTWISE_ROUTINE == ROUTINE_AXPBY)
 			y0 = dtype(dtype(x0)*dtype(w[0]) + dtype(w[1])*dtype(x1));
 		else if (POINTWISE_ROUTINE == ROUTINE_HARDTANH_BWD)
-			y0 = (dtype(w[0]) <= dtype(x0) && dtype(x0) <= dtype(w[1])) ? typeof_y0(x1) : typeof_y0(0);
+			y0 = (dtype(w[0]) <= dtype(x0) && dtype(x0) <= dtype(w[1])) ? dtype(x1) : dtype(0);
 		return typeof_y0(y0);
 	}
 #endif
