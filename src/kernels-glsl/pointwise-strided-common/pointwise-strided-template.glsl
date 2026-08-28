@@ -131,6 +131,8 @@ typeof_y0 pointwise_function_unary_unary(acctype x0)
 		return typeof_y0(~iacctype(x0));
 	else if (POINTWISE_ROUTINE == ROUTINE_LOGICAL_NOT)
 		y0 = x0 > A0 ? A0 : A1;
+	else if (POINTWISE_ROUTINE == ROUTINE_CLAMP)
+		y0 = max(acctype(w[0]), min(acctype(w[1]), x0));
 	return typeof_y0(y0);
 }
 
