@@ -53,7 +53,8 @@ namespace core {
 		eSiluBwd = 29,
 		eLeakyRelu = 30,
 		eLeakyReluBwd = 31,
-		eBitwiseNot = 32
+		eBitwiseNot = 32,
+		eLogicalNot = 33
 	};
     
     void pointwiseOpStrided(std::vector<Tensor> xs,

@@ -129,6 +129,8 @@ typeof_y0 pointwise_function_unary_unary(acctype x0)
 	else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_NOT)
 		// this one gets weird
 		return typeof_y0(~iacctype(x0));
+	else if (POINTWISE_ROUTINE == ROUTINE_LOGICAL_NOT)
+		y0 = x0 > A0 ? A0 : A1;
 	return typeof_y0(y0);
 }
 
