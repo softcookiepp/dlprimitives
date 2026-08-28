@@ -101,21 +101,21 @@ typeof_y0 pointwise_function_unary_unary(acctype x0)
 		y0 = acctype(w[0])/acctype(x0);
 	else if (POINTWISE_ROUTINE == ROUTINE_POW)
 		// compute as float, otherwise compiler errors arise too frequently due to missing overloads
-		y0 = acctype(pow(dtype(x0), dtype(w[0])));
+		y0 = acctype(pow(x0, w[0]));
 	else if (POINTWISE_ROUTINE == ROUTINE_AXPB)
-		y0 = acctype(w[0]*dtype(x0) + w[1]);
+		y0 = acctype(w[0]*acctype(x0) + w[1]);
 	else if (POINTWISE_ROUTINE == ROUTINE_HARDTANH)
 		y0 = acctype(max(acctype(w[0]), min(acctype(w[1]), acctype(x0))));
 	else if (POINTWISE_ROUTINE == ROUTINE_ABS)
-		y0 = acctype(abs(dtype(x0)));
+		y0 = acctype(abs(acctype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_ATAN)
-		y0 = acctype(atan(dtype(x0)));
+		y0 = acctype(atan(x0));
 	else if (POINTWISE_ROUTINE == ROUTINE_LOG)
-		y0 = acctype(log(dtype(x0)));
+		y0 = acctype(log(acctype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_SQRT)
-		y0 = acctype(sqrt(dtype(x0)));
+		y0 = acctype(sqrt(acctype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_EXP)
-		y0 = acctype(exp(dtype(x0)));
+		y0 = acctype(exp(acctype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_SGN)
 		y0 = x0 < A0 ? AN1 : (x0 > A0 ? A1 : A0);
 	else if (POINTWISE_ROUTINE == ROUTINE_HARDSWISH)
