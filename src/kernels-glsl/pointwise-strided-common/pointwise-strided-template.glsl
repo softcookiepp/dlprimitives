@@ -109,13 +109,13 @@ typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 	else if (POINTWISE_ROUTINE == ROUTINE_ABS)
 		y0 = typeof_y0(abs(x0));
 	else if (POINTWISE_ROUTINE == ROUTINE_ATAN)
-		y0 = typeof_y0(atan(x0));
+		y0 = typeof_y0(atan(dtype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_LOG)
-		y0 = typeof_y0(log(x0));
+		y0 = typeof_y0(log(dtype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_SQRT)
-		y0 = typeof_y0(sqrt(x0));
+		y0 = typeof_y0(sqrt(dtype(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_EXP)
-		y0 = typeof_y0(exp(x0));
+		y0 = typeof_y0(exp(dtype(x0)));
 	return y0;
 }
 
