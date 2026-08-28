@@ -39,7 +39,11 @@ namespace core {
 		eAxpby = 15,
 		eHardtanh = 16,
 		eHardtanhBwd = 17,
-		eAbs = 18
+		eAbs = 18,
+		eAtan = 19,
+		eLog = 20,
+		eSqrt = 21,
+		eExp = 22
 	};
     
     void pointwiseOpStrided(std::vector<Tensor> xs,

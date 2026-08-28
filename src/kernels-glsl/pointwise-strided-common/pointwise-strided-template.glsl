@@ -82,7 +82,7 @@ layout(push_constant, std430) uniform push
 
 typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 {
-	typeof_y0 y0;
+	precise typeof_y0 y0;
 	if (POINTWISE_ROUTINE == ROUTINE_IDENTITY)
 		y0 = typeof_y0(x0);
 	else if (POINTWISE_ROUTINE == ROUTINE_FILL)
@@ -108,6 +108,14 @@ typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 		y0 = max(typeof_y0(w[0]), min(typeof_y0(w[1]), typeof_y0(x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_ABS)
 		y0 = typeof_y0(abs(x0));
+	else if (POINTWISE_ROUTINE == ROUTINE_ATAN)
+		y0 = typeof_y0(atan(x0));
+	else if (POINTWISE_ROUTINE == ROUTINE_LOG)
+		y0 = typeof_y0(log(x0));
+	else if (POINTWISE_ROUTINE == ROUTINE_SQRT)
+		y0 = typeof_y0(sqrt(x0));
+	else if (POINTWISE_ROUTINE == ROUTINE_EXP)
+		y0 = typeof_y0(exp(x0));
 	return y0;
 }
 
@@ -115,7 +123,7 @@ typeof_y0 pointwise_function_unary_unary(typeof_x0 x0)
 	typeof_y0 pointwise_function_binary_unary(typeof_x0 x0, typeof_x1 x1)
 	{
 		// do calculation with dtype, then cast
-		dtype y0;
+		precise dtype y0;
 		if (POINTWISE_ROUTINE == ROUTINE_ADD)
 			y0 = dtype(x0) + dtype(x1);
 		else if (POINTWISE_ROUTINE == ROUTINE_SUB)
