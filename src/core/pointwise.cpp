@@ -190,6 +190,19 @@ namespace core {
 				throw std::runtime_error("outputArity != 1 not implemented");
 			}
 		}
+		else if (xs.size() == 3)
+		{
+			if (ys.size() == 1)
+			{
+				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_trinary_unary(device,
+					xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), ys[0].dtype());
+				k = prg->getKernel("exec");
+			}
+			else
+			{
+				throw std::runtime_error("outputArity != 1 not implemented");
+			}
+		}
 		
 		if (allContiguous && ! forceBatched)
 		{
