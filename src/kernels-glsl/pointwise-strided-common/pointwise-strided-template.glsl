@@ -80,7 +80,12 @@ layout(push_constant, std430) uniform push
 
 #include "../pointwise-common/pointwise-enum.glsl"
 
-typeof_y0 pointwise_function_unary_unary(acctype x0)
+struct Y_OUT
+{
+	acctype y[Y_ARITY];
+};
+
+acctype pointwise_function_unary_unary(acctype x0)
 {
 	precise acctype y0;
 	if (POINTWISE_ROUTINE == ROUTINE_IDENTITY)
@@ -128,7 +133,7 @@ typeof_y0 pointwise_function_unary_unary(acctype x0)
 		y0 = x0 > A0 ? x0 : acctype(w[0]) * x0;
 	else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_NOT)
 		// this one gets weird
-		return typeof_y0(~iacctype(x0));
+		return acctype(~iacctype(x0));
 	else if (POINTWISE_ROUTINE == ROUTINE_LOGICAL_NOT)
 		y0 = x0 > A0 ? A0 : A1;
 	else if (POINTWISE_ROUTINE == ROUTINE_CLAMP)
@@ -139,7 +144,7 @@ typeof_y0 pointwise_function_unary_unary(acctype x0)
 		// For some reason, I simply couldn't get regular GELU to work.
 		// Until then, the approximate will always be used.
 		y0 = acctype(0.5f) * x0 * (A1 + tanh(acctype(0.7978845608028654f) * x0 * (A1 + acctype(0.044715f) * x0 * x0)));
-	return typeof_y0(y0);
+	return y0;
 }
 
 #if X_ARITY > 1
@@ -197,6 +202,16 @@ typeof_y0 pointwise_function_unary_unary(acctype x0)
 	}
 #endif
 
+#if 0
+	#if Y_ARITY > 1
+
+	Y_OUT pointwise_function_unary_binary(acctype x0)
+	{
+		Y_OUT y;
+	}
+
+	#endif
+#endif
 
 void pointwise_strided_impl()
 {
@@ -211,7 +226,7 @@ void pointwise_strided_impl()
 	
 	uint y0_pos = y0_offset + gid*y0_inc;
 	#if X_ARITY == 1
-		y0_data[y0_pos] = pointwise_function_unary_unary(acctype(x0));
+		y0_data[y0_pos] = typeof_y0(pointwise_function_unary_unary(acctype(x0)));
 	#elif X_ARITY == 2
 		y0_data[y0_pos] = pointwise_function_binary_unary(acctype(x0), acctype(x1));
 	#else
