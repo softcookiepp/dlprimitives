@@ -101,7 +101,7 @@ struct Y_OUT
 	acctype data[Y_ARITY];
 };
 
-acctype pointwise_function_unary_unary(precise acctype x0)
+acctype pointwise_function_unary_unary(uint gid, precise acctype x0)
 {
 	precise acctype y0;
 	if (POINTWISE_ROUTINE == ROUTINE_IDENTITY)
@@ -171,6 +171,8 @@ acctype pointwise_function_unary_unary(precise acctype x0)
 		else
 			y0 = log(x0 / (A1 - x0));
 	}
+	else if (POINTWISE_ROUTINE == ROUTINE_ARANGE)
+		y0 = acctype(w[0]) + acctype(gid)*acctype(w[1]);
 	return y0;
 }
 
@@ -256,7 +258,7 @@ void pointwise_strided_impl()
 	uint y0_pos = y0_offset + gid*y0_inc;
 	#if Y_ARITY == 1
 		#if X_ARITY == 1
-			y0_data[y0_pos] = typeof_y0(pointwise_function_unary_unary(acctype(x0)));
+			y0_data[y0_pos] = typeof_y0(pointwise_function_unary_unary(gid, acctype(x0)));
 		#elif X_ARITY == 2
 			y0_data[y0_pos] = pointwise_function_binary_unary(acctype(x0), acctype(x1));
 		#else
