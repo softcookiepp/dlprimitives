@@ -164,7 +164,11 @@ acctype pointwise_function_unary_unary(precise acctype x0)
 	{
 		precise acctype eps = acctype(w[0]);
 		precise acctype use_eps = acctype(w[1]);
-		precise acctype z = mix(x0, min(A1 - eps, max(eps, x0)), use_eps);
+		precise acctype z;
+		if (use_eps == A0)
+			z = x0;
+		else
+			z = min(A1 - eps, max(eps, x0));
 		y0 = log(z / (A1 - z)); 
 	}
 	return y0;
