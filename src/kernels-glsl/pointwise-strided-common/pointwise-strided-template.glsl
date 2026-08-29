@@ -165,7 +165,7 @@ acctype pointwise_function_unary_unary(precise acctype x0)
 		uint use_eps = floatBitsToUint(w[1]);
 		if (use_eps > 0)
 		{
-			precise acctype z = min(A1 - acctype(w[0]), max(acctype(w[0]), x0));
+			acctype z = min(A1 - acctype(w[0]), max(acctype(w[0]), x0));
 			y0 = log(z / (A1 - z));
 		}
 		else
