@@ -162,14 +162,14 @@ acctype pointwise_function_unary_unary(precise acctype x0)
 		y0 = acctype(0.5f) * x0 * (A1 + tanh(acctype(0.7978845608028654f) * x0 * (A1 + acctype(0.044715f) * x0 * x0)));
 	else if (POINTWISE_ROUTINE == ROUTINE_LOGIT)
 	{
-		precise acctype eps = acctype(w[0]);
-		precise uint use_eps = floatBitsToUint(w[1]);
-		precise acctype z;
+		uint use_eps = floatBitsToUint(w[1]);
 		if (use_eps > 0)
-			z = min(A1 - eps, max(eps, x0));
+		{
+			precise acctype z = min(A1 - acctype(w[0]), max(acctype(w[0]), x0));
+			y0 = log(z / (A1 - z));
+		}
 		else
-			z = x0;
-		y0 = log(z / (A1 - z)); 
+			y0 = log(x0 / (A1 - x0));
 	}
 	return y0;
 }
