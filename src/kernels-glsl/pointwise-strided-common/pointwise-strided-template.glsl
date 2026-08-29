@@ -32,15 +32,24 @@ layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
 #ifndef typeof_y0
 	#define typeof_y0 dtype
 #endif
+#ifndef typeof_y1
+	#define typeof_y1 dtype
+#endif
 
 #if USE_BDA == 0
-	#if X_ARITY == 1 && Y_ARITY == 1
+	#if X_ARITY == 1
 		layout(binding = 0, std430) readonly buffer x0_buf { typeof_x0 x0_data[]; };
 		layout(binding = 1, std430) buffer y0_buf { typeof_y0 y0_data[]; };
-	#elif X_ARITY == 2 && Y_ARITY == 1
+		#if Y_ARITY > 1
+			layout(binding = 2, std430) buffer y1_buf { typeof_y1 y1_data[]; };
+		#endif
+	#elif X_ARITY == 2
 		layout(binding = 0, std430) readonly buffer x0_buf { typeof_x0 x0_data[]; };
 		layout(binding = 1, std430) readonly buffer x1_buf { typeof_x1 x1_data[]; };
 		layout(binding = 2, std430) buffer y0_buf { typeof_y0 y0_data[]; };
+		#if Y_ARITY > 1
+			layout(binding = 3, std430) buffer y1_buf { typeof_y1 y1_data[]; };
+		#endif
 	#endif
 #endif
 
@@ -72,6 +81,13 @@ layout(push_constant, std430) uniform push
 	#endif
 	uint y0_offset;
 	uint y0_inc;
+	#if Y_ARITY > 1
+		#if USE_BDA
+			// y1_data
+		#endif
+		uint y1_offset;
+		uint y1_inc;
+	#endif
 	
 	uint total; // total elements
 	
@@ -82,7 +98,7 @@ layout(push_constant, std430) uniform push
 
 struct Y_OUT
 {
-	acctype y[Y_ARITY];
+	acctype data[Y_ARITY];
 };
 
 acctype pointwise_function_unary_unary(acctype x0)
@@ -133,7 +149,7 @@ acctype pointwise_function_unary_unary(acctype x0)
 		y0 = x0 > A0 ? x0 : acctype(w[0]) * x0;
 	else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_NOT)
 		// this one gets weird
-		return acctype(~iacctype(x0));
+		y0 = acctype(~iacctype(x0));
 	else if (POINTWISE_ROUTINE == ROUTINE_LOGICAL_NOT)
 		y0 = x0 > A0 ? A0 : A1;
 	else if (POINTWISE_ROUTINE == ROUTINE_CLAMP)
@@ -202,15 +218,17 @@ acctype pointwise_function_unary_unary(acctype x0)
 	}
 #endif
 
-#if 0
-	#if Y_ARITY > 1
-
+#if Y_ARITY > 1
 	Y_OUT pointwise_function_unary_binary(acctype x0)
 	{
 		Y_OUT y;
+		if (POINTWISE_ROUTINE == ROUTINE_LOG_SIGMOID)
+		{
+			y.data[1] = exp(-abs(x0));
+			y.data[0] = min(A0, x0) - log(A1 + y.data[1]);
+		}
+		return y;
 	}
-
-	#endif
 #endif
 
 void pointwise_strided_impl()
@@ -225,11 +243,22 @@ void pointwise_strided_impl()
 	#endif
 	
 	uint y0_pos = y0_offset + gid*y0_inc;
-	#if X_ARITY == 1
-		y0_data[y0_pos] = typeof_y0(pointwise_function_unary_unary(acctype(x0)));
-	#elif X_ARITY == 2
-		y0_data[y0_pos] = pointwise_function_binary_unary(acctype(x0), acctype(x1));
-	#else
-		#error "not implemented"
+	#if Y_ARITY == 1
+		#if X_ARITY == 1
+			y0_data[y0_pos] = typeof_y0(pointwise_function_unary_unary(acctype(x0)));
+		#elif X_ARITY == 2
+			y0_data[y0_pos] = pointwise_function_binary_unary(acctype(x0), acctype(x1));
+		#else
+			#error "not implemented"
+		#endif
+	#elif Y_ARITY == 2
+		uint y1_pos = y1_offset + gid*y1_inc;
+		#if X_ARITY == 1
+			Y_OUT y_out = pointwise_function_unary_binary(acctype x0);
+			y0_data[y0_pos] = typeof_y0(y_out.data[0]);
+			y1_data[y1_pos] = typeof_y1(y_out.data[1]);
+		#else
+			#error "not implemented"
+		#endif
 	#endif
 }

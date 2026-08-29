@@ -60,7 +60,8 @@ namespace core {
 		eGelu = 36,
 		eGeluApproximate = 37,
 		eGeluBwd = 38,
-		eGeluApproximateBwd = 39
+		eGeluApproximateBwd = 39,
+		eLogSigmoid = 40
 	};
     
     void pointwiseOpStrided(std::vector<Tensor> xs,
