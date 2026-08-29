@@ -4,7 +4,7 @@
 layout(constant_id = 3) const uint NUM_WEIGHTS = NUM_WEIGHTS_MAX;
 layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
 
-#define X_ARITY_MAX 2
+#define X_ARITY_MAX 3
 #ifndef X_ARITY
 	#define X_ARITY 1
 #endif
@@ -28,6 +28,9 @@ layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
 #ifndef typeof_x1
 	#define typeof_x1 dtype
 #endif
+#ifndef typeof_x2
+	#define typeof_x2 dtype
+#endif
 
 #ifndef typeof_y0
 	#define typeof_y0 dtype
@@ -50,6 +53,13 @@ layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
 		#if Y_ARITY > 1
 			layout(binding = 3, std430) buffer y1_buf { typeof_y1 y1_data[]; };
 		#endif
+	#elif X_ARITY == 3
+		layout(binding = 0, std430) readonly buffer x0_buf { typeof_x0 x0_data[]; };
+		layout(binding = 1, std430) readonly buffer x1_buf { typeof_x1 x1_data[]; };
+		layout(binding = 2, std430) readonly buffer x2_buf { typeof_x2 x2_data[]; };
+		layout(binding = X_ARITY, std430) buffer y0_buf { typeof_y0 y0_data[]; };
+	#else
+		#error "too big"
 	#endif
 #endif
 
@@ -230,6 +240,20 @@ acctype pointwise_function_unary_unary(uint gid, precise acctype x0)
 		return typeof_y0(y0);
 	}
 #endif
+#if X_ARITY > 2
+	Y_OUT pointwise_function_trinary_unary(acctype x0, acctype x1, acctype x2)
+	{
+		precise Y_OUT y;
+		if (POINTWISE_ROUTINE == ROUTINE_LOG_SIGMOID_BWD)
+		{
+			bool is_negative = x0 < A0;
+			acctype maxd = is_negative ? A1: A0;
+			acctype s = is_negative ? A1: acctype(-1.0);
+			y.data[0] = (maxd - s * (x1 / (A1 + x1))) * x2;
+		}
+		return y;
+	}
+#endif
 
 #if Y_ARITY > 1
 	Y_OUT pointwise_function_unary_binary(acctype x0)
@@ -253,6 +277,7 @@ void pointwise_strided_impl()
 		typeof_x1 x1 = x1_data[x1_offset + gid*x1_inc];
 	#endif
 	#if X_ARITY > 2
+		typeof_x2 x2 = x2_data[x2_offset + gid*x1_inc];
 	#endif
 	
 	uint y0_pos = y0_offset + gid*y0_inc;
@@ -261,6 +286,8 @@ void pointwise_strided_impl()
 			y0_data[y0_pos] = typeof_y0(pointwise_function_unary_unary(gid, acctype(x0)));
 		#elif X_ARITY == 2
 			y0_data[y0_pos] = pointwise_function_binary_unary(acctype(x0), acctype(x1));
+		#elif X_ARITY == 3
+			y0_data[y0_pos] = pointwise_function_trinary_unary(acctype(x0), acctype(x1), acctype(x2)).data[0];
 		#else
 			#error "not implemented"
 		#endif
