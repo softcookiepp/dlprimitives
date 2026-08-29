@@ -163,7 +163,7 @@ acctype pointwise_function_unary_unary(precise acctype x0)
 	else if (POINTWISE_ROUTINE == ROUTINE_LOGIT)
 	{
 		precise acctype eps = acctype(w[0]);
-		precise uint use_eps = uint(w[1]);
+		precise uint use_eps = floatBitsToUint(w[1]);
 		precise acctype z;
 		if (use_eps > 0)
 			z = min(A1 - eps, max(eps, x0));
