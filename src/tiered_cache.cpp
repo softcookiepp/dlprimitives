@@ -450,6 +450,11 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 			"typeof_x0", dtypes[0].glsl(),
 			"typeof_x1", dtypes[1].glsl(),
 			"typeof_y0", dtypes[2].glsl());
+		
+		mPointwiseUnaryBinaryProgram = gpu::Cache::instance().get_program(device, "pointwise-unary-binary",
+			"typeof_x0", dtypes[0].glsl(),
+			"typeof_y0", dtypes[1].glsl(),
+			"typeof_y1", dtypes[2].glsl());
 	}
 }
 

@@ -12,7 +12,7 @@ layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
 	#error("X_ARITY too big")
 #endif
 
-#define Y_ARITY_MAX 1
+#define Y_ARITY_MAX 2
 #ifndef Y_ARITY
 	#define Y_ARITY 1
 #endif
@@ -254,7 +254,7 @@ void pointwise_strided_impl()
 	#elif Y_ARITY == 2
 		uint y1_pos = y1_offset + gid*y1_inc;
 		#if X_ARITY == 1
-			Y_OUT y_out = pointwise_function_unary_binary(acctype x0);
+			Y_OUT y_out = pointwise_function_unary_binary(acctype(x0));
 			y0_data[y0_pos] = typeof_y0(y_out.data[0]);
 			y1_data[y1_pos] = typeof_y1(y_out.data[1]);
 		#else

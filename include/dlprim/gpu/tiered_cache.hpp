@@ -89,6 +89,7 @@ class AllPrograms
 	
 	tart::program_ptr mPointwiseBinaryUnaryProgram = nullptr;
 	tart::program_ptr mPointwiseUnaryUnaryProgram = nullptr;
+	tart::program_ptr mPointwiseUnaryBinaryProgram = nullptr;
 	
 	tart::program_ptr mPoolingProgram = nullptr;
 	tart::program_ptr mGlobalPoolingProgram = nullptr;

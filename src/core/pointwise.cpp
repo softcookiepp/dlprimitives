@@ -171,7 +171,11 @@ namespace core {
 			}
 			else
 			{
-				throw std::runtime_error("outputArity != 1 not implemented");
+				#if 0
+					
+				#else
+					throw std::runtime_error("outputArity != 1 not implemented");
+				#endif
 			}
 		}
 		else if (xs.size() == 2)
