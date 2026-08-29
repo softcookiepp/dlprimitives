@@ -97,6 +97,7 @@ namespace core {
 		size_t p = 0;
 		for (size_t i = 0; i < xs.size(); i += 1)
 		{
+			std::cout << "			X ARG: " << i << std::endl;
 			k->setArg(p++, xs[i].device_buffer());
 			k->setArg(p++, xOffsets[i]);
 			k->setArg(p++, static_cast<uint32_t>(xs[i].stride()[xs[i].stride().size() - 1]));
