@@ -177,6 +177,7 @@ public:
 	inline const tart::program_ptr& nll_loss_fwd(const tart::device_ptr& device, const tart::DType dt, const tart::DType it) { return getAllPrograms(device, {dt, it}).mNullLossFwdProgram; }
 	
 	inline const tart::program_ptr& pointwise_binary_unary(const tart::device_ptr& device, const tart::DType& x0t, const tart::DType& x1t, const tart::DType& yt) { return getAllPrograms(device, {x0t, x1t, yt}).mPointwiseBinaryUnaryProgram; }
+	inline const tart::program_ptr& pointwise_unary_binary(const tart::device_ptr& device, const tart::DType& x0t, const tart::DType& y0t, const tart::DType& y1t) { return getAllPrograms(device, {x0t, y0t, y1t}).mPointwiseUnaryBinaryProgram; }
 	inline const tart::program_ptr& pointwise_unary_unary(const tart::device_ptr& device, const tart::DType& xt, const tart::DType& yt) { return getAllPrograms(device, {xt, yt}).mPointwiseUnaryUnaryProgram; }
 	
 	inline const tart::program_ptr& pooling(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mPoolingProgram; }

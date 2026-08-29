@@ -171,11 +171,9 @@ namespace core {
 			}
 			else
 			{
-				#if 0
-					
-				#else
-					throw std::runtime_error("outputArity != 1 not implemented");
-				#endif
+				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_unary_binary(device,
+					xs[0].dtype(), ys[0].dtype(), ys[1].dtype());
+				k = prg->getKernel("exec");
 			}
 		}
 		else if (xs.size() == 2)
