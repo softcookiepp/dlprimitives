@@ -160,6 +160,13 @@ acctype pointwise_function_unary_unary(acctype x0)
 		// For some reason, I simply couldn't get regular GELU to work.
 		// Until then, the approximate will always be used.
 		y0 = acctype(0.5f) * x0 * (A1 + tanh(acctype(0.7978845608028654f) * x0 * (A1 + acctype(0.044715f) * x0 * x0)));
+	else if (POINTWISE_ROUTINE == ROUTINE_LOGIT)
+	{
+		acctype eps = acctype(w[0]);
+		acctype use_eps = acctype(w[1]);
+		acctype z = mix(x0, min(A1 - eps, max(eps, x0)), use_eps);
+		y0 = log(z / (A1 - z)); 
+	}
 	return y0;
 }
 
