@@ -165,10 +165,10 @@ acctype pointwise_function_unary_unary(precise acctype x0)
 		precise acctype eps = acctype(w[0]);
 		precise acctype use_eps = acctype(w[1]);
 		precise acctype z;
-		if (use_eps == A0)
-			z = x0;
-		else
+		if (use_eps > A0)
 			z = min(A1 - eps, max(eps, x0));
+		else
+			z = x0;
 		y0 = log(z / (A1 - z)); 
 	}
 	return y0;
