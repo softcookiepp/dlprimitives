@@ -68,7 +68,9 @@ namespace core {
 		eThreshold = 44,
 		eThresholdBwd = 45,
 		eDropout = 46,
-		eRound = 47
+		eRound = 47,
+		eNeg = 48,
+		eRecip = 49
 	};
     
     void pointwiseOpStrided(std::vector<Tensor> xs,

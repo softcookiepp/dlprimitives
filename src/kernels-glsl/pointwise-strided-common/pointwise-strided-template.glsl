@@ -185,6 +185,10 @@ acctype pointwise_function_unary_unary(uint gid, precise acctype x0)
 		y0 = acctype(w[0]) + acctype(gid)*acctype(w[1]);
 	else if (POINTWISE_ROUTINE == ROUTINE_ROUND)
 		y0 = round(x0);
+	else if (POINTWISE_ROUTINE == ROUTINE_NEG)
+		y0 = -x0;
+	else if (POINTWISE_ROUTINE == ROUTINE_RECIP)
+		y0 = A1/x0;
 	return y0;
 }
 
