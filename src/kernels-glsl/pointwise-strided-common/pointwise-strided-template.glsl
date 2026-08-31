@@ -239,6 +239,8 @@ acctype pointwise_function_unary_unary(uint gid, precise acctype x0)
 		}
 		else if (POINTWISE_ROUTINE == ROUTINE_THRESHOLD_BWD)
 			y0 = (x0 > acctype(w[0])) ? x1 : A0;
+		else if (POINTWISE_ROUTINE == ROUTINE_DROPOUT)
+			y0 = x0*x1*acctype(w[0]);
 		return typeof_y0(y0);
 	}
 #endif
