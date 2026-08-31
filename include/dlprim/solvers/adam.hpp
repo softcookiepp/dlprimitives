@@ -12,7 +12,7 @@
 #include <dlprim/solvers/solver_base.hpp>
 #include <iostream>
 #include <cmath>
-
+asdasd
 namespace dlprim {
     namespace solvers {
         class Adam : public SolverBase {

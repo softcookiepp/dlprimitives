@@ -32,7 +32,7 @@ namespace core {
     ///
     void fill_tensor(Tensor &t,double value)
     {
-        pointwise_operation({}, {t}, {value}, "y0 = dtype(w0);");
+		pointwiseOpStrided({t}, {t}, {value}, PointwiseOp::eFill);
     }
 
     void fill_random(Tensor &t, uint64_t philox_seed, uint64_t philox_seq,RandomDistribution dist,float p1,float p2)

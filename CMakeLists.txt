@@ -152,7 +152,6 @@ set(DLPRIM_SRC
         #src/ops/reshape.cpp
         #src/ops/pointwise.cpp
         #src/ops/reduction.cpp
-        #src/ops/parameter.cpp
         #src/ops/interpolation.cpp
         ${EXTRA_SRC}
         )
