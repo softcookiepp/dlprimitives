@@ -1,8 +1,17 @@
 #include "../common/defs.glsl"
 #include "../common/workgroup.glsl"
-#define NUM_WEIGHTS_MAX 64 // we may be able to reduce this later
+#define NUM_WEIGHTS_MAX 8
+#define DIMS_MAX 8
 layout(constant_id = 3) const uint NUM_WEIGHTS = NUM_WEIGHTS_MAX;
 layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
+#if 0
+	layout(constant_id = 5) const uint DIMS = DIMS_MAX;
+#endif
+
+struct Shape
+{
+    uint s[DIMS_MAX];
+};
 
 #define X_ARITY_MAX 3
 #ifndef X_ARITY
@@ -69,38 +78,61 @@ layout(push_constant, std430) uniform push
 		// x0_data
 	#endif
 	uint x0_offset;
-	uint x0_inc;
+	#if 0
+		Shape x0_strides;
+	#else
+		uint x0_inc;
+	#endif
 	
 	#if X_ARITY > 1
 		#if USE_BDA
 			// x1_data
 		#endif
 		uint x1_offset;
-		uint x1_inc;
+		#if 0
+			Shape x1_strides;
+		#else
+			uint x1_inc;
+		#endif
 	#endif
 	#if X_ARITY > 2
 		#if USE_BDA
 			// x2_data
 		#endif
 		uint x2_offset;
-		uint x2_inc;
+		#if 0
+			Shape x2_strides;
+		#else
+			uint x2_inc;
+		#endif
 	#endif
 	
 	#if USE_BDA
 		// y0_data
 	#endif
 	uint y0_offset;
-	uint y0_inc;
+	#if 0
+		Shape y0_strides;
+	#else
+		uint y0_inc;
+	#endif
 	#if Y_ARITY > 1
 		#if USE_BDA
 			// y1_data
 		#endif
 		uint y1_offset;
-		uint y1_inc;
+		#if 0
+			Shape y1_strides;
+		#else
+			uint y1_inc;
+		#endif
 	#endif
 	
-	uint total; // total elements
-	
+	#if 0
+		Shape broadcast_strides;
+	#else
+		uint total; // total elements
+	#endif
 	float w[NUM_WEIGHTS];
 };
 
@@ -278,10 +310,41 @@ acctype pointwise_function_unary_unary(uint gid, precise acctype x0)
 	}
 #endif
 
+#if 0
+	uint get_pos(uint gid, Shape shape)
+	{
+		Shape pos;
+		uint coef = 1;
+		// use int to avoid overflow
+		UNROLL(DIMS)
+		for (int i = int(DIMS) - 1; i >= 0; i -= 1)
+		{
+			uint dLen = shape[i];
+			uint mod = (gid/coef) % dLen;
+			pos[i] = mod;
+			coef *= dLen;
+		}
+		return pos;
+	}
+#else
+	
+#endif
+
 void pointwise_strided_impl()
 {
 	uint gid = gl_GlobalInvocationID.x;
 	if (gid >= total) return;
+	
+	#if 0
+		// get position
+		Shape pos = get_pos(gid, broadcast_shape);
+		UNROLL(DIMS)
+		for (uint i = 0; i < DIMS; i += 1)
+		{
+			if (pos[i] >= broadcast_shape[i]) return;
+		}
+	#endif
+	
 	typeof_x0 x0 = x0_data[x0_offset + gid*x0_inc];
 	#if X_ARITY > 1
 		typeof_x1 x1 = x1_data[x1_offset + gid*x1_inc];

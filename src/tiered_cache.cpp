@@ -89,7 +89,7 @@ tart::program_ptr
 {
 	tart::device_ptr device = mDevice.lock();
 	PointwiseOpKey k = makeKey(xs, ys, ws, {}, code, false);
-	
+	throw std::runtime_error("getPointwiseOperation is deprecated");
 	if (mPointwisePrograms.find(k) == mPointwisePrograms.end())
 	{
 		Shape ref;
