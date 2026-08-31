@@ -73,6 +73,8 @@ namespace core {
 		eRecip = 49
 	};
     
+    // Pointwise operation, but without code generation requirement.
+    // Instead, chosen routine is chosen by PointwiseOp value provided
     void pointwiseOpStrided(std::vector<Tensor> xs,
 			std::vector<Tensor> ys,
 			std::vector<float> ws,
@@ -87,10 +89,12 @@ namespace core {
     /// for example:
     ///   `pointwise_operation({a,b},{c},{w},"y0 = x0*w0 + x1;",q);`
     ///
+    #if 0
     void pointwise_operation(std::vector<Tensor> xs,
                              std::vector<Tensor> ys,
                              std::vector<double>  ws,
                              std::string const &code);
+	#endif
     ///
     /// Similar to pointwise_operation but xs are broadcasted numpy style. ys must much broadcasted shape, weights are considered
     /// of ys[0].dtype()

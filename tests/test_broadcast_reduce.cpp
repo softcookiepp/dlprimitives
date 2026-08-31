@@ -231,7 +231,6 @@ bool equal(dp::Tensor a,dp::Tensor b, const tart::device_ptr& q,int eps = 0)
 template<typename Type>
 void test_pointwise(const tart::device_ptr& q)
 {
-    using dp::core::pointwise_operation;
     {
         auto a=make_tensor<Type>(q,dp::Shape(3,2),{1,2,3,4,5,6});
         auto b=make_tensor<Type>(q,dp::Shape(3,2),{5,6,7,8,9,10});
