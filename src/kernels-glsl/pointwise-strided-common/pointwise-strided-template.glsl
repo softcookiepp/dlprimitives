@@ -345,12 +345,24 @@ void pointwise_strided_impl()
 		}
 	#endif
 	
-	typeof_x0 x0 = x0_data[x0_offset + gid*x0_inc];
+	#if 0
+	#else
+		uint x0_idx = x0_offset + gid*x0_inc;
+	#endif
+	typeof_x0 x0 = x0_data[x0_idx];
 	#if X_ARITY > 1
-		typeof_x1 x1 = x1_data[x1_offset + gid*x1_inc];
+		#if 0
+		#else
+			uint x1_idx = x1_offset + gid*x1_inc;
+		#endif
+		typeof_x1 x1 = x1_data[x1_idx];
 	#endif
 	#if X_ARITY > 2
-		typeof_x2 x2 = x2_data[x2_offset + gid*x1_inc];
+		#if 0
+		#else
+			uint x2_idx = x2_offset + gid*x2_inc;
+		#endif
+		typeof_x2 x2 = x2_data[x2_idx];
 	#endif
 	
 	uint y0_pos = y0_offset + gid*y0_inc;
