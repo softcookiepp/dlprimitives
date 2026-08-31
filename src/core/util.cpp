@@ -8,10 +8,12 @@
 #include <dlprim/core/common.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/gpu/tiered_cache.hpp>
+#include <dlprim/core/util.hpp>
 #include <iostream>
 
 namespace dlprim {
 namespace core {
+	
     void copy_strided(  Shape shape,
                         tart::buffer_ptr& src, uint32_t src_offset, Shape src_strides,
                         tart::buffer_ptr& dst, uint32_t dst_offset, Shape dst_strides,
@@ -71,6 +73,26 @@ namespace core {
 		};
         k->enqueue(globalAndLocal.first, spec);
     }
+    
+    void copy_strided(Tensor& src, Tensor& dst)
+	{
+		auto s = src.shape();
+		auto src_buf = src.device_buffer();
+		auto src_offset = src.device_offset();
+		auto src_strides = src.stride();
+		
+		auto dst_buf = dst.device_buffer();
+		auto dst_offset = dst.device_offset();
+		auto dst_strides = dst.stride();
+		copy_strided(s,
+			src_buf,
+			src_offset,
+			src_strides,
+			dst_buf, dst_offset,
+			dst_strides,
+			src.dtype(),
+			dst.dtype());
+	}
 }
 }
 
