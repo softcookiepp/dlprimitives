@@ -237,6 +237,8 @@ acctype pointwise_function_unary_unary(uint gid, precise acctype x0)
 			acctype Y = tanh(alpha * fma(koeff, x0*x0*x0,x0));
 			y0 = acctype(0.5f) * x1 * fma(fma(-x0, Y*Y, x0), fma(beta, x0*x0, alpha), A1 + Y);
 		}
+		else if (POINTWISE_ROUTINE == ROUTINE_THRESHOLD_BWD)
+			y0 = (x0 > acctype(w[0])) ? x1 : A0;
 		return typeof_y0(y0);
 	}
 #endif
