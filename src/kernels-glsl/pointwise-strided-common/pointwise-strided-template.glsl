@@ -365,23 +365,29 @@ void pointwise_strided_impl()
 		typeof_x2 x2 = x2_data[x2_idx];
 	#endif
 	
-	uint y0_pos = y0_offset + gid*y0_inc;
+	#if 0
+	#else
+		uint y0_idx = y0_offset + gid*y0_inc;
+	#endif
 	#if Y_ARITY == 1
 		#if X_ARITY == 1
-			y0_data[y0_pos] = typeof_y0(pointwise_function_unary_unary(gid, acctype(x0)));
+			y0_data[y0_idx] = typeof_y0(pointwise_function_unary_unary(gid, acctype(x0)));
 		#elif X_ARITY == 2
-			y0_data[y0_pos] = pointwise_function_binary_unary(acctype(x0), acctype(x1));
+			y0_data[y0_idx] = pointwise_function_binary_unary(acctype(x0), acctype(x1));
 		#elif X_ARITY == 3
-			y0_data[y0_pos] = pointwise_function_trinary_unary(acctype(x0), acctype(x1), acctype(x2)).data[0];
+			y0_data[y0_idx] = pointwise_function_trinary_unary(acctype(x0), acctype(x1), acctype(x2)).data[0];
 		#else
 			#error "not implemented"
 		#endif
 	#elif Y_ARITY == 2
-		uint y1_pos = y1_offset + gid*y1_inc;
+		#if 0
+		#else
+			uint y1_idx = y1_offset + gid*y1_inc;
+		#endif
 		#if X_ARITY == 1
 			Y_OUT y_out = pointwise_function_unary_binary(acctype(x0));
-			y0_data[y0_pos] = typeof_y0(y_out.data[0]);
-			y1_data[y1_pos] = typeof_y1(y_out.data[1]);
+			y0_data[y0_idx] = typeof_y0(y_out.data[0]);
+			y1_data[y1_idx] = typeof_y1(y_out.data[1]);
 		#else
 			#error "not implemented"
 		#endif
