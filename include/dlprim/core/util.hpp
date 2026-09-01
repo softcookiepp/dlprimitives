@@ -23,6 +23,8 @@ void copy_strided(Shape shape,
 	const tart::DType& dt_src,
 	const tart::DType dt_dst);
 	
+Tensor broadcastTensors(Tensor& src, Tensor& dst);
+	
 } // core
 } // dlprim
 

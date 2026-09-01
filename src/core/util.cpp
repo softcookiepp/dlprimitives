@@ -38,11 +38,6 @@ std::pair<std::vector<uint32_t>, std::vector<uint32_t>>
 	return device->chooseGlobalAndLocalSize(range);
 }
 
-void bindShape2(int& p)
-{
-	
-}
-
 void copy_strided(  Shape shape,
 					tart::buffer_ptr& src, uint32_t src_offset, Shape src_strides,
 					tart::buffer_ptr& dst, uint32_t dst_offset, Shape dst_strides,
@@ -107,6 +102,26 @@ void copy_strided(Tensor& src, Tensor& dst)
 		dst_strides,
 		src.dtype(),
 		dst.dtype());
+}
+
+Tensor broadcastTensors(Tensor& src, Tensor& dst)
+{
+	if (src.shape().size() != dst.shape().size())
+	{
+		throw NotImplementedError("Can't broadcast shapes of different dimensions quite yet!");
+	}
+
+	size_t totalDims = dst.shape().size();
+	Shape broadcastShape = dst.shape();
+	Shape newSrcStrides = src.stride();
+	
+	// check that the dimensions are alright, set any applicable strides to zero
+	for (size_t i = 0; i < totalDims; i += 1)
+	{
+		DLPRIM_CHECK(src.shape()[i] == dst.shape()[i] || src.shape()[i] == 1);
+		if (src.shape()[i] == 1) newSrcStrides[i] = 0;
+	}
+	return Tensor(src.device_buffer(), src.device_offset(), broadcastShape, newSrcStrides, src.dtype());
 }
 
 } // core
