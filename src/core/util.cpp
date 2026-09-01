@@ -53,23 +53,22 @@ void copy_strided(  Shape shape,
 
 	tart::kernel_ptr k = prog->getKernel("copy");
 	int p=0;
-	for(int i=0; i < 8; i++)
+
+	// first set shape, then srcStride, then tgtStride
+	std::vector<uint32_t> shapeVec(8, 1);
+	std::vector<uint32_t> srcStrideVec(8, 0);
+	std::vector<uint32_t> dstStrideVec(8, 0);
+	for (size_t i = 0; i < shape.size(); i += 1)
 	{
-		if (i < shape.size())
-		{
-			k->setArg(p++, uint32_t(shape[i]));
-			k->setArg(p++, uint32_t(src_strides[i]));
-			k->setArg(p++, uint32_t(dst_strides[i]));
-		}
-		else
-		{
-			// not all tensors will have 8 dimensions, leave data for remaining ones blank
-			const uint32_t zero = 0;
-			k->setArg(p++, zero);
-			k->setArg(p++, zero);
-			k->setArg(p++, zero);
-		}
+		shapeVec[i] = static_cast<uint32_t>(shape[i]);
+		srcStrideVec[i] = static_cast<uint32_t>(src_strides[i]);
+		dstStrideVec[i] = static_cast<uint32_t>(dst_strides[i]);
+		
 	}
+	k->setArg(p++, shapeVec);
+	k->setArg(p++, srcStrideVec);
+	k->setArg(p++, dstStrideVec);
+
 	k->setArg(p++,src);
 	k->setArg(p++,src_offset);
 	k->setArg(p++,dst);

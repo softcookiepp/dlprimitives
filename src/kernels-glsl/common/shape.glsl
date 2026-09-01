@@ -7,6 +7,9 @@ struct Shape
     uint s[DIMS_MAX];
 };
 
+// The original dlprim copy_strided kernel multiplies shape dimensions together and packs them into the kernel workgroup sizes.
+// This means, of course, that they must be unpacked during execution.
+// This function does that, and returns the resulting position with respect to the shape.
 Shape getPosFromTriIndex(Shape shape, uint dims)
 {
 	Shape pos;
