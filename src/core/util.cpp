@@ -38,6 +38,11 @@ std::pair<std::vector<uint32_t>, std::vector<uint32_t>>
 	return device->chooseGlobalAndLocalSize(range);
 }
 
+void bindShape2(int& p)
+{
+	
+}
+
 void copy_strided(  Shape shape,
 					tart::buffer_ptr& src, uint32_t src_offset, Shape src_strides,
 					tart::buffer_ptr& dst, uint32_t dst_offset, Shape dst_strides,

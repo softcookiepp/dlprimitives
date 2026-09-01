@@ -7,6 +7,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/core/common.hpp>
 #include <dlprim/core/pointwise.hpp>
+#include <dlprim/core/util.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/gpu/tiered_cache.hpp>
 #include <iostream>
@@ -48,80 +49,40 @@ namespace core {
 		}
 		return pos;
 	}
-    
-    std::vector<uint32_t> calcStridedBatchOffsets(Tensor x, size_t batchDims = 1)
-    {
-		if (batchDims != 1) throw std::runtime_error("not implemented");
-		
-		// if x is just a single - dimension tensor, it only needs 1 batch
-		if (x.shape().size() == batchDims) return {x.device_offset()};
-		
-		std::array<size_t, max_tensor_dim> newShapeData;
-		for (size_t i = 0; i < x.shape().size() - 1; i += 1)
-		{
-			newShapeData[i] = x.shape()[i];
-		}
-		Shape batchShape(x.shape().size() - 1, newShapeData);
-		std::cout << "	Shape: " << x.shape() << "\n	Batch shape: " << batchShape << "\n	Strides: " << x.stride() << std::endl;
-		std::vector<uint32_t> offsets(batchShape.total_size());
-		for (size_t i = 0; i < batchShape.total_size(); i += 1)
-		{
-			Shape batchPos = flatIndexToPos(i, batchShape);
-			uint32_t offset = x.device_offset();
-			for (size_t j = 0; j < batchPos.size(); j += 1)
-			{
-				offset += (x.stride()[j]*batchPos[j]);
-			}
-			std::cout << "		offset at " << i << ": " << offset << std::endl;
-			offsets[i] = offset;
-		}
-		return offsets;
-	}
 	
-	uint32_t calcStridedBatchOffset(Tensor x, size_t batchDims = 1)
+	// max supported dims is 8, at least for now.
+	struct CLShape
 	{
-		return 0;
-	}
-	
-	void pointwiseOpSingleBatch(
-			const tart::device_ptr& device,
-			uint32_t total,
-			std::vector<Tensor> xs,
-			const std::vector<uint32_t>& xOffsets,
-			std::vector<Tensor> ys,
-			const std::vector<uint32_t>& yOffsets,
-			std::vector<float> ws,
-			PointwiseOp op,
-			const tart::kernel_ptr& k)
-	{		
-		size_t p = 0;
-		for (size_t i = 0; i < xs.size(); i += 1)
-		{
-			std::cout << "			X ARG: " << i << std::endl;
-			k->setArg(p++, xs[i].device_buffer());
-			k->setArg(p++, xOffsets[i]);
-			k->setArg(p++, static_cast<uint32_t>(xs[i].stride()[xs[i].stride().size() - 1]));
-		}
-		for (size_t i = 0; i < ys.size(); i += 1)
-		{
-			std::cout << "	y[" << i << "] offset: " << yOffsets[i] << std::endl;
-			k->setArg(p++, ys[i].device_buffer());
-			k->setArg(p++, yOffsets[i]);
-			k->setArg(p++, static_cast<uint32_t>(ys[i].stride()[ys[i].stride().size() - 1]));
-		}
-		k->setArg(p++, total);
-		k->setArg(p++, ws);
-		
-		auto glPair = device->chooseGlobalAndLocalSize({total, 1, 1});
-		std::vector<uint32_t> spec = {
-			glPair.second[0],
-			glPair.second[1],
-			glPair.second[2],
-			static_cast<uint32_t>(ws.size()),
-			static_cast<uint32_t>(op)
-		};
-		k->enqueue(glPair.first, spec);
-	}
+		uint32_t s[8];
+	};
+
+    template<int size>
+    void bind_cl_shape(tart::kernel_ptr k,int &p,Shape const &s)
+    {
+		CLShape cl_s;
+        for(int i=0;i<size;i++)
+            cl_s.s[i] = s[i];
+        k->setArg(p++, cl_s);
+    }
+    void bind_shape(tart::kernel_ptr k, int &p,Shape const &s)
+    {
+        switch(s.size()) {
+        case 1: bind_cl_shape<1>(k,p,s); return;
+        case 2: bind_cl_shape<2>(k,p,s); return;
+        case 3: bind_cl_shape<3>(k,p,s); return;
+        case 4: bind_cl_shape<4>(k,p,s); return;
+        case 5: bind_cl_shape<5>(k,p,s); return;
+        case 6: bind_cl_shape<6>(k,p,s); return;
+        case 7: bind_cl_shape<7>(k,p,s); return;
+        case 8: bind_cl_shape<8>(k,p,s); return;
+        default:
+            {
+                std::ostringstream ss;
+                ss << "Shape isn't valid " << s;
+                throw ValidationError(ss.str());
+            }
+        }
+    }
 	
 	void pointwiseOpStrided(
 			std::vector<Tensor> xs,
@@ -203,44 +164,33 @@ namespace core {
 				throw std::runtime_error("outputArity != 1 not implemented");
 			}
 		}
-		
-		if (allContiguous && ! forceBatched)
+		int p = 0;
+		for (size_t i = 0; i < xs.size(); i += 1)
 		{
-			std::vector<uint32_t> xOffsets(xs.size());
-			for (size_t i = 0; i < xs.size(); i += 1)
-				xOffsets[i] = xs[i].device_offset();
-			std::vector<uint32_t> yOffsets(ys.size());
-			for (size_t i = 0; i < ys.size(); i += 1)
-				yOffsets[i] = ys[i].device_offset();
-			pointwiseOpSingleBatch(device, xTotal, xs, xOffsets, ys, yOffsets, ws, op, k);
+			k->setArg(p++, xs[i].device_buffer());
+			k->setArg(p++, xs[i].device_offset());
+			bind_shape(k, p, xs[i].stride());
 		}
-		else
+		for (size_t i = 0; i < ys.size(); i += 1)
 		{
-			// This is a lot of code. It could probably use some refactoring
-			// Last dimensions need to be the same, since this determines the global size required
-			DLPRIM_CHECK(xs[0].shape().size() > 0 && xs[0].shape().size() > 0);
-			DLPRIM_CHECK(xs[0].shape()[xs[0].shape().size() - 1] == ys[0].shape()[ys[0].shape().size() - 1]);
-		
-			std::vector<std::vector<uint32_t>> xOffsetBatches(xs.size());
-			for (size_t i = 0; i < xs.size(); i += 1)
-				xOffsetBatches[i] = calcStridedBatchOffsets(xs[i]);
-			std::vector<std::vector<uint32_t>> yOffsetBatches(ys.size());
-			for (size_t i = 0; i < ys.size(); i += 1)
-				yOffsetBatches[i] = calcStridedBatchOffsets(ys[i]);
-			DLPRIM_CHECK(xOffsetBatches.size() == xs.size() && ys.size() == yOffsetBatches.size());
-			size_t numBatches = xOffsetBatches[0].size();
-			for (size_t i = 0; i < xOffsetBatches.size(); i += 1) DLPRIM_CHECK(xOffsetBatches[i].size() == numBatches);
-			for (size_t i = 0; i < yOffsetBatches.size(); i += 1) DLPRIM_CHECK(yOffsetBatches[i].size() == numBatches);
-			
-			std::vector<uint32_t> xOffsets(xs.size());
-			std::vector<uint32_t> yOffsets(ys.size());
-			for (size_t batch = 0; batch < numBatches; batch += 1)
-			{
-				for (size_t i = 0; i < xs.size(); i += 1) xOffsets[i] = xOffsetBatches[i][batch];
-				for (size_t i = 0; i < ys.size(); i += 1) yOffsets[i] = yOffsetBatches[i][batch];
-				pointwiseOpSingleBatch(device, xTotal, xs, xOffsets, ys, yOffsets, ws, op, k);
-			}
+			k->setArg(p++, ys[i].device_buffer());
+			k->setArg(p++, ys[i].device_offset());
+			bind_shape(k, p, ys[i].stride());
 		}
+		Shape ref = ys[0].shape();
+		bind_shape(k, p, ref);
+		k->setArg(p++, ws);
+		
+		auto glPair = calcStridedTensorInvocations(device, ref);
+		std::vector<uint32_t> spec = {
+			glPair.second[0],
+			glPair.second[1],
+			glPair.second[2],
+			static_cast<uint32_t>(ws.size()),
+			static_cast<uint32_t>(op),
+			static_cast<uint32_t>(ref.size())
+		};
+		k->enqueue(glPair.first, spec);
 	}
 	
     void pointwise_operation(std::vector<Tensor> xs,
@@ -300,39 +250,7 @@ namespace core {
 
 
 	
-	// max supported dims is 8, at least for now.
-	struct CLShape
-	{
-		uint32_t s[8];
-	};
-
-    template<int size>
-    void bind_cl_shape(tart::kernel_ptr k,int &p,Shape const &s)
-    {
-		CLShape cl_s;
-        for(int i=0;i<size;i++)
-            cl_s.s[i] = s[i];
-        k->setArg(p++, cl_s);
-    }
-    void bind_shape(tart::kernel_ptr k, int &p,Shape const &s)
-    {
-        switch(s.size()) {
-        case 1: bind_cl_shape<1>(k,p,s); return;
-        case 2: bind_cl_shape<2>(k,p,s); return;
-        case 3: bind_cl_shape<3>(k,p,s); return;
-        case 4: bind_cl_shape<4>(k,p,s); return;
-        case 5: bind_cl_shape<5>(k,p,s); return;
-        case 6: bind_cl_shape<6>(k,p,s); return;
-        case 7: bind_cl_shape<7>(k,p,s); return;
-        case 8: bind_cl_shape<8>(k,p,s); return;
-        default:
-            {
-                std::ostringstream ss;
-                ss << "Shape isn't valid " << s;
-                throw ValidationError(ss.str());
-            }
-        }
-    }
+	
     std::string format_code(std::string const &code)
     {
         std::ostringstream code_fixed;

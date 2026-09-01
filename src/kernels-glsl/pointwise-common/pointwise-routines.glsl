@@ -26,7 +26,6 @@ struct W_ARGS
 	float w[NUM_WEIGHTS_MAX];
 };
 
-#if 1
 Y_OUT pointwise_function(uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS wargs)
 {
 	precise acctype x0 = xargs.data[0];
@@ -193,4 +192,3 @@ Y_OUT pointwise_function(uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS 
 	outp.data[1] = y1;
 	return outp;
 }
-#endif
