@@ -95,11 +95,11 @@ namespace core {
 		// A re-implementation of pointwise_operation, but supporting strided, non-contiguous tensors.
 		// In addition to this, it will also use pre-defined code
 		DLPRIM_CHECK(xs.size() > 0 && ys.size() > 0);
-		uint32_t xTotal = xs[0].shape().total_size();
+		uint32_t dims = xs[0].shape().size();
 		for (const auto& x : xs)
-			DLPRIM_CHECK(xTotal == x.shape().total_size());
+			DLPRIM_CHECK(dims == x.shape().size());
 		for (const auto& y : ys)
-			DLPRIM_CHECK(xTotal == y.shape().total_size());
+			DLPRIM_CHECK(dims == y.shape().size());
 		
 		tart::device_ptr device = tensorDevice(xs[0]);
 		bool allContiguous = true;
