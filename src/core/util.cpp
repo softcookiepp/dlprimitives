@@ -11,88 +11,100 @@
 #include <dlprim/core/util.hpp>
 #include <iostream>
 
-namespace dlprim {
-namespace core {
-	
-    void copy_strided(  Shape shape,
-                        tart::buffer_ptr& src, uint32_t src_offset, Shape src_strides,
-                        tart::buffer_ptr& dst, uint32_t dst_offset, Shape dst_strides,
-                        const tart::DType& dt_src,
-                        const tart::DType dt_dst)
-    {
-        DLPRIM_CHECK(shape.size() == src_strides.size());
-        DLPRIM_CHECK(shape.size() == dst_strides.size());
-        int dims = shape.size();
-        tart::device_ptr device = src->getDevice();
-        bool use_io_type = dt_src == dt_dst;
-        tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy_strided(device, dt_src, dt_dst);
-        std::vector<uint32_t> range;
-        switch(dims)
-        {
-			case 1: range = {shape[0]}; break;
-			case 2: range = {shape[1], shape[0]}; break;
-			case 3: range = {shape[2], shape[1], shape[0]}; break;
-			case 4: range = {shape[3]*shape[2], shape[1], shape[0]}; break;
-			case 5: range = {shape[4]*shape[3], shape[2]*shape[1], shape[0]}; break;
-			case 6: range = {shape[5]*shape[4], shape[3]*shape[2], shape[1]*shape[0]}; break;
-			case 7: range = {shape[6]*shape[5]*shape[4], shape[3]*shape[2], shape[1]*shape[0]}; break;
-			case 8: range = {shape[7]*shape[6]*shape[5],shape[4]*shape[3]*shape[2], shape[1]*shape[0]}; break;
-        default:
-            throw NotImplementedError("Invalid dimentsions count for strided copy " + std::to_string(dims));
-        }
-        tart::kernel_ptr k = prog->getKernel("copy");
-        int p=0;
-        for(int i=0; i < 8; i++)
-        {
-			if (i < shape.size())
-			{
-				k->setArg(p++, uint32_t(shape[i]));
-				k->setArg(p++, uint32_t(src_strides[i]));
-				k->setArg(p++, uint32_t(dst_strides[i]));
-			}
-			else
-			{
-				// not all tensors will have 8 dimensions, leave data for remaining ones blank
-				const uint32_t zero = 0;
-				k->setArg(p++, zero);
-				k->setArg(p++, zero);
-				k->setArg(p++, zero);
-			}
-        }
-        k->setArg(p++,src);
-        k->setArg(p++,src_offset);
-        k->setArg(p++,dst);
-        k->setArg(p++,dst_offset);
-        
-        // Ensure GPU is properly saturated
-        auto globalAndLocal = device->chooseGlobalAndLocalSize(range);
-        auto& local = globalAndLocal.second;
-        
-        std::vector<uint32_t> spec = {
-			local[0], local[1], local[2], dims
-		};
-        k->enqueue(globalAndLocal.first, spec);
-    }
-    
-    void copy_strided(Tensor& src, Tensor& dst)
+namespace dlprim
+{
+namespace core
+{
+
+std::pair<std::vector<uint32_t>, std::vector<uint32_t>>
+	calcStridedTensorInvocations(const tart::device_ptr& device, const Shape& shape)
+{
+	std::vector<uint32_t> range;
+	uint32_t dims = shape.size();
+	switch(dims)
 	{
-		auto s = src.shape();
-		auto src_buf = src.device_buffer();
-		auto src_offset = src.device_offset();
-		auto src_strides = src.stride();
-		
-		auto dst_buf = dst.device_buffer();
-		auto dst_offset = dst.device_offset();
-		auto dst_strides = dst.stride();
-		copy_strided(s,
-			src_buf,
-			src_offset,
-			src_strides,
-			dst_buf, dst_offset,
-			dst_strides,
-			src.dtype(),
-			dst.dtype());
+		case 1: range = {shape[0]}; break;
+		case 2: range = {shape[1], shape[0]}; break;
+		case 3: range = {shape[2], shape[1], shape[0]}; break;
+		case 4: range = {shape[3]*shape[2], shape[1], shape[0]}; break;
+		case 5: range = {shape[4]*shape[3], shape[2]*shape[1], shape[0]}; break;
+		case 6: range = {shape[5]*shape[4], shape[3]*shape[2], shape[1]*shape[0]}; break;
+		case 7: range = {shape[6]*shape[5]*shape[4], shape[3]*shape[2], shape[1]*shape[0]}; break;
+		case 8: range = {shape[7]*shape[6]*shape[5], shape[4]*shape[3]*shape[2], shape[1]*shape[0]}; break;
+	default:
+		throw NotImplementedError("Invalid dimentsions count for strided copy " + std::to_string(dims));
 	}
+	range.resize(3, 1);
+	return device->chooseGlobalAndLocalSize(range);
 }
+
+void copy_strided(  Shape shape,
+					tart::buffer_ptr& src, uint32_t src_offset, Shape src_strides,
+					tart::buffer_ptr& dst, uint32_t dst_offset, Shape dst_strides,
+					const tart::DType& dt_src,
+					const tart::DType dt_dst)
+{
+	DLPRIM_CHECK(shape.size() == src_strides.size());
+	DLPRIM_CHECK(shape.size() == dst_strides.size());
+	int dims = shape.size();
+	tart::device_ptr device = src->getDevice();
+	bool use_io_type = dt_src == dt_dst;
+	tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().copy_strided(device, dt_src, dt_dst);
+
+	tart::kernel_ptr k = prog->getKernel("copy");
+	int p=0;
+	for(int i=0; i < 8; i++)
+	{
+		if (i < shape.size())
+		{
+			k->setArg(p++, uint32_t(shape[i]));
+			k->setArg(p++, uint32_t(src_strides[i]));
+			k->setArg(p++, uint32_t(dst_strides[i]));
+		}
+		else
+		{
+			// not all tensors will have 8 dimensions, leave data for remaining ones blank
+			const uint32_t zero = 0;
+			k->setArg(p++, zero);
+			k->setArg(p++, zero);
+			k->setArg(p++, zero);
+		}
+	}
+	k->setArg(p++,src);
+	k->setArg(p++,src_offset);
+	k->setArg(p++,dst);
+	k->setArg(p++,dst_offset);
+	
+	// Ensure GPU is properly saturated
+	auto globalAndLocal = calcStridedTensorInvocations(device, shape);
+	auto& local = globalAndLocal.second;
+	
+	std::vector<uint32_t> spec = {
+		local[0], local[1], local[2], dims
+	};
+	k->enqueue(globalAndLocal.first, spec);
 }
+
+void copy_strided(Tensor& src, Tensor& dst)
+{
+	auto s = src.shape().total_size() > dst.shape().total_size() ? src.shape() : dst.shape();
+	auto src_buf = src.device_buffer();
+	auto src_offset = src.device_offset();
+	auto src_strides = src.stride();
+	
+	auto dst_buf = dst.device_buffer();
+	auto dst_offset = dst.device_offset();
+	auto dst_strides = dst.stride();
+	copy_strided(s,
+		src_buf,
+		src_offset,
+		src_strides,
+		dst_buf, dst_offset,
+		dst_strides,
+		src.dtype(),
+		dst.dtype());
+}
+
+} // core
+} // dlprim
 

@@ -1,17 +1,12 @@
 #include "../common/defs.glsl"
 #include "../common/workgroup.glsl"
+#include "../common/shape.glsl"
 #define NUM_WEIGHTS_MAX 8
-#define DIMS_MAX 8
 layout(constant_id = 3) const uint NUM_WEIGHTS = NUM_WEIGHTS_MAX;
 layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
 #if 0
 	layout(constant_id = 5) const uint DIMS = DIMS_MAX;
 #endif
-
-struct Shape
-{
-    uint s[DIMS_MAX];
-};
 
 #define X_ARITY_MAX 3
 #ifndef X_ARITY
@@ -308,26 +303,6 @@ acctype pointwise_function_unary_unary(uint gid, precise acctype x0)
 		}
 		return y;
 	}
-#endif
-
-#if 0
-	uint get_pos(uint gid, Shape shape)
-	{
-		Shape pos;
-		uint coef = 1;
-		// use int to avoid overflow
-		UNROLL(DIMS)
-		for (int i = int(DIMS) - 1; i >= 0; i -= 1)
-		{
-			uint dLen = shape[i];
-			uint mod = (gid/coef) % dLen;
-			pos[i] = mod;
-			coef *= dLen;
-		}
-		return pos;
-	}
-#else
-	
 #endif
 
 void pointwise_strided_impl()

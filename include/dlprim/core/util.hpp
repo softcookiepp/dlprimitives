@@ -10,6 +10,9 @@
 #include <dlprim/context.hpp>
 namespace dlprim {
 namespace core {
+	
+std::pair<std::vector<uint32_t>, std::vector<uint32_t>>
+	calcStridedTensorInvocations(const tart::device_ptr& device, uint32_t dims, const Shape& shape);
 
 // same as the bottom one, but with the tensor's own built-in strides and offset
 void copy_strided(Tensor& src, Tensor& dst);
