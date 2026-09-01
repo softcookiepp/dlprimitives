@@ -104,24 +104,55 @@ void copy_strided(Tensor& src, Tensor& dst)
 		dst.dtype());
 }
 
-Tensor broadcastTensors(Tensor& src, Tensor& dst)
+void broadcastTensors(Tensor& src, Tensor& dst)
 {
+	Shape srcShape = src.shape();
+	Shape dstShape = dst.shape();
+	
+	if (srcShape == dstShape) return;
+	
+	Shape srcStride = src.stride();
+	Shape dstStride = dst.stride();
+	
 	if (src.shape().size() != dst.shape().size())
 	{
-		throw NotImplementedError("Can't broadcast shapes of different dimensions quite yet!");
+		while (srcShape.size() < dstShape.size())
+		{
+			// Strides need to be taken into account.
+			srcShape = srcShape.unsqueeze(0);
+			srcStride = srcStride.unsqueeze(0);
+		}
+		while (srcShape.size() > dstShape.size())
+		{
+			// Strides need to be taken into account.
+			dstShape = dstShape.unsqueeze(0);
+			dstStride = dstStride.unsqueeze(0);
+		}
 	}
-
-	size_t totalDims = dst.shape().size();
-	Shape broadcastShape = dst.shape();
-	Shape newSrcStrides = src.stride();
 	
-	// check that the dimensions are alright, set any applicable strides to zero
+
+	size_t totalDims = dstShape.size();
+	// correct dimensions, set applicable strides to zero
 	for (size_t i = 0; i < totalDims; i += 1)
 	{
-		DLPRIM_CHECK(src.shape()[i] == dst.shape()[i] || src.shape()[i] == 1);
-		if (src.shape()[i] == 1) newSrcStrides[i] = 0;
+		if (srcShape[i] == 1)
+		{
+			srcShape[i] = dstShape[i];
+			srcStride[i] = 0;
+		}
+		else if (dstShape[i] == 1)
+		{
+			dstShape[i] = srcShape[i];
+			dstStride[i] = 0;
+		}
+		else
+		{
+			throw ValidationError("Non-broadcastable shape!");
+		}
 	}
-	return Tensor(src.device_buffer(), src.device_offset(), broadcastShape, newSrcStrides, src.dtype());
+	src = Tensor(src.device_buffer(), src.device_offset(), srcShape, srcStride, src.dtype());
+	dst = Tensor(dst.device_buffer(), dst.device_offset(), dstShape, dstStride, dst.dtype());
+	
 }
 
 } // core

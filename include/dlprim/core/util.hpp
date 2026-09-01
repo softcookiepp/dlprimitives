@@ -23,7 +23,9 @@ void copy_strided(Shape shape,
 	const tart::DType& dt_src,
 	const tart::DType dt_dst);
 	
-Tensor broadcastTensors(Tensor& src, Tensor& dst);
+// Broadcasts both of the tensors to each other.
+// Both src and dst references will be overwritten, but no extra GPU memory should be taken up.
+void broadcastTensors(Tensor& src, Tensor& dst);
 	
 } // core
 } // dlprim
