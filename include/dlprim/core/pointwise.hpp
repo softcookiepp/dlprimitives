@@ -70,7 +70,14 @@ namespace core {
 		eDropout = 46,
 		eRound = 47,
 		eNeg = 48,
-		eRecip = 49
+		eRecip = 49,
+		eAddcmul = 50,
+		eCmpGt = 51,
+		eCmpLt = 52,
+		eCmpGe = 53,
+		eCmpLe = 54,
+		eCmpEq = 55,
+		eCmpNe = 56
 	};
     
     // Pointwise operation, but without code generation requirement.
@@ -87,20 +94,6 @@ namespace core {
 			std::vector<float> ws,
 			const PointwiseOp op);
     
-    ///
-    /// per form operations function(xs,ws)->yw such that
-    /// each tensor in xs and ys has same shape, ws are constant parameters
-    ///
-    /// code should perform assignment to variables y0 to yN and use x0..xM as values, and w0...wK as parameters
-    /// for example:
-    ///   `pointwise_operation({a,b},{c},{w},"y0 = x0*w0 + x1;",q);`
-    ///
-    #if 0
-    void pointwise_operation(std::vector<Tensor> xs,
-                             std::vector<Tensor> ys,
-                             std::vector<double>  ws,
-                             std::string const &code);
-	#endif
     ///
     /// Similar to pointwise_operation but xs are broadcasted numpy style. ys must much broadcasted shape, weights are considered
     /// of ys[0].dtype()
