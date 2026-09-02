@@ -192,6 +192,8 @@ Y_OUT pointwise_function(uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS 
 			y0 = (x0 == x1) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_NE)
 			y0 = (x0 != x1) ? A1 : A0;
+		else if (POINTWISE_ROUTINE == ROUTINE_LERP)
+			y0 = x0 + acctype(w[0])*(x1 - x0);
 	}
 	else if (xArity == 3 && yArity == 1)
 	{
@@ -206,6 +208,8 @@ Y_OUT pointwise_function(uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS 
 		{
 			y0 = fma(acctype(w[0])*x1, x2, x0);
 		}
+		else if (POINTWISE_ROUTINE == ROUTINE_ADDCDIV)
+			y0 = x0 + acctype(w[0])*(x1/x2);
 	}
 	else if (xArity == 1 && yArity == 2)
 	{
