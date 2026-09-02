@@ -180,7 +180,7 @@ void broadcastTensors(Tensor& src, Tensor& dst)
 			dstShape[i] = srcShape[i];
 			dstStride[i] = 0;
 		}
-		else
+		else if (srcShape[i] != dstShape[i])
 		{
 			std::stringstream ss;
 			ss << "Shapes are not broadcastable:\n"
