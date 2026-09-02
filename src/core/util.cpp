@@ -10,6 +10,7 @@
 #include <dlprim/gpu/tiered_cache.hpp>
 #include <dlprim/core/util.hpp>
 #include <iostream>
+#include <sstream>
 
 namespace dlprim
 {
@@ -179,7 +180,11 @@ void broadcastTensors(Tensor& src, Tensor& dst)
 		}
 		else
 		{
-			throw ValidationError("Non-broadcastable shape!");
+			std::stringstream ss;
+			ss << "Shapes are not broadcastable:\n"
+				<< "	" << src.shape()
+				<< "\n	" << dst.shape() << std::endl;
+			throw ValidationError(ss.str());
 		}
 	}
 	src = Tensor(src.device_buffer(), src.device_offset(), srcShape, srcStride, src.dtype());
