@@ -114,17 +114,17 @@ Y_OUT pointwise_function(uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS 
 			y0 = A1/x0;
 		// these get re-used, as to not have too many enum values
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_GT)
-			y0 = acctype(x0 > acctype(w[0]));
+			y0 = x0 > acctype(w[0]) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_LT)
-			y0 = acctype(x0 < acctype(w[0]));
+			y0 = x0 < acctype(w[0]) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_GE)
-			y0 = acctype(x0 >= acctype(w[0]));
+			y0 = x0 >= acctype(w[0]) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_LE)
-			y0 = acctype(x0 <= acctype(w[0]));
+			y0 = x0 <= acctype(w[0]) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_EQ)
-			y0 = acctype(x0 == acctype(w[0]));
+			y0 = x0 == acctype(w[0]) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_NE)
-			y0 = acctype(x0 != acctype(w[0]));
+			y0 = x0 != acctype(w[0]) ? A1 : A0;
 		
 	}
 	else if (xArity == 2 && yArity == 1)
@@ -181,17 +181,17 @@ Y_OUT pointwise_function(uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS 
 		else if (POINTWISE_ROUTINE == ROUTINE_DROPOUT)
 			y0 = x0*x1*acctype(w[0]);
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_GT)
-			y0 = acctype(x0 > x1);
+			y0 = (x0 > x1) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_LT)
-			y0 = acctype(x0 < x1);
+			y0 = (x0 < x1) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_GE)
-			y0 = acctype(x0 >= x1);
+			y0 = (x0 >= x1) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_LE)
-			y0 = acctype(x0 <= x1);
+			y0 = (x0 <= x1) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_EQ)
-			y0 = acctype(x0 == x1);
+			y0 = (x0 == x1) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_NE)
-			y0 = acctype(x0 != x1);
+			y0 = (x0 != x1) ? A1 : A0;
 	}
 	else if (xArity == 3 && yArity == 1)
 	{
