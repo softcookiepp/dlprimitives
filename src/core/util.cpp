@@ -163,6 +163,8 @@ void broadcastTensors(Tensor& src, Tensor& dst)
 		}
 	}
 	
+	Shape srcShapeUnsqueezed = srcShape;
+	Shape dstShapeUnsqueezed = dstShape;
 
 	size_t totalDims = dstShape.size();
 	// correct dimensions, set applicable strides to zero
@@ -183,7 +185,11 @@ void broadcastTensors(Tensor& src, Tensor& dst)
 			std::stringstream ss;
 			ss << "Shapes are not broadcastable:\n"
 				<< "	" << src.shape()
-				<< "\n	" << dst.shape() << std::endl;
+				<< "\n	" << dst.shape() 
+				<< "\nUnsqueezed:\n"
+				<< "	" << srcShapeUnsqueezed
+				<< "\n	" << dstShapeUnsqueezed
+				<< std::endl;
 			throw ValidationError(ss.str());
 		}
 	}
