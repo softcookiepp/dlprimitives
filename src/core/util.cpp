@@ -127,7 +127,7 @@ void broadcastTensors(std::vector<Tensor>& ts)
 	{
 		if (i != refIdx) broadcastTensors(ts[i], ref);
 	}
-	if (refStartShape != ref.shape() || refStartStride == ref.stride())
+	if (refStartShape != ref.shape() || refStartStride != ref.stride())
 	{
 		// Ref got changed, another pass is needed
 		for (size_t i = 0; i < ts.size(); i += 1)

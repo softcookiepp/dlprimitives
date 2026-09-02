@@ -89,7 +89,8 @@ namespace core {
 			std::vector<Tensor> ys,
 			std::vector<float> ws,
 			PointwiseOp op,
-			const bool forceStridedKernel)
+			const tart::DType& acctype,
+			const tart::DType& iacctype)
 	{
 		// This will be a starting point for implementing strided tensor functionality.
 		// A re-implementation of pointwise_operation, but supporting strided, non-contiguous tensors.
@@ -197,7 +198,9 @@ namespace core {
 	void pointwiseOpBroadcastStrided(std::vector<Tensor> xs,
 		std::vector<Tensor> ys,
 		std::vector<float> ws,
-		const PointwiseOp op)
+		const PointwiseOp op,
+		const tart::DType& acctype,
+		const tart::DType& iacctype)
 	{
 		DLPRIM_CHECK(xs.size() > 0 && ys.size() > 0);
 		std::vector<Tensor> broadcasted(xs.size() + ys.size());

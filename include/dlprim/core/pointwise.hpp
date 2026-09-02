@@ -86,13 +86,16 @@ namespace core {
 			std::vector<Tensor> ys,
 			std::vector<float> ws,
 			const PointwiseOp op,
-			const bool forceStridedKernel = false);
+			const tart::DType& acctype = tart::dtypes::float32,
+			const tart::DType& iacctype = tart::dtypes::int32);
 	
 	// Just like the above, but with auto-broadcasting.
 	void pointwiseOpBroadcastStrided(std::vector<Tensor> xs,
 			std::vector<Tensor> ys,
 			std::vector<float> ws,
-			const PointwiseOp op);
+			const PointwiseOp op,
+			const tart::DType& acctype = tart::dtypes::float32,
+			const tart::DType& iacctype = tart::dtypes::int32);
     
     ///
     /// Similar to pointwise_operation but xs are broadcasted numpy style. ys must much broadcasted shape, weights are considered
