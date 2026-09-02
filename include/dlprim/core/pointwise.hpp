@@ -79,7 +79,13 @@ namespace core {
 			std::vector<Tensor> ys,
 			std::vector<float> ws,
 			const PointwiseOp op,
-			const bool forceBatched = false);
+			const bool forceStridedKernel = false);
+	
+	// Just like the above, but with auto-broadcasting.
+	void pointwiseOpBroadcastStrided(std::vector<Tensor> xs,
+			std::vector<Tensor> ys,
+			std::vector<float> ws,
+			const PointwiseOp op);
     
     ///
     /// per form operations function(xs,ws)->yw such that

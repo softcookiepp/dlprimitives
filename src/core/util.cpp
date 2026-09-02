@@ -104,6 +104,38 @@ void copy_strided(Tensor& src, Tensor& dst)
 		dst.dtype());
 }
 
+void broadcastTensors(std::vector<Tensor>& ts)
+{
+	if (ts.size() == 0) return; // safety to prevent overflow
+	// Tensor with largest dims will be reference
+	size_t dims = 0;
+	size_t refIdx;
+	for (size_t i = 0; i < ts.size(); i += 1)
+	{
+		Tensor& t = ts[i];
+		if (t.shape().size() > dims)
+		{
+			dims = t.shape().size();
+			refIdx = i;
+		}
+	}
+	Tensor& ref = ts[refIdx];
+	Shape refStartShape = ref.shape();
+	Shape refStartStride = ref.stride();
+	for (size_t i = 0; i < ts.size(); i += 1)
+	{
+		if (i != refIdx) broadcastTensors(ts[i], ref);
+	}
+	if (refStartShape != ref.shape() || refStartStride == ref.stride())
+	{
+		// Ref got changed, another pass is needed
+		for (size_t i = 0; i < ts.size(); i += 1)
+		{
+			if (i != refIdx) broadcastTensors(ts[i], ref);
+		}
+	}
+}
+
 void broadcastTensors(Tensor& src, Tensor& dst)
 {
 	Shape srcShape = src.shape();

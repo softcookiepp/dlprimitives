@@ -258,13 +258,15 @@ template<typename Type>
 void test_broadcast(const tart::device_ptr& q)
 {
     using dp::core::pointwise_operation_broadcast;
+    using dp::core::pointwiseOpBroadcastStrided;
+    using dp::core::PointwiseOp;
     {
         auto a=make_tensor<Type>(q,dp::Shape(1),{1});
         auto b=make_tensor<Type>(q,dp::Shape(2),{2,3});
         auto ref=make_tensor<Type>(q,dp::Shape(2),{3,4});
         dp::Tensor c(q,dp::Shape(2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
+		pointwiseOpBroadcastStrided({a, b}, {c}, {}, PointwiseOp::eAdd);
         TEST(equal(c,ref,q));
     }
     {
@@ -273,7 +275,8 @@ void test_broadcast(const tart::device_ptr& q)
         auto ref=make_tensor<Type>(q,dp::Shape(2,2),{0,1,1,2});
         dp::Tensor c(q,dp::Shape(2,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
+        pointwiseOpBroadcastStrided({a, b}, {c}, {}, PointwiseOp::eAdd);
+        //pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -282,7 +285,8 @@ void test_broadcast(const tart::device_ptr& q)
         auto ref=make_tensor<Type>(q,dp::Shape(2,2),{0,1,7,8});
         dp::Tensor c(q,dp::Shape(2,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{7},"y0=x0+w0*x1;");
+        pointwiseOpBroadcastStrided({b, a}, {c}, {7}, PointwiseOp::eAxpy);
+        //pointwise_operation_broadcast({a,b},{c},{7},"y0=x0+w0*x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -291,7 +295,8 @@ void test_broadcast(const tart::device_ptr& q)
         auto ref=make_tensor<Type>(q,dp::Shape(2,2,3),{0, 1, 2, 1, 2, 3, 3, 4, 5, 4, 5, 6});
         dp::Tensor c(q,dp::Shape(2,2,3),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
+        pointwiseOpBroadcastStrided({a, b}, {c}, {}, PointwiseOp::eAdd);
+        //pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -302,7 +307,8 @@ void test_broadcast(const tart::device_ptr& q)
                                                           9, 10});
         dp::Tensor c(q,dp::Shape(2,2,3,3),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
+        pointwiseOpBroadcastStrided({a, b}, {c}, {}, PointwiseOp::eAdd);
+        //pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -317,7 +323,8 @@ void test_broadcast(const tart::device_ptr& q)
         });
         dp::Tensor c(q,dp::Shape(2,2,3,3,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
+        pointwiseOpBroadcastStrided({a, b}, {c}, {}, PointwiseOp::eAdd);
+        //pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -336,7 +343,8 @@ void test_broadcast(const tart::device_ptr& q)
         });
         dp::Tensor c(q,dp::Shape(2,2,3,3,2,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
+        pointwiseOpBroadcastStrided({a, b}, {c}, {}, PointwiseOp::eAdd);
+        //pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -363,7 +371,8 @@ void test_broadcast(const tart::device_ptr& q)
         });
         dp::Tensor c(q,dp::Shape(2,2,3,3,2,2,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
+        pointwiseOpBroadcastStrided({a, b}, {c}, {}, PointwiseOp::eAdd);
+        //pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
     {
@@ -389,7 +398,8 @@ void test_broadcast(const tart::device_ptr& q)
         });
         dp::Tensor c(q,dp::Shape(2,2,2,2, 2,2,2,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
+        pointwiseOpBroadcastStrided({a, b}, {c}, {}, PointwiseOp::eAdd);
+        //pointwise_operation_broadcast({a,b},{c},{},"y0=x0+x1;");
         TEST(equal(c,ref,q));
     }
 }

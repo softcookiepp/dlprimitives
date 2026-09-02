@@ -26,6 +26,9 @@ void copy_strided(Shape shape,
 // Broadcasts both of the tensors to each other.
 // Both src and dst references will be overwritten, but no extra GPU memory should be taken up.
 void broadcastTensors(Tensor& src, Tensor& dst);
+
+// Broadcast more than 2 tensors
+void broadcastTensors(std::vector<Tensor>& ts);
 	
 } // core
 } // dlprim

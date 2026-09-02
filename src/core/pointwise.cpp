@@ -89,7 +89,7 @@ namespace core {
 			std::vector<Tensor> ys,
 			std::vector<float> ws,
 			PointwiseOp op,
-			const bool forceBatched)
+			const bool forceStridedKernel)
 	{
 		// This will be a starting point for implementing strided tensor functionality.
 		// A re-implementation of pointwise_operation, but supporting strided, non-contiguous tensors.
@@ -193,64 +193,28 @@ namespace core {
 		k->enqueue(glPair.first, spec);
 	}
 	
-    void pointwise_operation(std::vector<Tensor> xs,
-                             std::vector<Tensor> ys,
-                             std::vector<double>  ws,
-                             std::string const &code)
-    {
-        tart::device_ptr device = nullptr;
-        if (xs.size() > 0)
-			device = tensorDevice(xs[0]);
-		else if (ys.size() > 0)
-			device = tensorDevice(ys[0]);
-		else
-			throw std::runtime_error("no tensors provided!");
-			
-		Shape ref;
-		tart::DType ref_type = tart::dtypes::float32;
-		
-		if(xs.empty())
+	// Just like the above, but with auto-broadcasting.
+	void pointwiseOpBroadcastStrided(std::vector<Tensor> xs,
+		std::vector<Tensor> ys,
+		std::vector<float> ws,
+		const PointwiseOp op)
+	{
+		DLPRIM_CHECK(xs.size() > 0 && ys.size() > 0);
+		std::vector<Tensor> broadcasted(xs.size() + ys.size());
+		for (size_t i = 0; i < xs.size(); i += 1) broadcasted[i] = xs[i];
+		for (size_t i = 0; i < ys.size(); i += 1) broadcasted[i + xs.size()] = ys[i];
+		broadcastTensors(broadcasted);
+		for (size_t i = 0; i < xs.size(); i += 1) xs[i] = broadcasted[i];
+		for (size_t i = 0; i < ys.size(); i += 1)
 		{
-			ref = ys[0].shape();
-			ref_type = ys[0].dtype();
+			Tensor& y = broadcasted[i + xs.size()];
+			if (ys[i].shape().total_size() < y.shape().total_size())
+				throw ValidationError("Output tensor requires reduce, cannot use");
+			ys[i] = y;
 		}
-		else
-		{
-			ref = xs[0].shape();
-			ref_type = xs[0].dtype();
-		}
-		
-		#if 0
-			// Just a little test
-			std::cout << "	Ref: " << ref << std::endl;
-			for (size_t i = 0; i < ref.total_size(); i += 1)
-			{
-				Shape pos = flatIndexToPos(i, ref);
-				std::cout << "		Ref pos at " << i << ": " << pos << std::endl;
-			}
-		#endif
-		
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().getPointwiseOperation(device, xs, ys, ws, code);
-		
-        tart::kernel_ptr k = prog->getKernel("exec");
-        uint32_t total = ref.total_size();
-        int p=0;
-        k->setArg(p++,total);
-        for(Tensor &x:xs)
-            x.set_arg(k,p);
-        for(Tensor &y:ys)
-            y.set_arg(k,p);
-        for(double w:ws)
-            bind_as_dtype(k,p,w, ref_type);
-            
-		auto glPair = device->chooseGlobalAndLocalSize({total, 1, 1});
-		k->enqueue(glPair.first, glPair.second);
-    }
+		pointwiseOpStrided(xs, ys, ws, op);
+	}
 
-
-
-	
-	
     std::string format_code(std::string const &code)
     {
         std::ostringstream code_fixed;
