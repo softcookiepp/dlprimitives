@@ -210,6 +210,8 @@ Y_OUT pointwise_function(uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS 
 		}
 		else if (POINTWISE_ROUTINE == ROUTINE_ADDCDIV)
 			y0 = x0 + acctype(w[0])*(x1/x2);
+		else if (POINTWISE_ROUTINE == ROUTINE_MSE_BWD)
+			y0 = acctype(2)*(x1 - x2)*x0*acctype(w[0]);
 	}
 	else if (xArity == 1 && yArity == 2)
 	{

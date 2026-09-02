@@ -79,7 +79,8 @@ namespace core {
 		eCmpEq = 55,
 		eCmpNe = 56,
 		eLerp = 57,
-		eAddcdiv = 58
+		eAddcdiv = 58,
+		eMseBwd = 59
 	};
     
     // Pointwise operation, but without code generation requirement.
