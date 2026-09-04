@@ -196,7 +196,7 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			y0 = x0 + acctype(w[0])*(x1 - x0);
 		else if (POINTWISE_ROUTINE == ROUTINE_TRANSFORM_BIAS_RESCALE_QKV)
 		{
-			uint position_d1 = uint(index.s[1]);
+			uint position_d1 = uint(pos.s[1]);
 			acctype scale = position_d1 < uint(w[1]) ? acctype(w[0]) : A1;
 			y0 = (x0 + x1)*scale;
 		}
