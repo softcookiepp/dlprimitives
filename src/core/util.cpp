@@ -147,6 +147,9 @@ void broadcastTensors(Tensor& src, Tensor& dst)
 	Shape srcStride = src.stride();
 	Shape dstStride = dst.stride();
 	
+	DLPRIM_CHECK(srcStride.size() == srcShape.size());
+	DLPRIM_CHECK(dstStride.size() == dstShape.size());
+	
 	if (src.shape().size() != dst.shape().size())
 	{
 		while (srcShape.size() < dstShape.size())
