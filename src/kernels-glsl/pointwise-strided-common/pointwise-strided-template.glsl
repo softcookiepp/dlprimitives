@@ -113,7 +113,7 @@ void pointwise_strided_impl()
 	#endif
 	
 	// calculate everything
-	Y_OUT y = pointwise_function(gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs);
+	Y_OUT y = pointwise_function(pos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs);
 	
 	// store y values
 	uint y0_idx = y0_offset + getStridedIndexFromPos(pos, y0_strides, DIMS);

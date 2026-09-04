@@ -81,7 +81,8 @@ namespace core {
 		eLerp = 57,
 		eAddcdiv = 58,
 		eMseBwd = 59,
-		eFma = 60
+		eFma = 60,
+		eTransformBiasRescaleQKV = 61
 	};
     
     // Pointwise operation, but without code generation requirement.

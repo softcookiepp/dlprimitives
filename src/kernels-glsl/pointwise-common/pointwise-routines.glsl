@@ -26,7 +26,7 @@ struct W_ARGS
 	float w[NUM_WEIGHTS_MAX];
 };
 
-Y_OUT pointwise_function(uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS wargs)
+Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS wargs)
 {
 	precise acctype x0 = xargs.data[0];
 	precise acctype x1 = xargs.data[1];
@@ -194,6 +194,12 @@ Y_OUT pointwise_function(uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS 
 			y0 = (x0 != x1) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_LERP)
 			y0 = x0 + acctype(w[0])*(x1 - x0);
+		else if (POINTWISE_ROUTINE == ROUTINE_TRANSFORM_BIAS_RESCALE_QKV)
+		{
+			uint position_d1 = uint(index.s[1]);
+			acctype scale = position_d1 < uint(w[1]) ? acctype(w[0]) : A1;
+			y0 = (x0 + x1)*scale;
+		}
 	}
 	else if (xArity == 3 && yArity == 1)
 	{
