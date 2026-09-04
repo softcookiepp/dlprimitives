@@ -83,13 +83,19 @@ namespace dlprim
 
         void shape(Shape const &s)
         {
-            shape_=s;
+            shape_ = s;
         }
         
         // get strides
         const Shape& stride() const
         {
 			return mStride;
+		}
+		
+		// set strides
+		void setStride(const Shape& s)
+		{
+			mStride = s;
 		}
 
         ///
@@ -239,8 +245,8 @@ namespace dlprim
         }
 
         ///
-        /// Reshape the tensor, the only requirement that ns.total_size() <= shape().total_size()
-        ///
+        /// Reshape the tensor, the only requirement that ns.total_size() <= shape().total_size() 
+        /// (and the tensor must be contiguous. that is pretty important, at least for now)
         void reshape(Shape const &ns);
         
         ///

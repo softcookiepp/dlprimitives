@@ -114,9 +114,13 @@ namespace dlprim {
 
     void Tensor::reshape(Shape const &new_shape)
     {
+		if (!this->isContiguous())
+			throw NotImplementedError("`reshape` is not implemented for non-contiguous tensors.");
         if(new_shape.total_size() > capacity_)
             throw ValidationError("reshape: new size is larger than original");
         specs_->shape(new_shape);
+        Shape stride = calcStridesFromShape(new_shape);
+        specs_->setStride(stride);
     }
 
     void Tensor::to_device(void *p,bool sync)
