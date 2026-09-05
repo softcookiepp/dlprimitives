@@ -422,7 +422,7 @@ namespace core {
 				strides[j+xs.size()] = ys[j].stride();
 			}
 
-			//shrink_broadcast_ranges(shapes);
+			shrink_broadcast_ranges(shapes);
 			
 			ref_ = shapes[0]; // ys[0]
 			for(size_t i=1;i<shapes.size();i++) {
