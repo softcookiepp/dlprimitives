@@ -113,20 +113,24 @@ namespace core {
     /// Similar to pointwise_operation but xs are broadcasted numpy style. ys must much broadcasted shape, weights are considered
     /// of ys[0].dtype()
     ///
+    #if 0
     void pointwise_operation_broadcast( std::vector<Tensor> xs,
                                         std::vector<Tensor> ys,
                                         std::vector<double>  weights,
                                         std::string const &code);
+	#endif
 
     ///
     /// Similar to pointwise_operation but xs are broadcasted numpy style. ys must much broadcasted shape
     ///
+    #if 0
     void pointwise_operation_broadcast( std::vector<Tensor> xs,
                                         std::vector<Tensor> ys,
                                         std::vector<double>  weights,
                                         const std::vector<tart::DType>& weights_types,
                                         std::string const &code,
                                         bool shrink_dims=true);
+	#endif
     ///
     /// Perform pointwise operation with both boradcasting and reduction
     ///

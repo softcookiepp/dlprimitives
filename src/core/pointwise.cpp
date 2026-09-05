@@ -261,7 +261,7 @@ namespace core {
         }
         return range;
     }
-
+	#if 0
     void pointwise_operation_broadcast( std::vector<Tensor> xs,
                                         std::vector<Tensor> ys,
                                         std::vector<double> ws,
@@ -270,7 +270,7 @@ namespace core {
         std::vector<tart::DType> dts(ws.size(),ys.at(0).dtype());
         pointwise_operation_broadcast(xs,ys,ws,dts,code);
     }
-
+	
     void pointwise_operation_broadcast( std::vector<Tensor> xs,
                                         std::vector<Tensor> ys,
                                         std::vector<double> ws,
@@ -334,7 +334,7 @@ namespace core {
         auto glPair = device->chooseGlobalAndLocalSize(range);
 		k->enqueue(glPair.first, {glPair.second[0], glPair.second[1], glPair.second[2], ref.size()});
     }
-    
+    #endif
     void getWorkgroupAndReductionType(bool& smallReduction, uint32_t& wgSize, size_t total_reduce)
     {
 		smallReduction = 0;

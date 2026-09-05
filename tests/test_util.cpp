@@ -80,8 +80,7 @@ int main(int argc,char **argv)
                         Tensor y_ref(q,s, tart::dtypes::float32);
                         Tensor y(q,s, tart::dtypes::float32);
                         x.to_device(vals_x.data());
-                        //core::pointwise_operation_broadcast({x},{y_ref},{},"y0=x0;",q);
-                        core::pointwise_operation_broadcast({x},{y_ref},{},"y0=x0;");
+                        core::pointwiseOpBroadcastStrided({x},{y_ref},{}, core::PointwiseOp::eIdentity);
                         core::copy_strided(s,x.device_buffer(),x.device_offset(),strides_src,
                                              y.device_buffer(),y.device_offset(),strides_tgt,
                                              tart::dtypes::int32, tart::dtypes::float32);
