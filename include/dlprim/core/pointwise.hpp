@@ -85,7 +85,11 @@ namespace core {
 		eTransformBiasRescaleQKV = 61,
 		eBitwiseAnd = 62,
 		eBitwiseOr = 63,
-		eBitwiseXor = 64
+		eBitwiseXor = 64,
+		eLogicalAnd = 65,
+		eLogicalOr = 66,
+		eMax = 67,
+		eMin = 68
 	};
     
     // Pointwise operation, but without code generation requirement.

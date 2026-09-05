@@ -132,6 +132,10 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			y0 = acctype(iacctype(x0) | iacctype(w[0]));
 		else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_XOR)
 			y0 = acctype(iacctype(x0) ^ iacctype(w[0]));
+		else if (POINTWISE_ROUTINE == ROUTINE_LOGICAL_AND)
+			y0 = acctype(iacctype(x0) & iacctype(w[0]));
+		else if (POINTWISE_ROUTINE == ROUTINE_LOGICAL_OR)
+			y0 = acctype(iacctype(x0) | iacctype(w[0]));
 		else if (POINTWISE_ROUTINE == ROUTINE_MAX)
 			y0 = max(x0, acctype(w[0]));
 		else if (POINTWISE_ROUTINE == ROUTINE_MIN)
@@ -216,6 +220,10 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			y0 = acctype(iacctype(x0) | iacctype(x1));
 		else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_XOR)
 			y0 = acctype(iacctype(x0) ^ iacctype(x1));
+		else if (POINTWISE_ROUTINE == ROUTINE_LOGICAL_AND)
+			y0 = acctype(iacctype(x0) & iacctype(x1));
+		else if (POINTWISE_ROUTINE == ROUTINE_LOGICAL_OR)
+			y0 = acctype(iacctype(x0) | iacctype(x1));
 		else if (POINTWISE_ROUTINE == ROUTINE_MAX)
 			y0 = max(x0, x1);
 		else if (POINTWISE_ROUTINE == ROUTINE_MIN)
