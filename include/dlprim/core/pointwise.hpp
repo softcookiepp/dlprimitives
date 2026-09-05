@@ -82,7 +82,10 @@ namespace core {
 		eAddcdiv = 58,
 		eMseBwd = 59,
 		eFma = 60,
-		eTransformBiasRescaleQKV = 61
+		eTransformBiasRescaleQKV = 61,
+		eBitwiseAnd = 62,
+		eBitwiseOr = 63,
+		eBitwiseXor = 64
 	};
     
     // Pointwise operation, but without code generation requirement.

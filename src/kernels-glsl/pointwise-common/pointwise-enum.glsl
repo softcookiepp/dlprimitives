@@ -59,4 +59,7 @@
 #define ROUTINE_ADDCDIV 58
 #define ROUTINE_MSE_BWD 59
 #define ROUTINE_FMA 60
-#define ROUTINE_TRANSFORM_BIAS_RESCALE_QKV 61 // whatever this is
+#define ROUTINE_TRANSFORM_BIAS_RESCALE_QKV 61 // whatever this is. all I know is it passes tests lmao
+#define ROUTINE_BITWISE_AND 62
+#define ROUTINE_BITWISE_OR 63
+#define ROUTINE_BITWISE_XOR 64

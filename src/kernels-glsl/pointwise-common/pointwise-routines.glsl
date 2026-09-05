@@ -125,6 +125,13 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			y0 = x0 == acctype(w[0]) ? A1 : A0;
 		else if (POINTWISE_ROUTINE == ROUTINE_CMP_NE)
 			y0 = x0 != acctype(w[0]) ? A1 : A0;
+		// really need to have a better way of separating integer-only ops...
+		else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_AND)
+			y0 = acctype(iacctype(x0) & iacctype(w[0]));
+		else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_OR)
+			y0 = acctype(iacctype(x0) | iacctype(w[0]));
+		else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_XOR)
+			y0 = acctype(iacctype(x0) ^ iacctype(w[0]));
 		
 	}
 	else if (xArity == 2 && yArity == 1)
@@ -200,6 +207,12 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			acctype scale = position_d1 < uint(w[1]) ? acctype(w[0]) : A1;
 			y0 = (x0 + x1)*scale;
 		}
+		else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_AND)
+			y0 = acctype(iacctype(x0) & iacctype(x1));
+		else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_OR)
+			y0 = acctype(iacctype(x0) | iacctype(x1));
+		else if (POINTWISE_ROUTINE == ROUTINE_BITWISE_XOR)
+			y0 = acctype(iacctype(x0) ^ iacctype(x1));
 	}
 	else if (xArity == 3 && yArity == 1)
 	{
