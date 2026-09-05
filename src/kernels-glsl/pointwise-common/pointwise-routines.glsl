@@ -248,6 +248,8 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			y0 = acctype(2)*(x1 - x2)*x0*acctype(w[0]);
 		else if (POINTWISE_ROUTINE == ROUTINE_FMA)
 			y0 = fma(x0, x1, x2);
+		else if (POINTWISE_ROUTINE == ROUTINE_BCE_BWD)
+			y0 = -(x1 - x0) / max(acctype(1e-12f), x0 - (x0*x0) ) * x2 * acctype(w[0]);
 	}
 	else if (xArity == 1 && yArity == 2)
 	{
