@@ -35,14 +35,6 @@ public:
 	
 	tart::program_ptr getPointwiseOperation(std::vector<Tensor>& xs,
 		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code);
-		
-	tart::program_ptr getPointwiseBroadcastOperation(
-		const std::vector<Tensor>& xs,
-		const std::vector<Tensor>& ys,
-		const std::vector<double>& ws,
-		const std::vector<tart::DType>& dts,
-		const std::string &code,
-		const bool shrinkDims);
 	
 	tart::program_ptr getPointwiseBroadcastReduceOperation(
 		std::vector<TensorSpecs>& xs,
@@ -127,18 +119,6 @@ public:
 	AllPrograms& getAllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes);
 	
 	static PerDeviceProgramCache& instance();
-	
-	tart::program_ptr getPointwiseOperation(const tart::device_ptr& device, std::vector<Tensor>& xs,
-		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code);
-	
-	tart::program_ptr getPointwiseBroadcastOperation(
-		const tart::device_ptr& device,
-		const std::vector<Tensor>& xs,
-		const std::vector<Tensor>& ys,
-		const std::vector<double>& ws,
-		const std::vector<tart::DType>& dts,
-		const std::string &code,
-		const bool shrinkDims);
 	
 	tart::program_ptr getPointwiseBroadcastReduceOperation(
 		const tart::device_ptr& device,

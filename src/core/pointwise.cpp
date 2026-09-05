@@ -261,81 +261,8 @@ namespace core {
         }
         return range;
     }
-	#if 0
-    void pointwise_operation_broadcast( std::vector<Tensor> xs,
-                                        std::vector<Tensor> ys,
-                                        std::vector<double> ws,
-                                        std::string const &code)
-    {
-        std::vector<tart::DType> dts(ws.size(),ys.at(0).dtype());
-        pointwise_operation_broadcast(xs,ys,ws,dts,code);
-    }
 	
-    void pointwise_operation_broadcast( std::vector<Tensor> xs,
-                                        std::vector<Tensor> ys,
-                                        std::vector<double> ws,
-                                        const std::vector<tart::DType>& dts,
-                                        std::string const &code,
-                                        bool shrink_dims)
-    {
-        DLPRIM_CHECK(!xs.empty());
-        DLPRIM_CHECK(!ys.empty());
-        
-        #if 0
-			for (auto x: xs)
-				calcStridedBatchOffsets(x);
-			for (auto y: ys)
-				calcStridedBatchOffsets(y);
-        #endif
-        
-        DLPRIM_CHECK(ws.size() == dts.size());
-        tart::device_ptr device = tensorDevice(xs[0]);
-        
-        std::vector<Shape> shapes(xs.size() + ys.size());
-        for(size_t i=0;i<xs.size();i++)
-            shapes[i] = xs[i].shape();
-        for(size_t j=0;j<ys.size();j++)
-            shapes[j+xs.size()] = ys[j].shape();
-
-        if(shrink_dims)
-            shrink_broadcast_ranges(shapes);
-
-		//
-        tart::DType target_type = ys[0].dtype();
-        Shape ref = shapes[xs.size()]; // ys[0]
-        for(size_t i=0;i<ys.size();i++) {
-            DLPRIM_CHECK(shapes[i + xs.size()] == ref);
-        }
-
-        std::vector<Shape> strides(xs.size());
-        for(size_t i=0;i<xs.size();i++) {
-            strides[i] = shapes[i].broadcast_strides(ref);
-        }
-        
-      
-		tart::program_ptr prog = gpu::PerDeviceProgramCache::instance().getPointwiseBroadcastOperation(
-			device, xs, ys, ws, dts, code, shrink_dims);
-				
-        tart::kernel_ptr k = prog->getKernel("exec");
-        int p=0;
-        bind_shape(k,p,ref);
-        for(size_t i=0;i<xs.size();i++) {
-            xs[i].set_arg(k,p);
-            bind_shape(k,p,strides[i]);
-        }
-        for(Tensor &y:ys)
-            y.set_arg(k,p);
-        
-        for(size_t i=0;i<ws.size();i++) { 
-            bind_as_dtype(k,p,ws[i], dts[i]);
-        }
-        std::vector<uint32_t> range = get_broadcast_ndrange(ref);
-        range.resize(3, 1);
-        auto glPair = device->chooseGlobalAndLocalSize(range);
-		k->enqueue(glPair.first, {glPair.second[0], glPair.second[1], glPair.second[2], ref.size()});
-    }
-    #endif
-    void getWorkgroupAndReductionType(bool& smallReduction, uint32_t& wgSize, size_t total_reduce)
+	void getWorkgroupAndReductionType(bool& smallReduction, uint32_t& wgSize, size_t total_reduce)
     {
 		smallReduction = 0;
 		if(total_reduce >= 256) {
