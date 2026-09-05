@@ -176,31 +176,31 @@ bool valid_pos(Shape pos,Shape limits)
 
 #if SMALL_REDUCTION == 1
 	#define LOAD_REDUCED_SAVE_GLOBAL(I) \
-	do { \
+	{ \
 		py##I##_p += get_base_offset(index,ystrides##I,py##I##_offset); \
 		reduce_y##I *= alpha##I; \
 		if(bool(beta##I))  \
 			py##I[py##I##_p] = beta##I * py##I[py##I##_p] + reduce_y##I; \
 		else \
 			py##I[py##I##_p] = reduce_y##I; \
-	}while(false);
+	}
 #elif TWO_STAGE_REDUCTION == 0
 	#define LOAD_REDUCED_SAVE_GLOBAL(I) \
-	do { \
+	{ \
 		y##I = alpha##I * my_reduce_##I[0]; \
 		py##I##_p += get_base_offset(index,ystrides##I,py##I##_offset); \
 		if(bool(beta##I)) \
 			py##I[py##I##_p] = beta##I * py##I[py##I##_p] + y##I; \
 		else \
 			py##I[py##I##_p] = y##I; \
-	} while(false);
+	}
 #else //TWO_STAGE_REDUCTION == 1
 #define LOAD_REDUCED_SAVE_GLOBAL(I) \
-	do { \
+	{ \
 		py##I##_p += py##I##_offset + get_group_id(0); \
 		py##I##_p += reduce_stride * get_base_offset(index,ystrides##I,0); \
 		py##I[py##I##_p] = my_reduce_##I[0]; \
-	} while(false);
+	}
 #endif
 
 #if USE_BDA
@@ -265,7 +265,8 @@ void exec_impl()
 		SAVE_REDUCE_ALL
 		
 		barrier(); 
-		for(uint i= localSizeX / 2;i>0; i>>= 1) { 
+		for(uint i= localSizeX / 2;i>0; i>>= 1)
+		{ 
 			if(lid < i) { 
 				uint nxt = lid+i;
 				LOAD_REDUCE_ALL
@@ -274,14 +275,17 @@ void exec_impl()
 			} 
 			barrier(); 
 		} 
-		if(lid == 0) {
-			if(valid_save_pos(index0,limit)) {
+		if(lid == 0)
+		{
+			if(valid_save_pos(index0,limit))
+			{
 				LOAD_REDUCED_SAVE_GLOBAL_ALL
 			}
 		}
 
     #else
-		if(valid_save_pos(index0,limit)) {
+		if(valid_save_pos(index0,limit))
+		{
 			LOAD_REDUCED_SAVE_GLOBAL_ALL
 		}
     #endif
