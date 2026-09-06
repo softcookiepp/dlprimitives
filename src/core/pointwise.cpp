@@ -279,6 +279,12 @@ namespace core {
 			smallReduction = 1;
 		}
 	}
+	
+	void pointwiseOpBroadcastReduceStrided(std::vector<Tensor> xs, std::vector<Tensor> ys, std::vector<float> ws,
+		PointwiseOp calcOp, PointwiseOp reduceOp)
+	{
+		throw std::runtime_error("not implemented");
+	}
 
     ///
     /// Perform pointwise operation with both boradcasting and reduction
