@@ -363,13 +363,13 @@ namespace core {
 			int p = 0;
 			for (size_t i = 0; i < xs.size(); i += 1)
 			{
-				k->setArg(p++, xs[i]);
+				k->setArg(p++, xs[i].device_buffer());
 				k->setArg(p++, xs[i].device_offset());
 				bind_shape(k, p, xs[i].stride());
 			}
 			for (size_t i = 0; i < ys.size(); i += 1)
 			{
-				k->setArg(p++, ys[i]);
+				k->setArg(p++, ys[i].device_buffer());
 				k->setArg(p++, ys[i].device_offset());
 				bind_shape(k, p, ys[i].stride());
 			}
