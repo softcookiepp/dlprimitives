@@ -4,7 +4,9 @@
 #define NUM_WEIGHTS_MAX 8
 layout(constant_id = 3) const uint NUM_WEIGHTS = NUM_WEIGHTS_MAX;
 layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
-layout(constant_id = 5) const uint DIMS = DIMS_MAX;
+layout(constant_id = 5) const uint REDUCE_ROUTINE = 0;
+layout(constant_id = 6) const uint DIMS = DIMS_MAX;
+layout(constant_id = 7) const uint NUM_REDUCE_DIMS;
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
@@ -90,30 +92,61 @@ layout(push_constant, std430) uniform push
 		Shape y1_strides;
 	#endif
 	Shape shape;
+	Shape reduceShape;
+	Shape reduceDims;
 	W_ARGS wArgs;
 };
 
-void pointwise_strided_impl()
+void pointwise_reduce_naive_impl()
 {
 	// determine position, exit if out of bounds
-	Shape pos = getPosFromTriIndex(shape, DIMS);
-	if (!posValid(shape, pos, DIMS)) return;
+	// In this kernel, reduceShape is the one
+	Shape pos = getPosFromTriIndex(reduceShape, DIMS);
+	if (!posValid(reduceShape, pos, DIMS)) return;
 	
-	// load x values
-	X_IN xArgs;
-	uint x0_idx = x0_offset + getStridedIndexFromPos(pos, x0_strides, DIMS);
-	xArgs.data[0] = acctype(x0_data[x0_idx]);
-	#if X_ARITY > 1
-		uint x1_idx = x1_offset + getStridedIndexFromPos(pos, x1_strides, DIMS);
-		xArgs.data[1] = acctype(x1_data[x1_idx]);
-	#endif
-	#if X_ARITY > 2
-		uint x2_idx = x2_offset + getStridedIndexFromPos(pos, x2_strides, DIMS);
-		xArgs.data[2] = acctype(x2_data[x2_idx]);
-	#endif
+	// Need to iterate over all possible elements in the reduction shape.
+	// also get the shape of the operation
+	uint numReduceElems = 1;
+	Shape reduceOpSize;
+	for (uint i = 0; i < NUM_REDUCE_DIMS; i += 1)
+	{
+		uint size = shape.s[reduceDims[i]];
+		numReduceElems *= size
+		reduceOpShape.s[i] = size;
+	}
+	
+	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
+	Shape reduceElemPos = pos;
+	for (uint i = 0; i < numReduceElems; i += 1)
+	{
+		// adjust position to point to the specific element being iterated on
+		Shape reduceOpPos = getPos(i, reduceOpSize, NUM_REDUCE_DIMS);
+		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
+		{
+			reduceElemPos[reduceDims[j]] = reduceOpPos[j];
+		}
+		
+		// Ok, that was a bit silly. Now for the actual valuable part.
+		
+		// load x values
+		X_IN xArgs;
+		uint x0_idx = x0_offset + getStridedIndexFromPos(pos, x0_strides, DIMS);
+		xArgs.data[0] = acctype(x0_data[x0_idx]);
+		#if X_ARITY > 1
+			uint x1_idx = x1_offset + getStridedIndexFromPos(pos, x1_strides, DIMS);
+			xArgs.data[1] = acctype(x1_data[x1_idx]);
+		#endif
+		#if X_ARITY > 2
+			uint x2_idx = x2_offset + getStridedIndexFromPos(pos, x2_strides, DIMS);
+			xArgs.data[2] = acctype(x2_data[x2_idx]);
+		#endif
+	}
+	
+	
+	
 	
 	// calculate everything
-	Y_OUT y = pointwise_function(pos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+	Y_OUT y = pointwise_function(pos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs);
 	
 	// store y values
 	uint y0_idx = y0_offset + getStridedIndexFromPos(pos, y0_strides, DIMS);
