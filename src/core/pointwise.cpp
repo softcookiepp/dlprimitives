@@ -303,6 +303,9 @@ namespace core {
 		PointwiseOp calcOp, PointwiseOp reduceOp)
 	{
 		DLPRIM_CHECK(xs.size() > 0 && ys.size() > 0);
+		
+		tart::device_ptr device = tensorDevice(xs[0]);
+		
 		// same as pointwiseOpBroadcastStrided, but with a couple differences
 		std::vector<Tensor> broadcasted(xs.size() + ys.size());
 		for (size_t i = 0; i < xs.size(); i += 1) broadcasted[i] = xs[i];
@@ -333,9 +336,18 @@ namespace core {
 			}
 		}
 		
+		// check to ensure all y tensors are same dimensions
+		Tensor y0 = ys[0];
+		for (size_t i = 0; i < ys.size(); i += 1)
+			DLPRIM_CHECK(y0.shape() == ys[i].shape());
+		
+		// the reference y shape. This will 
+		
 		// convert it to shape so that it can be bound
 		Shape reduceDimShape = Shape::from_range(reduceDims.begin(), reduceDims.end());
 		//throw std::runtime_error("not implemented");
+		
+		auto glPair = calcStridedTensorInvocations(device, y0.shape());
 	}
 
     ///
