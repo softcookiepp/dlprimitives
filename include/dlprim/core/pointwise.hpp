@@ -113,7 +113,7 @@ namespace core {
 	// ugh
     void pointwiseOpBroadcastReduceStrided(std::vector<Tensor> xs, std::vector<Tensor> ys, std::vector<float> ws,
 		std::vector<int> reduceDims,
-		PointwiseOp calcOp, PointwiseOp reduceOp);
+		PointwiseOp calcOp, PointwiseOp reduceOp, std::vector<float> yInitValues = {});
     
     ///
     /// Perform pointwise operation with both boradcasting and reduction

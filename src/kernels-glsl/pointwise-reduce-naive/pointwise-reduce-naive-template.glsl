@@ -91,19 +91,19 @@ layout(push_constant, std430) uniform push
 		uint y1_offset;
 		Shape y1_strides;
 	#endif
-	Shape shape;
-	Shape reduceShape;
+	Shape xShape;
+	Shape yShape;
 	Shape reduceDims;
-	float yReduceInit; // initial value of y for reduction
+	float yReduceInit[Y_ARITY]; // initial values of y for reduction
 	W_ARGS wArgs;
 };
 
 void pointwise_reduce_naive_impl()
 {
 	// determine position, exit if out of bounds
-	// In this kernel, reduceShape is the one
-	Shape pos = getPosFromTriIndex(reduceShape, DIMS);
-	if (!posValid(reduceShape, pos, DIMS)) return;
+	// In this kernel, yShape is the one
+	Shape pos = getPosFromTriIndex(yShape, DIMS);
+	if (!posValid(yShape, pos, DIMS)) return;
 	
 	// Need to iterate over all possible elements in the reduction shape.
 	// also get the shape of the operation
@@ -111,7 +111,7 @@ void pointwise_reduce_naive_impl()
 	Shape reduceOpSize;
 	for (uint i = 0; i < NUM_REDUCE_DIMS; i += 1)
 	{
-		uint size = shape.s[reduceDims.s[i]];
+		uint size = xShape.s[reduceDims.s[i]];
 		numReduceElems *= size;
 		reduceOpSize.s[i] = size;
 	}

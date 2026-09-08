@@ -300,9 +300,10 @@ namespace core {
 	
 	void pointwiseOpBroadcastReduceStrided(std::vector<Tensor> xs, std::vector<Tensor> ys, std::vector<float> ws,
 		std::vector<int> reduceDims,
-		PointwiseOp calcOp, PointwiseOp reduceOp)
+		PointwiseOp calcOp, PointwiseOp reduceOp, std::vector<float> yInitValues)
 	{
 		DLPRIM_CHECK(xs.size() > 0 && ys.size() > 0);
+		DLPRIM_CHECK(yInitValues.size() == ys.size());
 		
 		tart::device_ptr device = tensorDevice(xs[0]);
 		
@@ -315,7 +316,7 @@ namespace core {
 		broadcastTensors(broadcasted);
 		
 		// load xs back in
-		Shape xShape = xs[0].shape();
+		Shape xShape = broadcasted[0].shape();
 		for (size_t i = 0; i < xs.size(); i += 1)
 		{
 			xs[i] = broadcasted[i];
@@ -359,9 +360,26 @@ namespace core {
 			
 			if (!k) throw std::runtime_error("suitable kernel not found");
 			
+			int p = 0;
+			for (size_t i = 0; i < xs.size(); i += 1)
+			{
+				k->setArg(p++, xs[i]);
+				k->setArg(p++, xs[i].device_offset());
+				bind_shape(k, p, xs[i].stride());
+			}
+			for (size_t i = 0; i < ys.size(); i += 1)
+			{
+				k->setArg(p++, ys[i]);
+				k->setArg(p++, ys[i].device_offset());
+				bind_shape(k, p, ys[i].stride());
+			}
+			bind_shape(k, p, xShape);
+			bind_shape(k, p, y0.shape());
+			k->setArg(p++, yInitValues);
+			k->setArg(p++, ws);
+			
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());
 		}
-		
 	}
 
     ///
