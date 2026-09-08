@@ -342,11 +342,9 @@ namespace core {
 		for (size_t i = 0; i < ys.size(); i += 1)
 			DLPRIM_CHECK(y0.shape() == ys[i].shape());
 		
-		// the reference y shape. This will 
 		
 		// convert it to shape so that it can be bound
 		Shape reduceDimShape = Shape::from_range(reduceDims.begin(), reduceDims.end());
-		//throw std::runtime_error("not implemented");
 		
 		if (true)
 		{
@@ -378,6 +376,7 @@ namespace core {
 			bind_shape(k, p, reduceDimShape);
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
+			
 			
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());
 			std::vector<uint32_t> spec = {
@@ -535,7 +534,7 @@ namespace core {
 				shapes[j+xs.size()] = ys[j].shape();
 				strides[j+xs.size()] = ys[j].stride();
 			}
-
+			
 			shrink_broadcast_ranges(shapes);
 			
 			ref_ = shapes[0]; // ys[0]

@@ -227,18 +227,13 @@ void exec_impl()
 	Shape index0;
 	if (REDUCE_DIMS == 0)
 	{
-		#if 0 // we are folding the constants, no longer do we have any use for this
-			#if ITEMS_PER_WI > 1
-				#error "Invalid Items per wi size"
-			#endif
-		#endif
 		reduce_item = 0;
 		index0 = get_pos_broadcast(limit);
 	}
 	else
 	{
 		reduce_item = get_global_id(0) * ITEMS_PER_WI;
-		index0 = get_pos(limit,reduce_item);
+		index0 = get_pos(limit, reduce_item);
 	}
     Shape index = index0;
     PREPARE_LOAD_INPUT_ALL

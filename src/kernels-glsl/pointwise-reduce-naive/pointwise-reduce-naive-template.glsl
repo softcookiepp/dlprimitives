@@ -102,8 +102,8 @@ void pointwise_reduce_naive_impl()
 {
 	// determine position, exit if out of bounds
 	// In this kernel, yShape is the one
-	Shape pos = getPosFromTriIndex(yShape, DIMS);
-	if (!posValid(yShape, pos, DIMS)) return;
+	Shape yPos = getPosFromTriIndex(yShape, DIMS);
+	if (!posValid(yShape, yPos, DIMS)) return;
 	
 	// Need to iterate over all possible elements in the reduction shape.
 	// also get the shape of the operation
@@ -117,7 +117,7 @@ void pointwise_reduce_naive_impl()
 	}
 	
 	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
-	Shape reduceElemPos = pos;
+	Shape reduceElemPos = yPos;
 	acctype yReduce = acctype(yReduceInit[0]);
 	for (uint i = 0; i < numReduceElems; i += 1)
 	{
@@ -132,28 +132,28 @@ void pointwise_reduce_naive_impl()
 		
 		// load x values
 		X_IN xArgs;
-		uint x0_idx = x0_offset + getStridedIndexFromPos(pos, x0_strides, DIMS);
+		uint x0_idx = x0_offset + getStridedIndexFromPos(reduceOpPos, x0_strides, DIMS);
 		xArgs.data[0] = acctype(x0_data[x0_idx]);
 		#if X_ARITY > 1
-			uint x1_idx = x1_offset + getStridedIndexFromPos(pos, x1_strides, DIMS);
+			uint x1_idx = x1_offset + getStridedIndexFromPos(reduceOpPos, x1_strides, DIMS);
 			xArgs.data[1] = acctype(x1_data[x1_idx]);
 		#endif
 		#if X_ARITY > 2
-			uint x2_idx = x2_offset + getStridedIndexFromPos(pos, x2_strides, DIMS);
+			uint x2_idx = x2_offset + getStridedIndexFromPos(reduceOpPos, x2_strides, DIMS);
 			xArgs.data[2] = acctype(x2_data[x2_idx]);
 		#endif
 		
 		// Do the pointwise routine
-		Y_OUT yTmp = pointwise_function(pos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+		Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
 		
 		// For now, Y_ARITY is assumed to be 1. Why? Simply put, anything else will be too complicated, and none of the existing kernels use it
 		X_IN reduceArgs;
 		reduceArgs.data[0] = yTmp.data[0];
 		reduceArgs.data[1] = yReduce;
-		yReduce = pointwise_function(pos, gl_GlobalInvocationID.x, 2, Y_ARITY, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+		yReduce = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, Y_ARITY, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 	}
 	
 	// store y values
-	uint y0_idx = y0_offset + getStridedIndexFromPos(pos, y0_strides, DIMS);
+	uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
 	y0_data[y0_idx] = typeof_y0(yReduce);
 }
