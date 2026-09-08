@@ -281,6 +281,7 @@ namespace core {
 	}
 	
 	void pointwiseOpBroadcastReduceStrided(std::vector<Tensor> xs, std::vector<Tensor> ys, std::vector<float> ws,
+		std::vector<int> reduceDims,
 		PointwiseOp calcOp, PointwiseOp reduceOp)
 	{
 		throw std::runtime_error("not implemented");

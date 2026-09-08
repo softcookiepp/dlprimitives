@@ -6,7 +6,7 @@ layout(constant_id = 3) const uint NUM_WEIGHTS = NUM_WEIGHTS_MAX;
 layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
 layout(constant_id = 5) const uint REDUCE_ROUTINE = 0;
 layout(constant_id = 6) const uint DIMS = DIMS_MAX;
-layout(constant_id = 7) const uint NUM_REDUCE_DIMS;
+layout(constant_id = 7) const uint NUM_REDUCE_DIMS = DIMS_MAX;
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
@@ -94,6 +94,7 @@ layout(push_constant, std430) uniform push
 	Shape shape;
 	Shape reduceShape;
 	Shape reduceDims;
+	float yReduceInit; // initial value of y for reduction
 	W_ARGS wArgs;
 };
 
@@ -110,20 +111,21 @@ void pointwise_reduce_naive_impl()
 	Shape reduceOpSize;
 	for (uint i = 0; i < NUM_REDUCE_DIMS; i += 1)
 	{
-		uint size = shape.s[reduceDims[i]];
-		numReduceElems *= size
-		reduceOpShape.s[i] = size;
+		uint size = shape.s[reduceDims.s[i]];
+		numReduceElems *= size;
+		reduceOpSize.s[i] = size;
 	}
 	
 	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
 	Shape reduceElemPos = pos;
+	acctype yReduce = acctype(yReduceInit);
 	for (uint i = 0; i < numReduceElems; i += 1)
 	{
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceOpSize, NUM_REDUCE_DIMS);
 		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
 		{
-			reduceElemPos[reduceDims[j]] = reduceOpPos[j];
+			reduceElemPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
 		}
 		
 		// Ok, that was a bit silly. Now for the actual valuable part.
@@ -140,19 +142,18 @@ void pointwise_reduce_naive_impl()
 			uint x2_idx = x2_offset + getStridedIndexFromPos(pos, x2_strides, DIMS);
 			xArgs.data[2] = acctype(x2_data[x2_idx]);
 		#endif
+		
+		// Do the pointwise routine
+		Y_OUT yTmp = pointwise_function(pos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+		
+		// For now, Y_ARITY is assumed to be 1. Why? Simply put, anything else will be too complicated, and none of the existing kernels use it
+		X_IN reduceArgs;
+		reduceArgs.data[0] = yTmp.data[0];
+		reduceArgs.data[1] = yReduce;
+		yReduce = pointwise_function(pos, gl_GlobalInvocationID.x, 2, Y_ARITY, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 	}
-	
-	
-	
-	
-	// calculate everything
-	Y_OUT y = pointwise_function(pos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs);
 	
 	// store y values
 	uint y0_idx = y0_offset + getStridedIndexFromPos(pos, y0_strides, DIMS);
-	y0_data[y0_idx] = typeof_y0(y.data[0]);
-	#if Y_ARITY > 1
-		uint y1_idx = y1_offset + getStridedIndexFromPos(pos, y1_strides, DIMS);
-		y1_data[y1_idx] = typeof_y1(y.data[1]);
-	#endif
+	y0_data[y0_idx] = typeof_y0(yReduce);
 }
