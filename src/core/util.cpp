@@ -137,7 +137,7 @@ void broadcastTensors(std::vector<Tensor>& ts)
 	}
 }
 
-void broadcastTensors(Tensor& src, Tensor& dst)
+void broadcastTensors(Tensor& src, Tensor& dst, bool reduceDst)
 {
 	Shape srcShape = src.shape();
 	Shape dstShape = dst.shape();
@@ -180,8 +180,11 @@ void broadcastTensors(Tensor& src, Tensor& dst)
 		}
 		else if (dstShape[i] == 1)
 		{
-			dstShape[i] = srcShape[i];
-			dstStride[i] = 0;
+			if (!reduceDst)
+			{
+				dstShape[i] = srcShape[i];
+				dstStride[i] = 0;
+			}
 		}
 		else if (srcShape[i] != dstShape[i])
 		{

@@ -110,6 +110,11 @@ namespace core {
 			const tart::DType& acctype = tart::dtypes::float32,
 			const tart::DType& iacctype = tart::dtypes::int32);
     
+	// ugh
+    void pointwiseOpBroadcastReduceStrided(std::vector<Tensor> xs, std::vector<Tensor> ys, std::vector<float> ws,
+		std::vector<int> reduceDims,
+		PointwiseOp calcOp, PointwiseOp reduceOp);
+    
     ///
     /// Perform pointwise operation with both boradcasting and reduction
     ///

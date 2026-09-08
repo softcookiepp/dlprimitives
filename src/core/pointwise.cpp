@@ -280,10 +280,61 @@ namespace core {
 		}
 	}
 	
+	std::vector<int> getReduceDims(dlprim::Shape ref, std::vector<int> dim)
+    {
+		// get all the dimensions
+		if (dim.empty())
+		{
+			dim.resize(ref.size());
+			for (int i = 0; i < ref.size(); i += 1) dim[i] = i;
+		}
+		// check for negatives
+		for (int i = 0; i < dim.size(); i += 1) dim[i] = (dim[i] >= 0) ? dim[i] : static_cast<int>(ref.size()) + dim[i];
+		std::cout << "SHAPE SIZE: " << ref.size();
+		std::cout << "\nDIMS: ";
+		for (auto d : dim)
+			std::cout << d << ", ";
+		std::cout << std::endl;
+		return dim;
+	}
+	
 	void pointwiseOpBroadcastReduceStrided(std::vector<Tensor> xs, std::vector<Tensor> ys, std::vector<float> ws,
 		std::vector<int> reduceDims,
 		PointwiseOp calcOp, PointwiseOp reduceOp)
 	{
+		DLPRIM_CHECK(xs.size() > 0 && ys.size() > 0);
+		// same as pointwiseOpBroadcastStrided, but with a couple differences
+		std::vector<Tensor> broadcasted(xs.size() + ys.size());
+		for (size_t i = 0; i < xs.size(); i += 1) broadcasted[i] = xs[i];
+		
+		// still need ys in the broadcast to make sure xs are unsqueezed correctly, even if the resulting tensors are not used
+		for (size_t i = 0; i < ys.size(); i += 1) broadcasted[i + xs.size()] = ys[i];
+		broadcastTensors(broadcasted);
+		
+		// load xs back in
+		Shape xShape = xs[0].shape();
+		for (size_t i = 0; i < xs.size(); i += 1)
+		{
+			xs[i] = broadcasted[i];
+			DLPRIM_CHECK(xs[i].shape() == xShape);
+		}
+		// correct reduce dims to account for negatives and empty vectors
+		reduceDims = getReduceDims(xShape, reduceDims);
+		
+		// now broadcast ys
+		for (size_t i = 0; i < ys.size(); i += 1)
+		{
+			broadcastTensors(xs[0], ys[i], true);
+			for (size_t j = 0; j < reduceDims.size(); j > 1)
+			{
+				// Ensure y dimensions at reduce dims are all 1.
+				// Otherwise it cannot be reduced!
+				DLPRIM_CHECK(ys[i].shape()[reduceDims[j]] == 1);
+			}
+		}
+		
+		// convert it to shape so that it can be bound
+		Shape reduceDimShape = Shape::from_range(reduceDims.begin(), reduceDims.end());
 		throw std::runtime_error("not implemented");
 	}
 
