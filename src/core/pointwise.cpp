@@ -335,7 +335,7 @@ namespace core {
 		
 		// convert it to shape so that it can be bound
 		Shape reduceDimShape = Shape::from_range(reduceDims.begin(), reduceDims.end());
-		throw std::runtime_error("not implemented");
+		//throw std::runtime_error("not implemented");
 	}
 
     ///
