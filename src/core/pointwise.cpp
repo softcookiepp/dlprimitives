@@ -347,7 +347,21 @@ namespace core {
 		Shape reduceDimShape = Shape::from_range(reduceDims.begin(), reduceDims.end());
 		//throw std::runtime_error("not implemented");
 		
-		auto glPair = calcStridedTensorInvocations(device, y0.shape());
+		if (true)
+		{
+			// Only naive reduction is implemented so far, where each element of y is calculated in a giant loop
+			tart::kernel_ptr k = nullptr;
+			if (xs.size() == 1 && ys.size() == 1)
+			{
+				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_naive_unary_unary(device, xs[0].dtype(), ys[0].dtype());
+				k = prg->getKernel("exec");
+			}
+			
+			if (!k) throw std::runtime_error("suitable kernel not found");
+			
+			auto glPair = calcStridedTensorInvocations(device, y0.shape());
+		}
+		
 	}
 
     ///
