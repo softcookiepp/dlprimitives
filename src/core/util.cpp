@@ -137,6 +137,58 @@ void broadcastTensors(std::vector<Tensor>& ts)
 	}
 }
 
+void reduceTensors(Tensor& src, Tensor& dst)
+{
+	// I feel like there should be a better way to do this.
+	Shape srcShape = src.shape();
+	Shape dstShape = dst.shape();
+	
+	if (srcShape == dstShape) return;
+	
+	Shape srcStride = src.stride();
+	Shape dstStride = dst.stride();
+	
+	DLPRIM_CHECK(srcStride.size() == srcShape.size());
+	DLPRIM_CHECK(dstStride.size() == dstShape.size());
+	
+	// dstShape cannot be bigger. This should be sorted out by other functions.
+	DLPRIM_CHECK(srcShape.size() >= dstShape.size());
+	
+	// find the closest compatible offset
+	size_t dstShapeOffset = 0;
+	for (size_t i = 0; i < srcShape.size(); i += 1)
+	{
+		bool found = false;
+		for (size_t j = 0; j < dstShape.size(); j += 1)
+		{
+			// find the first dimension where they are compatible.
+			if (dstShape[j] != 1 && dstShape[j] == srcShape[i] && j <= i)
+			{
+				dstShapeOffset = i - j;
+				found = true;
+				break;
+			}
+		}
+		if (found) break;
+	}
+	std::vector<size_t> dstShapeData(srcShape.size(), 1);
+	std::vector<size_t> dstStrideData(srcShape.size(), 0);
+	
+	for (size_t i = 0; i < dstShape.size(); i += 1)
+	{
+		dstShapeData[i + dstShapeOffset] = dstShape[i];
+		dstStrideData[i + dstShapeOffset] = dstStride[i];
+	}
+	
+	// apply new shape and strides to dst
+	dstShape = Shape::from_range(dstShapeData.begin(), dstShapeData.end());
+	dstStride = Shape::from_range(dstStrideData.begin(), dstStrideData.end());
+	dst = Tensor(dst.device_buffer(), dst.device_offset(), dstShape, dstStride, dst.dtype());
+	
+	// and broadcast with reduction enabled
+	broadcastTensors(src, dst, true);
+}
+
 void broadcastTensors(Tensor& src, Tensor& dst, bool reduceDst)
 {
 	Shape srcShape = src.shape();

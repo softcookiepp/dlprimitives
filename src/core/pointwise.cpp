@@ -324,7 +324,7 @@ namespace core {
 		// now broadcast ys
 		for (size_t i = 0; i < ys.size(); i += 1)
 		{
-			broadcastTensors(xs[0], ys[i], true);
+			reduceTensors(xs[0], ys[i]);
 			for (size_t j = 0; j < reduceDims.size(); j += 1)
 			{
 				// Ensure y dimensions at reduce dims are all 1.

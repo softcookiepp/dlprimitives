@@ -30,6 +30,8 @@ void broadcastTensors(Tensor& src, Tensor& dst, bool reduceDst = false);
 
 // Broadcast more than 2 tensors
 void broadcastTensors(std::vector<Tensor>& ts);
+
+void reduceTensors(Tensor& src, Tensor& dst);
 	
 } // core
 } // dlprim
