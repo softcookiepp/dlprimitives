@@ -139,34 +139,60 @@ void broadcastTensors(std::vector<Tensor>& ts)
 
 void matchDims(Shape& srcShape, Shape& srcStride, Shape& dstShape, Shape& dstStride)
 {
-	// find the closest compatible offset
-	size_t dstShapeOffset = 0;
-	for (size_t i = 0; i < srcShape.size(); i += 1)
-	{
-		bool found = false;
-		for (size_t j = 0; j < dstShape.size(); j += 1)
+	#if 1
+		DLPRIM_CHECK(srcShape.size() > dstShape.size());
+		
+		// Ok, the below approach is not working for whatever reason.
+		std::vector<size_t> dstShapeData(srcShape.size(), 1);
+		std::vector<size_t> dstStrideData(srcShape.size(), 0);
+		
+		size_t jOffset = 0;
+		for (size_t i = 0; i < srcShape.size(); i += 1)
 		{
-			// find the first dimension where they are compatible.
-			if (dstShape[j] != 1 && dstShape[j] == srcShape[i] && j <= i)
+			
+			for (size_t j = jOffset; j < dstShape.size(); j += 1)
 			{
-				dstShapeOffset = i - j;
-				found = true;
-				break;
+				if (dstShape[j] == srcShape[i])
+				{
+					jOffset = j + 1;
+					dstShapeData[i] = dstShape[j];
+					dstStrideData[i] = dstStride[j];
+				}
 			}
 		}
-		if (found) break;
-	}
-	std::vector<size_t> dstShapeData(srcShape.size(), 1);
-	std::vector<size_t> dstStrideData(srcShape.size(), 0);
-	
-	for (size_t i = 0; i < dstShape.size(); i += 1)
-	{
-		dstShapeData[i + dstShapeOffset] = dstShape[i];
-		dstStrideData[i + dstShapeOffset] = dstStride[i];
-	}
-	
-	dstShape = Shape::from_range(dstShapeData.begin(), dstShapeData.end());
-	dstStride = Shape::from_range(dstStrideData.begin(), dstStrideData.end());
+		
+		dstShape = Shape::from_range(dstShapeData.begin(), dstShapeData.end());
+		dstStride = Shape::from_range(dstStrideData.begin(), dstStrideData.end());
+	#else
+		// find the closest compatible offset
+		size_t dstShapeOffset = 0;
+		for (size_t i = 0; i < srcShape.size(); i += 1)
+		{
+			bool found = false;
+			for (size_t j = 0; j < dstShape.size(); j += 1)
+			{
+				// find the first dimension where they are compatible.
+				if (dstShape[j] != 1 && dstShape[j] == srcShape[i] && j <= i)
+				{
+					dstShapeOffset = i - j;
+					found = true;
+					break;
+				}
+			}
+			if (found) break;
+		}
+		std::vector<size_t> dstShapeData(srcShape.size(), 1);
+		std::vector<size_t> dstStrideData(srcShape.size(), 0);
+		
+		for (size_t i = 0; i < dstShape.size(); i += 1)
+		{
+			dstShapeData[i + dstShapeOffset] = dstShape[i];
+			dstStrideData[i + dstShapeOffset] = dstStride[i];
+		}
+		
+		dstShape = Shape::from_range(dstShapeData.begin(), dstShapeData.end());
+		dstStride = Shape::from_range(dstStrideData.begin(), dstStrideData.end());
+	#endif
 }
 
 void broadcastTensors(Tensor& src, Tensor& dst, bool reduceDst)
