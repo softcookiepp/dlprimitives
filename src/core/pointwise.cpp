@@ -375,10 +375,22 @@ namespace core {
 			}
 			bind_shape(k, p, xShape);
 			bind_shape(k, p, y0.shape());
+			bind_shape(k, p, reduceDimShape);
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
 			
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());
+			std::vector<uint32_t> spec = {
+				glPair.second[0],
+				glPair.second[1],
+				glPair.second[2],
+				ws.size(),
+				static_cast<uint32_t>(calcOp),
+				static_cast<uint32_t>(reduceOp),
+				static_cast<uint32_t>(xShape.size()),
+				static_cast<uint32_t>(reduceDimShape.size())
+			};
+			k->enqueue(glPair.first, spec);
 		}
 	}
 
