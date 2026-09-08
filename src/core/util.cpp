@@ -137,6 +137,38 @@ void broadcastTensors(std::vector<Tensor>& ts)
 	}
 }
 
+void matchDims(Shape& srcShape, Shape& srcStride, Shape& dstShape, Shape& dstStride)
+{
+	// find the closest compatible offset
+	size_t dstShapeOffset = 0;
+	for (size_t i = 0; i < srcShape.size(); i += 1)
+	{
+		bool found = false;
+		for (size_t j = 0; j < dstShape.size(); j += 1)
+		{
+			// find the first dimension where they are compatible.
+			if (dstShape[j] != 1 && dstShape[j] == srcShape[i] && j <= i)
+			{
+				dstShapeOffset = i - j;
+				found = true;
+				break;
+			}
+		}
+		if (found) break;
+	}
+	std::vector<size_t> dstShapeData(srcShape.size(), 1);
+	std::vector<size_t> dstStrideData(srcShape.size(), 0);
+	
+	for (size_t i = 0; i < dstShape.size(); i += 1)
+	{
+		dstShapeData[i + dstShapeOffset] = dstShape[i];
+		dstStrideData[i + dstShapeOffset] = dstStride[i];
+	}
+	
+	dstShape = Shape::from_range(dstShapeData.begin(), dstShapeData.end());
+	dstStride = Shape::from_range(dstStrideData.begin(), dstStrideData.end());
+}
+
 void reduceTensors(Tensor& src, Tensor& dst)
 {
 	// I feel like there should be a better way to do this.
@@ -202,20 +234,14 @@ void broadcastTensors(Tensor& src, Tensor& dst, bool reduceDst)
 	DLPRIM_CHECK(srcStride.size() == srcShape.size());
 	DLPRIM_CHECK(dstStride.size() == dstShape.size());
 	
-	if (src.shape().size() != dst.shape().size())
+	if (src.shape().size() > dst.shape().size())
 	{
-		while (srcShape.size() < dstShape.size())
-		{
-			// Strides need to be taken into account.
-			srcShape = srcShape.unsqueeze(0);
-			srcStride = srcStride.unsqueeze(0);
-		}
-		while (srcShape.size() > dstShape.size())
-		{
-			// Strides need to be taken into account.
-			dstShape = dstShape.unsqueeze(0);
-			dstStride = dstStride.unsqueeze(0);
-		}
+		matchDims(srcShape, srcStride, dstShape, dstStride);
+	}
+	else if (src.shape().size() < dst.shape().size())
+	{
+		// matchDims always assumes dst is the smaller one, so reverse their positions if this is not the case
+		matchDims(dstShape, dstStride, srcShape, srcStride);
 	}
 	
 	Shape srcShapeUnsqueezed = srcShape;
