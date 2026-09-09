@@ -121,7 +121,7 @@ void pointwise_reduce_naive_impl()
 	acctype yReduce = acctype(yReduceInit[0]);
 	for (uint i = 0; i < numReduceElems + 1; i += 1)
 	{
-		if (i > =numReduceElems) continue;
+		if (i >= numReduceElems) continue;
 		
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceOpSize, NUM_REDUCE_DIMS);
