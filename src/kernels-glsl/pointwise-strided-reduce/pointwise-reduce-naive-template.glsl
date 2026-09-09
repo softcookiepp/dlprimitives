@@ -121,6 +121,7 @@ void pointwise_reduce_naive_impl()
 	{
 		uint m = k*WORK_PER_THREAD;
 		Y_OUT yTmp[WORK_PER_THREAD];
+		[[unroll]]
 		for (uint l = 0; l < WORK_PER_THREAD; l += 1)
 		{
 			for (uint j = 0; j < Y_ARITY; j += 1)
@@ -160,6 +161,7 @@ void pointwise_reduce_naive_impl()
 			// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
 			
 		}
+		
 		[[unroll]]
 		for (uint wptIdx = 0; wptIdx < WORK_PER_THREAD; wptIdx += 1)
 		{
