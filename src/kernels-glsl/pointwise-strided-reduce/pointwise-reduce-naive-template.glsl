@@ -158,11 +158,11 @@ void pointwise_reduce_naive_impl()
 		// For now, Y_ARITY is assumed to be 1. Why? Simply put, anything else will be too complicated, and none of the existing kernels use it
 		X_IN reduceArgs;
 		reduceArgs.data[0] = yTmp.data[0];
-		reduceArgs.data[1] = yReduce[0];
-		yReduce[0] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, Y_ARITY, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+		reduceArgs.data[1] = yReduce.data[0];
+		yReduce.data[0] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, Y_ARITY, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 	}
 	
 	// store y values
 	uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
-	y0_data[y0_idx] = typeof_y0(yReduce[0]);
+	y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
 }
