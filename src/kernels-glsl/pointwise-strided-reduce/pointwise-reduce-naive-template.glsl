@@ -155,11 +155,14 @@ void pointwise_reduce_naive_impl()
 		// Do the pointwise routine
 		Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
 		
-		// For now, Y_ARITY is assumed to be 1. Why? Simply put, anything else will be too complicated, and none of the existing kernels use it
-		X_IN reduceArgs;
-		reduceArgs.data[0] = yTmp.data[0];
-		reduceArgs.data[1] = yReduce.data[0];
-		yReduce.data[0] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, Y_ARITY, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+		// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
+		for (uint j = 0; j < Y_ARITY; j += 1)
+		{
+			X_IN reduceArgs;
+			reduceArgs.data[0] = yTmp.data[j];
+			reduceArgs.data[1] = yReduce.data[j];
+			yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+		}
 	}
 	
 	// store y values
