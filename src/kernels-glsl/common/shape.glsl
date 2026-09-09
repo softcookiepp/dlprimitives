@@ -10,35 +10,35 @@ struct Shape
 // The original dlprim copy_strided kernel multiplies shape dimensions together and packs them into the kernel workgroup sizes.
 // This means, of course, that they must be unpacked during execution.
 // This function does that, and returns the resulting position with respect to the shape.
-Shape getPosFromTriIndex(Shape shape, uint dims)
+Shape getPosFromTriIndex(uvec3 gid, Shape shape, uint dims)
 {
 	Shape pos;
 	if (dims == 1)
 	{
-		uint i0 = get_global_id(0);
+		uint i0 = gid[0];
 		pos.s[0] = i0;
 	}
 	else if (dims == 2)
 	{
-		uint i1 = get_global_id(0);
-		uint i0 = get_global_id(1);
+		uint i1 = gid[0];
+		uint i0 = gid[1];
 		pos.s[0] = i0;
 		pos.s[1] = i1;
 	}
 	else if (dims == 3)
 	{
-		uint i2 = get_global_id(0);
-		uint i1 = get_global_id(1);
-		uint i0 = get_global_id(2);
+		uint i2 = gid[0];
+		uint i1 = gid[1];
+		uint i0 = gid[2];
 		pos.s[0] = i0;
 		pos.s[1] = i1;
 		pos.s[2] = i2;
 	}
 	else if (dims == 4)
 	{
-		uint ic = get_global_id(0);
-		uint i1 = get_global_id(1);
-		uint i0 = get_global_id(2);
+		uint ic = gid[0];
+		uint i1 = gid[1];
+		uint i0 = gid[2];
 		uint i2 = ic / shape.s[3];
 		uint i3 = ic % shape.s[3];
 		pos.s[0] = i0;
@@ -48,9 +48,9 @@ Shape getPosFromTriIndex(Shape shape, uint dims)
 	}
 	else if (dims == 5)
 	{
-		uint i34 = get_global_id(0);
-		uint i12 = get_global_id(1);
-		uint i0 = get_global_id(2);
+		uint i34 = gid[0];
+		uint i12 = gid[1];
+		uint i0 = gid[2];
 		uint i1  = i12 / shape.s[2];
 		uint i2  = i12 % shape.s[2];
 		uint i3  = i34 / shape.s[4];
@@ -63,9 +63,9 @@ Shape getPosFromTriIndex(Shape shape, uint dims)
 	}
 	else if (dims == 6)
 	{
-		uint i45 = get_global_id(0);
-		uint i23 = get_global_id(1);
-		uint i01 = get_global_id(2);
+		uint i45 = gid[0];
+		uint i23 = gid[1];
+		uint i01 = gid[2];
 		uint i0  = i01 / shape.s[1];
 		uint i1  = i01 % shape.s[1];
 		uint i2  = i23 / shape.s[3];
@@ -81,9 +81,9 @@ Shape getPosFromTriIndex(Shape shape, uint dims)
 	}
 	else if (dims == 7)
 	{
-		uint i456 = get_global_id(0);
-		uint i23  = get_global_id(1);
-		uint i01  = get_global_id(2);
+		uint i456 = gid[0];
+		uint i23  = gid[1];
+		uint i01  = gid[2];
 		uint i0  = i01 / shape.s[1];
 		uint i1  = i01 % shape.s[1];
 		uint i2  = i23 / shape.s[3];
@@ -102,9 +102,9 @@ Shape getPosFromTriIndex(Shape shape, uint dims)
 	}
 	else if (dims == 8)
 	{
-		uint i567 = get_global_id(0);
-		uint i234 = get_global_id(1);
-		uint i01  = get_global_id(2);
+		uint i567 = gid[0];
+		uint i234 = gid[1];
+		uint i01  = gid[2];
 		uint i0  = i01 / shape.s[1];
 		uint i1  = i01 % shape.s[1];
 

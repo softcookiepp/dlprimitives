@@ -102,7 +102,7 @@ void pointwise_reduce_naive_impl()
 {
 	// determine position, exit if out of bounds
 	// In this kernel, yShape is the one
-	Shape yPos = getPosFromTriIndex(yShape, DIMS);
+	Shape yPos = getPosFromTriIndex(gl_GlobalInvocationID, yShape, DIMS);
 	if (!posValid(yShape, yPos, DIMS)) return;
 	
 	// Need to iterate over all possible elements in the reduction shape.

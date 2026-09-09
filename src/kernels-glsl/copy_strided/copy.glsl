@@ -31,7 +31,7 @@ void main()
 	uint srcIdx;
 	uint tgtIdx;
 	
-	Shape pos = getPosFromTriIndex(shape, DIMS);
+	Shape pos = getPosFromTriIndex(gl_GlobalInvocationID, shape, DIMS);
 	if (!posValid(shape, pos, DIMS)) return;
 	srcIdx = getStridedIndexFromPos(pos, srcStride, DIMS);
 	tgtIdx = getStridedIndexFromPos(pos, tgtStride, DIMS);

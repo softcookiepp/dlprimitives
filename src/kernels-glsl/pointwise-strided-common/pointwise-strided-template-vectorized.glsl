@@ -119,7 +119,7 @@ void pointwise_strided_impl()
 {
 	// determine position, exit if out of bounds
 	#if NON_CONTIGUOUS
-		Shape pos = getPosFromTriIndex(shape, DIMS);
+		Shape pos = getPosFromTriIndex(gl_GlobalInvocationID, shape, DIMS);
 		if (!posValid(shape, pos, DIMS)) return;
 	#else
 		uint gid = gl_GlobalInvocationID.x;

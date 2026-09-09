@@ -96,7 +96,7 @@ layout(push_constant, std430) uniform push
 void pointwise_strided_impl()
 {
 	// determine position, exit if out of bounds
-	Shape pos = getPosFromTriIndex(shape, DIMS);
+	Shape pos = getPosFromTriIndex(gl_GlobalInvocationID, shape, DIMS);
 	if (!posValid(shape, pos, DIMS)) return;
 	
 	// load x values
