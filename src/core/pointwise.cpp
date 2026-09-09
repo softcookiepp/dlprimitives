@@ -396,8 +396,7 @@ namespace core {
 				static_cast<uint32_t>(reduceOp),
 				static_cast<uint32_t>(xShape.size()),
 				static_cast<uint32_t>(reduceDimShape.size()),
-				numReduceDims,
-				2
+				numReduceDims
 			};
 			k->enqueue(glPair.first, spec);
 		}

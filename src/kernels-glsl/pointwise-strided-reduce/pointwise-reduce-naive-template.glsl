@@ -8,7 +8,6 @@ layout(constant_id = 5) const uint REDUCE_ROUTINE = 0;
 layout(constant_id = 6) const uint DIMS = DIMS_MAX;
 layout(constant_id = 7) const uint NUM_REDUCE_DIMS = DIMS_MAX;
 layout(constant_id = 8) const uint NUM_REDUCE_ELEMS = 1024;
-layout(constant_id = 9) const uint WORK_PER_THREAD = 2;
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
@@ -116,63 +115,46 @@ void pointwise_reduce_naive_impl()
 		yReduce.data[i] = acctype(yReduceInit[0]);
 	
 	//[[unroll]]
-	for (uint r = 0; r < NUM_REDUCE_ELEMS / WORK_PER_THREAD; r += 1)
+	for (uint i = 0; i < NUM_REDUCE_ELEMS; i += 1)
 	{
-		Y_OUT yTmp[WORK_PER_THREAD];
+		// Ensure we don't accidentally go over the number of reduce elems.
+		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
+		// But it will for later implementations.
+		if (i >= NUM_REDUCE_ELEMS) continue;
+		
+		// adjust position to point to the specific element being iterated on
+		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
 		[[unroll]]
-		for (uint i = 0; i < WORK_PER_THREAD; i += 1)
+		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
 		{
-			[[unroll]]
-			for (uint j = 0; j < Y_ARITY; j += 1)
-				yTmp[i].data[j] = acctype(yReduceInit[j]);
+			xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
 		}
 		
-		for (uint q = 0; q < WORK_PER_THREAD; q += 1)
-		{
-			// Ensure we don't accidentally go over the number of reduce elems.
-			// For the naive implementation where the reduction is just an iteration, this doesn't matter.
-			// But it will for later implementations.
-			uint i = r*WORK_PER_THREAD + q;
-			if (i >= NUM_REDUCE_ELEMS) continue;
-			
-			// adjust position to point to the specific element being iterated on
-			Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
-			[[unroll]]
-			for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
-			{
-				xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
-			}
-			
-			if ( !posValid(xShape, xPos, DIMS) ) continue;
-			// load x values
-			X_IN xArgs;
-			uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
-			xArgs.data[0] = acctype(x0_data[x0_idx]);
-			#if X_ARITY > 1
-				uint x1_idx = x1_offset + getStridedIndexFromPos(xPos, x1_strides, DIMS);
-				xArgs.data[1] = acctype(x1_data[x1_idx]);
-			#endif
-			#if X_ARITY > 2
-				uint x2_idx = x2_offset + getStridedIndexFromPos(xPos, x2_strides, DIMS);
-				xArgs.data[2] = acctype(x2_data[x2_idx]);
-			#endif
-			
-			// Do the pointwise routine
-			yTmp[q] = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
-		}
+		if ( !posValid(xShape, xPos, DIMS) ) continue;
+		// load x values
+		X_IN xArgs;
+		uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
+		xArgs.data[0] = acctype(x0_data[x0_idx]);
+		#if X_ARITY > 1
+			uint x1_idx = x1_offset + getStridedIndexFromPos(xPos, x1_strides, DIMS);
+			xArgs.data[1] = acctype(x1_data[x1_idx]);
+		#endif
+		#if X_ARITY > 2
+			uint x2_idx = x2_offset + getStridedIndexFromPos(xPos, x2_strides, DIMS);
+			xArgs.data[2] = acctype(x2_data[x2_idx]);
+		#endif
 		
-		// this is where stuff will be shared across local memory in the future.
+		// Do the pointwise routine
+		Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+		
 		// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
 		[[unroll]]
-		for (uint q = 0; q < WORK_PER_THREAD; q += 1)
+		for (uint j = 0; j < Y_ARITY; j += 1)
 		{
-			for (uint j = 0; j < Y_ARITY; j += 1)
-			{
-				X_IN reduceArgs;
-				reduceArgs.data[0] = yTmp[q].data[j];
-				reduceArgs.data[1] = yReduce.data[j];
-				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
-			}
+			X_IN reduceArgs;
+			reduceArgs.data[0] = yTmp.data[j];
+			reduceArgs.data[1] = yReduce.data[j];
+			yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 		}
 	}
 	
