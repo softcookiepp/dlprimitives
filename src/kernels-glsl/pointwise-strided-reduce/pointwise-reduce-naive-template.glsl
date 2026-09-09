@@ -114,7 +114,7 @@ void pointwise_reduce_naive_impl()
 	for (uint i = 0; i < Y_ARITY; i += 1)
 		yReduce.data[i] = acctype(yReduceInit[0]);
 	
-	[[unroll]]
+	//[[unroll]]
 	for (uint i = 0; i < NUM_REDUCE_ELEMS; i += 1)
 	{
 		// Ensure we don't accidentally go over the number of reduce elems.
