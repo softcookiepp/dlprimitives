@@ -1,17 +1,15 @@
 #include "../common/defs.glsl"
-// assume localSizeX >= NUM_REDUCE_ELEMS / WORK_PER_THREAD
-layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
-layout(constant_id = 0) const uint localSizeX = 2;
-layout(constant_id = 1) const uint WORK_PER_THREAD = 2;
-
+layout(local_size_x_id = 0) in;
+layout(constant_id = 0) const uint localSizeX = 1;
 #include "../common/shape.glsl"
 #define NUM_WEIGHTS_MAX 8
-layout(constant_id = 2) const uint NUM_WEIGHTS = NUM_WEIGHTS_MAX;
-layout(constant_id = 3) const uint POINTWISE_ROUTINE = 0;
-layout(constant_id = 4) const uint REDUCE_ROUTINE = 0;
-layout(constant_id = 5) const uint DIMS = DIMS_MAX;
-layout(constant_id = 6) const uint NUM_REDUCE_DIMS = DIMS_MAX;
-layout(constant_id = 7) const uint NUM_REDUCE_ELEMS = 1024;
+layout(constant_id = 1) const uint NUM_WEIGHTS = NUM_WEIGHTS_MAX;
+layout(constant_id = 2) const uint POINTWISE_ROUTINE = 0;
+layout(constant_id = 3) const uint REDUCE_ROUTINE = 0;
+layout(constant_id = 4) const uint DIMS = DIMS_MAX;
+layout(constant_id = 5) const uint NUM_REDUCE_DIMS = DIMS_MAX;
+layout(constant_id = 6) const uint NUM_REDUCE_ELEMS = 1024;
+layout(constant_id = 7) const uint WORK_PER_THREAD = 2;
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
@@ -104,31 +102,36 @@ layout(push_constant, std430) uniform push
 	W_ARGS wArgs;
 };
 
-void pointwise_reduce_impl()
+// This should be equal to the amount of 
+shared Y_OUT yShmem[localSizeX];
+
+void pointwise_reduce_naive_impl()
 {
 	// determine position, exit if out of bounds
 	// In this kernel, yShape is the one
-	Shape yPos = getPosFromTriIndex(gl_WorkGroupID, yShape, DIMS);
+	Shape yPos = getPosFromTriIndex(gl_GlobalInvocationID, yShape, DIMS);
 	if (!posValid(yShape, yPos, DIMS)) return;
 	
-	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
 	Shape xPos = yPos;
-	Y_OUT yReduce;
+	
+	Y_OUT yTmp[WORK_PER_THREAD];
+	uint startIdx = gl_LocalInvocationID.x*WORK_PER_THREAD;
+	if (startIdx >= NUM_REDUCE_ELEMS) return; // no point in proceeding if this is the case
 	[[unroll]]
-	for (uint i = 0; i < Y_ARITY; i += 1)
-		yReduce.data[i] = acctype(yReduceInit[0]);
-	
-	uint reduceElemBaseIdx = 
-	
-	if (gl_LocalInvocationID.x < NUM_REDUCE_ELEMS)
+	for (uint l = 0; l < WORK_PER_THREAD; l += 1)
 	{
+		[[unroll]]
+		for (uint j = 0; j < Y_ARITY; j += 1)
+			yTmp[l].data[j] = yReduceInit[j];
+		
+		uint xReduceElem = startIdx + l;
 		// Ensure we don't accidentally go over the number of reduce elems.
 		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
 		// But it will for later implementations.
-		if (i >= NUM_REDUCE_ELEMS) continue;
+		if (xReduceElem >= NUM_REDUCE_ELEMS) continue;
 		
 		// adjust position to point to the specific element being iterated on
-		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
+		Shape reduceOpPos = getPos(xReduceElem, reduceShape, NUM_REDUCE_DIMS);
 		[[unroll]]
 		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
 		{
@@ -150,17 +153,46 @@ void pointwise_reduce_impl()
 		#endif
 		
 		// Do the pointwise routine
-		Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+		yTmp[l] = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
 		
 		// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
+		
+	}
+	
+	// Reduce all the WPT elements to a single output (wait I didn't have to split this into another loop. but whatever
+	Y_OUT yReduce;
+	[[unroll]]
+	for (uint i = 0; i < Y_ARITY; i += 1)
+		yReduce.data[i] = acctype(yReduceInit[0]);
+	
+	[[unroll]]
+	for (uint wptIdx = 0; wptIdx < WORK_PER_THREAD; wptIdx += 1)
+	{
 		[[unroll]]
 		for (uint j = 0; j < Y_ARITY; j += 1)
 		{
 			X_IN reduceArgs;
-			reduceArgs.data[0] = yTmp.data[j];
+			reduceArgs.data[0] = yTmp[wptIdx].data[j];
 			reduceArgs.data[1] = yReduce.data[j];
 			yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 		}
+	}
+	
+	// Now to put them all in shared memory and reduce across it.
+	
+	
+	for (uint s = localSizeX/2; s > 0; s = s >> 1)
+	{
+		if (gl_LocalInvocationID.x < s)
+		{
+			uint lidx0 = gl_LocalInvocationID.x;
+			uint lidx1 = gl_LocalInvocationID.x + s;
+			Y_OUT y0 = yShmem[lidx0];
+			Y_OUT y1 = yShmem[lidx1];
+
+			//yShmem[gl_LocalInvocationID.x] = // REDUCE HERE
+		}
+		barrier();
 	}
 	
 	// store y values
