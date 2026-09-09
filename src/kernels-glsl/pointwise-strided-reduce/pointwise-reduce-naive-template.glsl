@@ -119,7 +119,7 @@ void pointwise_reduce_naive_impl()
 	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
 	Shape reduceElemPos = yPos;
 	acctype yReduce = acctype(yReduceInit[0]);
-	for (uint i = 0; i < numReduceElems; i += 1)
+	for (uint i = 0; i < numReduceElems + 1; i += 1)
 	{
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceOpSize, NUM_REDUCE_DIMS);
