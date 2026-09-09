@@ -114,7 +114,7 @@ void pointwise_reduce_naive_impl()
 	for (uint i = 0; i < Y_ARITY; i += 1)
 		yReduce.data[i] = acctype(yReduceInit[0]);
 	
-	[[unroll]]
+	//[[unroll]]
 	for (uint i = 0; i < NUM_REDUCE_ELEMS; i += 1)
 	{
 		// Ensure we don't accidentally go over the number of reduce elems.
@@ -124,7 +124,7 @@ void pointwise_reduce_naive_impl()
 		
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
-		//[[unroll]]
+		[[unroll]]
 		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
 		{
 			xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
@@ -148,7 +148,7 @@ void pointwise_reduce_naive_impl()
 		Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
 		
 		// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
-		//[[unroll]]
+		[[unroll]]
 		for (uint j = 0; j < Y_ARITY; j += 1)
 		{
 			X_IN reduceArgs;
