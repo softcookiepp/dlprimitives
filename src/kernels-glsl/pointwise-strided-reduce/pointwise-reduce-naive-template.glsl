@@ -121,7 +121,9 @@ void pointwise_reduce_naive_impl()
 	
 	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
 	Shape xPos = yPos;
-	acctype yReduce = acctype(yReduceInit[0]);
+	Y_OUT yReduce;
+	for (uint i = 0; i < Y_ARITY; i += 1)
+		yReduce.data[i] = acctype(yReduceInit[0]);
 	for (uint i = 0; i < numReduceElems; i += 1)
 	{
 		// Ensure we don't accidentally go over the number of reduce elems.
@@ -156,11 +158,11 @@ void pointwise_reduce_naive_impl()
 		// For now, Y_ARITY is assumed to be 1. Why? Simply put, anything else will be too complicated, and none of the existing kernels use it
 		X_IN reduceArgs;
 		reduceArgs.data[0] = yTmp.data[0];
-		reduceArgs.data[1] = yReduce;
-		yReduce = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, Y_ARITY, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+		reduceArgs.data[1] = yReduce[0];
+		yReduce[0] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, Y_ARITY, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 	}
 	
 	// store y values
 	uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
-	y0_data[y0_idx] = typeof_y0(yReduce);
+	y0_data[y0_idx] = typeof_y0(yReduce[0]);
 }
