@@ -290,11 +290,6 @@ namespace core {
 		}
 		// check for negatives
 		for (int i = 0; i < dim.size(); i += 1) dim[i] = (dim[i] >= 0) ? dim[i] : static_cast<int>(ref.size()) + dim[i];
-		std::cout << "SHAPE SIZE: " << ref.size();
-		std::cout << "\nDIMS: ";
-		for (auto d : dim)
-			std::cout << d << ", ";
-		std::cout << std::endl;
 		return dim;
 	}
 	
@@ -346,11 +341,11 @@ namespace core {
 		// convert it to shape so that it can be bound
 		Shape reduceDimShape = Shape::from_range(reduceDims.begin(), reduceDims.end());
 		Shape reduceShape = reduceDimShape;
-		uint32_t numReduceDims = 1;
+		uint32_t numReduceElems = 1;
 		for (size_t i = 0; i < reduceShape.size(); i += 1)
 		{
 			reduceShape[i] = xShape[reduceDimShape[i]];
-			numReduceDims *= reduceShape[i];
+			numReduceElems *= reduceShape[i];
 		}
 		
 		if (true)
@@ -385,6 +380,10 @@ namespace core {
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
 			
+			uint32_t workPerThread = 4;
+			uint32_t r = numReduceElems % workPerThread;
+			uint32_t wgxSize = numReduceElems / workPerThread;
+			if (r > 0) wgxSize += 1;
 			
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());
 			std::vector<uint32_t> spec = {
@@ -396,8 +395,9 @@ namespace core {
 				static_cast<uint32_t>(reduceOp),
 				static_cast<uint32_t>(xShape.size()),
 				static_cast<uint32_t>(reduceDimShape.size()),
-				numReduceDims,
-				4
+				numReduceElems,
+				workPerThread,
+				wgxSize
 			};
 			k->enqueue(glPair.first, spec);
 		}
@@ -563,21 +563,6 @@ namespace core {
 			for(size_t i=0;i<shapes.size();i++)
 			{
 				strides_[i] = shapes[i].broadcast_strides(ref_);
-				#if 0
-					if (strides_[i] != strides[i])
-					{
-						std::cout << "	shape: ";
-						for(size_t j = 0; j < shapes[i].size(); j += 1)
-							std::cout << shapes[i][j] << ", ";
-						std::cout << "\n	broadcasted strides: ";
-						for (size_t j = 0; j < strides_[i].size(); j += 1)
-							std::cout << strides_[i][j] << ", ";
-						std::cout << "\n	regular strides: ";
-						for (size_t j = 0; j < strides[i].size(); j += 1)
-							std::cout << strides[i][j] << ", ";
-						std::cout << std::endl;
-					}
-				#endif
 			}
 			
 			std::vector<int> reduce_dims,non_reduce_dims;
