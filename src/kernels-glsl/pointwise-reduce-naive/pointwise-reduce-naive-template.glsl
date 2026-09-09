@@ -103,7 +103,7 @@ void pointwise_reduce_naive_impl()
 	// determine position, exit if out of bounds
 	// In this kernel, yShape is the one
 	Shape yPos = getPosFromTriIndex(yShape, DIMS);
-	for (size_t i = 0; i < DIMS; i += 1)
+	for (uint i = 0; i < DIMS; i += 1)
 		yPos.s[i] = 0;
 	if (!posValid(yShape, yPos, DIMS)) return;
 	
