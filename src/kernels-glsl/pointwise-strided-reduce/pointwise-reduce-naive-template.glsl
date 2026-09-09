@@ -121,6 +121,8 @@ void pointwise_reduce_naive_impl()
 	acctype yReduce = acctype(yReduceInit[0]);
 	for (uint i = 0; i < numReduceElems + 1; i += 1)
 	{
+		if (i > =numReduceElems) continue;
+		
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceOpSize, NUM_REDUCE_DIMS);
 		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
@@ -130,7 +132,7 @@ void pointwise_reduce_naive_impl()
 		
 		if ( posValid(xShape, xPos, DIMS) )
 		{
-			// Position is validated. Now for the actuall goodie good part.
+			// So even if the position is valid, it still not guaranteed to be the actual target of our reduction.
 			
 			// load x values
 			X_IN xArgs;
