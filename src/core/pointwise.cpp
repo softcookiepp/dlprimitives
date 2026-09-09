@@ -345,6 +345,11 @@ namespace core {
 		
 		// convert it to shape so that it can be bound
 		Shape reduceDimShape = Shape::from_range(reduceDims.begin(), reduceDims.end());
+		Shape reduceShape = reduceDimShape;
+		for (size_t i = 0; i < reduceShape.size(); i += 1)
+		{
+			reduceShape[i] = xShape[reduceDimShape[i]];
+		}
 		
 		if (true)
 		{
@@ -374,6 +379,7 @@ namespace core {
 			bind_shape(k, p, xShape);
 			bind_shape(k, p, y0.shape());
 			bind_shape(k, p, reduceDimShape);
+			bind_shape(k, p, reduceShape);
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
 			

@@ -94,6 +94,7 @@ layout(push_constant, std430) uniform push
 	Shape xShape;
 	Shape yShape;
 	Shape reduceDims;
+	Shape reduceShape;
 	float yReduceInit[Y_ARITY]; // initial values of y for reduction
 	W_ARGS wArgs;
 };
@@ -108,12 +109,9 @@ void pointwise_reduce_naive_impl()
 	// Need to iterate over all possible elements in the reduction shape.
 	// also get the shape of the operation
 	uint numReduceElems = 1;
-	Shape reduceOpSize;
 	for (uint i = 0; i < NUM_REDUCE_DIMS; i += 1)
 	{
-		uint size = xShape.s[reduceDims.s[i]];
-		numReduceElems *= size;
-		reduceOpSize.s[i] = size;
+		numReduceElems *= reduceShape.s[i];
 	}
 	
 	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
@@ -127,7 +125,7 @@ void pointwise_reduce_naive_impl()
 		if (i >= numReduceElems) continue;
 		
 		// adjust position to point to the specific element being iterated on
-		Shape reduceOpPos = getPos(i, reduceOpSize, NUM_REDUCE_DIMS);
+		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
 		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
 		{
 			xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
