@@ -8,7 +8,7 @@ layout(constant_id = 5) const uint REDUCE_ROUTINE = 0;
 layout(constant_id = 6) const uint DIMS = DIMS_MAX;
 layout(constant_id = 7) const uint NUM_REDUCE_DIMS = DIMS_MAX;
 layout(constant_id = 8) const uint NUM_REDUCE_ELEMS = 1024;
-#define WORK_PER_THREAD 2
+layout(constant_id = 9) const uint WORK_PER_THREAD = 2;
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
