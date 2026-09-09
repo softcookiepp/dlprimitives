@@ -9,8 +9,11 @@
 #include <dlprim/tensor.hpp>
 #include <dlprim/context.hpp>
 namespace dlprim {
-namespace core {
-	
+namespace core
+{
+
+// Methods for calculating the workgroup sizes of pointwise and reduce operations.
+std::vector<uint32_t> calcStridedTensorRange(const tart::device_ptr& device, const Shape& shape);
 std::pair<std::vector<uint32_t>, std::vector<uint32_t>>
 	calcStridedTensorInvocations(const tart::device_ptr& device, const Shape& shape);
 

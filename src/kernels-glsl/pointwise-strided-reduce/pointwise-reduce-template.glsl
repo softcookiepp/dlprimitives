@@ -1,13 +1,17 @@
 #include "../common/defs.glsl"
-#include "../common/workgroup.glsl"
+// assume localSizeX >= NUM_REDUCE_ELEMS / WORK_PER_THREAD
+layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+layout(constant_id = 0) const uint localSizeX = 2;
+layout(constant_id = 1) const uint WORK_PER_THREAD = 2;
+
 #include "../common/shape.glsl"
 #define NUM_WEIGHTS_MAX 8
-layout(constant_id = 3) const uint NUM_WEIGHTS = NUM_WEIGHTS_MAX;
-layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
-layout(constant_id = 5) const uint REDUCE_ROUTINE = 0;
-layout(constant_id = 6) const uint DIMS = DIMS_MAX;
-layout(constant_id = 7) const uint NUM_REDUCE_DIMS = DIMS_MAX;
-layout(constant_id = 8) const uint NUM_REDUCE_ELEMS = 1024;
+layout(constant_id = 2) const uint NUM_WEIGHTS = NUM_WEIGHTS_MAX;
+layout(constant_id = 3) const uint POINTWISE_ROUTINE = 0;
+layout(constant_id = 4) const uint REDUCE_ROUTINE = 0;
+layout(constant_id = 5) const uint DIMS = DIMS_MAX;
+layout(constant_id = 6) const uint NUM_REDUCE_DIMS = DIMS_MAX;
+layout(constant_id = 7) const uint NUM_REDUCE_ELEMS = 1024;
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
@@ -113,6 +117,8 @@ void pointwise_reduce_impl()
 	[[unroll]]
 	for (uint i = 0; i < Y_ARITY; i += 1)
 		yReduce.data[i] = acctype(yReduceInit[0]);
+	
+	uint reduceElemBaseIdx = 
 	
 	if (gl_LocalInvocationID.x < NUM_REDUCE_ELEMS)
 	{

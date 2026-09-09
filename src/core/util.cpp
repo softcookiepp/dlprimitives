@@ -16,9 +16,8 @@ namespace dlprim
 {
 namespace core
 {
-
-std::pair<std::vector<uint32_t>, std::vector<uint32_t>>
-	calcStridedTensorInvocations(const tart::device_ptr& device, const Shape& shape)
+	
+std::vector<uint32_t> calcStridedTensorRange(const tart::device_ptr& device, const Shape& shape)
 {
 	std::vector<uint32_t> range;
 	uint32_t dims = shape.size();
@@ -36,6 +35,13 @@ std::pair<std::vector<uint32_t>, std::vector<uint32_t>>
 		throw NotImplementedError("Invalid dimentsions count for strided copy " + std::to_string(dims));
 	}
 	range.resize(3, 1);
+	return range;
+}
+
+std::pair<std::vector<uint32_t>, std::vector<uint32_t>>
+	calcStridedTensorInvocations(const tart::device_ptr& device, const Shape& shape)
+{
+	std::vector<uint32_t> range = calcStridedTensorRange(device, shape);
 	return device->chooseGlobalAndLocalSize(range);
 }
 
