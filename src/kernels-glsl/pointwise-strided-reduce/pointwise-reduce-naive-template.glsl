@@ -118,11 +118,20 @@ void pointwise_reduce_naive_impl()
 	//[[unroll]]
 	for (uint r = 0; r < NUM_REDUCE_ELEMS / WORK_PER_THREAD; r += 1)
 	{
-		// Ensure we don't accidentally go over the number of reduce elems.
-		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
-		// But it will for later implementations.
+		Y_OUT yTmp[WORK_PER_THREAD];
+		[[unroll]]
+		for (uint i = 0; i < WORK_PER_THREAD; i += 1)
+		{
+			[[unroll]]
+			for (uint j = 0; j < Y_ARITY; j += 1)
+				yTmp[i].data[j] = acctype(yReduceInit[j]);
+		}
+		
 		for (uint q = 0; q < WORK_PER_THREAD; q += 1)
 		{
+			// Ensure we don't accidentally go over the number of reduce elems.
+			// For the naive implementation where the reduction is just an iteration, this doesn't matter.
+			// But it will for later implementations.
 			uint i = r*WORK_PER_THREAD + q;
 			if (i >= NUM_REDUCE_ELEMS) continue;
 			
@@ -149,14 +158,18 @@ void pointwise_reduce_naive_impl()
 			#endif
 			
 			// Do the pointwise routine
-			Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
-			
-			// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
-			[[unroll]]
+			yTmp[q] = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+		}
+		
+		// this is where stuff will be shared across local memory in the future.
+		// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
+		[[unroll]]
+		for (uint q = 0; q < WORK_PER_THREAD; q += 1)
+		{
 			for (uint j = 0; j < Y_ARITY; j += 1)
 			{
 				X_IN reduceArgs;
-				reduceArgs.data[0] = yTmp.data[j];
+				reduceArgs.data[0] = yTmp[q].data[j];
 				reduceArgs.data[1] = yReduce.data[j];
 				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 			}
