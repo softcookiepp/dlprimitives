@@ -107,32 +107,24 @@ void pointwise_reduce_naive_impl()
 	Shape yPos = getPosFromTriIndex(gl_GlobalInvocationID, yShape, DIMS);
 	if (!posValid(yShape, yPos, DIMS)) return;
 	
-	// Need to iterate over all possible elements in the reduction shape.
-	// also get the shape of the operation
-	#if 1
-		uint numReduceElems = NUM_REDUCE_ELEMS;
-	#else
-		uint numReduceElems = 1;
-		for (uint i = 0; i < NUM_REDUCE_DIMS; i += 1)
-		{
-			numReduceElems *= reduceShape.s[i];
-		}
-	#endif
-	
 	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
 	Shape xPos = yPos;
 	Y_OUT yReduce;
+	[[unroll]]
 	for (uint i = 0; i < Y_ARITY; i += 1)
 		yReduce.data[i] = acctype(yReduceInit[0]);
-	for (uint i = 0; i < numReduceElems; i += 1)
+	
+	[[unroll]]
+	for (uint i = 0; i < NUM_REDUCE_ELEMS; i += 1)
 	{
 		// Ensure we don't accidentally go over the number of reduce elems.
 		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
 		// But it will for later implementations.
-		if (i >= numReduceElems) continue;
+		if (i >= NUM_REDUCE_ELEMS) continue;
 		
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
+		[[unroll]]
 		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
 		{
 			xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
@@ -156,6 +148,7 @@ void pointwise_reduce_naive_impl()
 		Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
 		
 		// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
+		[[unroll]]
 		for (uint j = 0; j < Y_ARITY; j += 1)
 		{
 			X_IN reduceArgs;

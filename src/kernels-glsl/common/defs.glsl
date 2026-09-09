@@ -3,6 +3,9 @@
 	// just to prevent the other header from interfering
 #endif
 
+// loop unrolling!
+#extension GL_EXT_control_flow_attributes : require
+
 // constant thingies
 #define HLF_MIN stype(6.103515625e-05)
 #define HLF_MAX stype(65504)
