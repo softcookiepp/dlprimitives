@@ -8,6 +8,7 @@ layout(constant_id = 5) const uint REDUCE_ROUTINE = 0;
 layout(constant_id = 6) const uint DIMS = DIMS_MAX;
 layout(constant_id = 7) const uint NUM_REDUCE_DIMS = DIMS_MAX;
 layout(constant_id = 8) const uint NUM_REDUCE_ELEMS = 1024;
+#define WORK_PER_THREAD 2
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
@@ -115,9 +116,9 @@ void pointwise_reduce_naive_impl()
 		yReduce.data[i] = acctype(yReduceInit[0]);
 	
 	//[[unroll]]
-	for (uint k = 0; k < NUM_REDUCE_ELEMS; k += 2)
+	for (uint k = 0; k < NUM_REDUCE_ELEMS; k += WORK_PER_THREAD)
 	{
-		for (uint l = 0; l < 2; l += 1)
+		for (uint l = 0; l < WORK_PER_THREAD; l += 1)
 		{
 			uint i = k + l;
 			// Ensure we don't accidentally go over the number of reduce elems.
