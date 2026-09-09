@@ -115,50 +115,46 @@ void pointwise_reduce_naive_impl()
 		yReduce.data[i] = acctype(yReduceInit[0]);
 	
 	//[[unroll]]
-	for (uint g = 0; g < NUM_REDUCE_ELEMS/2; g += 1)
+	for (uint i = 0; i < NUM_REDUCE_ELEMS; i += 1)
 	{
-		for (uint h = 0; h < 2; h += 1)
+		// Ensure we don't accidentally go over the number of reduce elems.
+		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
+		// But it will for later implementations.
+		if (i >= NUM_REDUCE_ELEMS) continue;
+		
+		// adjust position to point to the specific element being iterated on
+		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
+		[[unroll]]
+		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
 		{
-			uint i = g*2 + h;
-			// Ensure we don't accidentally go over the number of reduce elems.
-			// For the naive implementation where the reduction is just an iteration, this doesn't matter.
-			// But it will for later implementations.
-			if (i >= NUM_REDUCE_ELEMS) continue;
-			
-			// adjust position to point to the specific element being iterated on
-			Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
-			[[unroll]]
-			for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
-			{
-				xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
-			}
-			
-			if ( !posValid(xShape, xPos, DIMS) ) continue;
-			// load x values
-			X_IN xArgs;
-			uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
-			xArgs.data[0] = acctype(x0_data[x0_idx]);
-			#if X_ARITY > 1
-				uint x1_idx = x1_offset + getStridedIndexFromPos(xPos, x1_strides, DIMS);
-				xArgs.data[1] = acctype(x1_data[x1_idx]);
-			#endif
-			#if X_ARITY > 2
-				uint x2_idx = x2_offset + getStridedIndexFromPos(xPos, x2_strides, DIMS);
-				xArgs.data[2] = acctype(x2_data[x2_idx]);
-			#endif
-			
-			// Do the pointwise routine
-			Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
-			
-			// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
-			[[unroll]]
-			for (uint j = 0; j < Y_ARITY; j += 1)
-			{
-				X_IN reduceArgs;
-				reduceArgs.data[0] = yTmp.data[j];
-				reduceArgs.data[1] = yReduce.data[j];
-				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
-			}
+			xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
+		}
+		
+		if ( !posValid(xShape, xPos, DIMS) ) continue;
+		// load x values
+		X_IN xArgs;
+		uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
+		xArgs.data[0] = acctype(x0_data[x0_idx]);
+		#if X_ARITY > 1
+			uint x1_idx = x1_offset + getStridedIndexFromPos(xPos, x1_strides, DIMS);
+			xArgs.data[1] = acctype(x1_data[x1_idx]);
+		#endif
+		#if X_ARITY > 2
+			uint x2_idx = x2_offset + getStridedIndexFromPos(xPos, x2_strides, DIMS);
+			xArgs.data[2] = acctype(x2_data[x2_idx]);
+		#endif
+		
+		// Do the pointwise routine
+		Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+		
+		// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
+		[[unroll]]
+		for (uint j = 0; j < Y_ARITY; j += 1)
+		{
+			X_IN reduceArgs;
+			reduceArgs.data[0] = yTmp.data[j];
+			reduceArgs.data[1] = yReduce.data[j];
+			yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 		}
 	}
 	
