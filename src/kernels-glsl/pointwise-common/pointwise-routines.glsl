@@ -35,8 +35,10 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 	precise acctype y1;
 	float w[NUM_WEIGHTS_MAX] = wargs.w;
 	
+	[[flatten]] // very important
 	if (xArity == 1 && yArity == 1)
 	{
+		[[flatten]]
 		if (pointwiseRoutine == ROUTINE_IDENTITY)
 			y0 = (x0);
 		else if (pointwiseRoutine == ROUTINE_FILL)
@@ -143,6 +145,7 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 	}
 	else if (xArity == 2 && yArity == 1)
 	{
+		[[flatten]]
 		if (pointwiseRoutine == ROUTINE_ADD)
 			y0 = (x0) + (x1);
 		else if (pointwiseRoutine == ROUTINE_SUB)
@@ -231,6 +234,7 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 	}
 	else if (xArity == 3 && yArity == 1)
 	{
+		[[flatten]]
 		if (pointwiseRoutine == ROUTINE_LOG_SIGMOID_BWD)
 		{
 			bool is_negative = x0 < A0;
@@ -253,6 +257,7 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 	}
 	else if (xArity == 1 && yArity == 2)
 	{
+		[[flatten]]
 		if (pointwiseRoutine == ROUTINE_LOG_SIGMOID)
 		{
 			y1 = exp(-abs(x0));

@@ -13,6 +13,7 @@ struct Shape
 Shape getPosFromTriIndex(uvec3 gid, Shape shape, uint dims)
 {
 	Shape pos;
+	[[flatten]]
 	if (dims == 1)
 	{
 		uint i0 = gid[0];
