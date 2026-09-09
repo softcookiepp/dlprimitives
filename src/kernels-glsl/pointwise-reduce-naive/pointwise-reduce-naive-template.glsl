@@ -132,14 +132,14 @@ void pointwise_reduce_naive_impl()
 		
 		// load x values
 		X_IN xArgs;
-		uint x0_idx = x0_offset + getStridedIndexFromPos(reduceOpPos, x0_strides, DIMS);
+		uint x0_idx = x0_offset + getStridedIndexFromPos(reduceElemPos, x0_strides, DIMS);
 		xArgs.data[0] = acctype(x0_data[x0_idx]);
 		#if X_ARITY > 1
-			uint x1_idx = x1_offset + getStridedIndexFromPos(reduceOpPos, x1_strides, DIMS);
+			uint x1_idx = x1_offset + getStridedIndexFromPos(reduceElemPos, x1_strides, DIMS);
 			xArgs.data[1] = acctype(x1_data[x1_idx]);
 		#endif
 		#if X_ARITY > 2
-			uint x2_idx = x2_offset + getStridedIndexFromPos(reduceOpPos, x2_strides, DIMS);
+			uint x2_idx = x2_offset + getStridedIndexFromPos(reduceElemPos, x2_strides, DIMS);
 			xArgs.data[2] = acctype(x2_data[x2_idx]);
 		#endif
 		
