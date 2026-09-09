@@ -120,8 +120,12 @@ void pointwise_reduce_naive_impl()
 	for (uint k = 0; k < DUMMY_WGX; k += 1)
 	{
 		uint m = k*WORK_PER_THREAD;
+		Y_OUT yTmp[WORK_PER_THREAD];
 		for (uint l = 0; l < WORK_PER_THREAD; l += 1)
 		{
+			for (uint j = 0; j < Y_ARITY; j += 1)
+				yTmp[l].data[j] = yReduceInit[j];
+			
 			uint i = m + l;
 			// Ensure we don't accidentally go over the number of reduce elems.
 			// For the naive implementation where the reduction is just an iteration, this doesn't matter.
@@ -151,14 +155,14 @@ void pointwise_reduce_naive_impl()
 			#endif
 			
 			// Do the pointwise routine
-			Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+			yTmp[l] = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
 			
 			// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
 			[[unroll]]
 			for (uint j = 0; j < Y_ARITY; j += 1)
 			{
 				X_IN reduceArgs;
-				reduceArgs.data[0] = yTmp.data[j];
+				reduceArgs.data[0] = yTmp[l].data[j];
 				reduceArgs.data[1] = yReduce.data[j];
 				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 			}
