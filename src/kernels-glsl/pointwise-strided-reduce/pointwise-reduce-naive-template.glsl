@@ -119,8 +119,11 @@ void pointwise_reduce_naive_impl()
 	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
 	Shape xPos = yPos;
 	acctype yReduce = acctype(yReduceInit[0]);
-	for (uint i = 0; i < numReduceElems + 1; i += 1)
+	for (uint i = 0; i < numReduceElems; i += 1)
 	{
+		// Ensure we don't accidentally go over the number of reduce elems.
+		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
+		// But it will for later implementations.
 		if (i >= numReduceElems) continue;
 		
 		// adjust position to point to the specific element being iterated on
@@ -130,32 +133,28 @@ void pointwise_reduce_naive_impl()
 			xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
 		}
 		
-		if ( posValid(xShape, xPos, DIMS) )
-		{
-			// So even if the position is valid, it still not guaranteed to be the actual target of our reduction.
-			
-			// load x values
-			X_IN xArgs;
-			uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
-			xArgs.data[0] = acctype(x0_data[x0_idx]);
-			#if X_ARITY > 1
-				uint x1_idx = x1_offset + getStridedIndexFromPos(xPos, x1_strides, DIMS);
-				xArgs.data[1] = acctype(x1_data[x1_idx]);
-			#endif
-			#if X_ARITY > 2
-				uint x2_idx = x2_offset + getStridedIndexFromPos(xPos, x2_strides, DIMS);
-				xArgs.data[2] = acctype(x2_data[x2_idx]);
-			#endif
-			
-			// Do the pointwise routine
-			Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
-			
-			// For now, Y_ARITY is assumed to be 1. Why? Simply put, anything else will be too complicated, and none of the existing kernels use it
-			X_IN reduceArgs;
-			reduceArgs.data[0] = yTmp.data[0];
-			reduceArgs.data[1] = yReduce;
-			yReduce = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, Y_ARITY, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
-		}
+		if ( !posValid(xShape, xPos, DIMS) ) continue;
+		// load x values
+		X_IN xArgs;
+		uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
+		xArgs.data[0] = acctype(x0_data[x0_idx]);
+		#if X_ARITY > 1
+			uint x1_idx = x1_offset + getStridedIndexFromPos(xPos, x1_strides, DIMS);
+			xArgs.data[1] = acctype(x1_data[x1_idx]);
+		#endif
+		#if X_ARITY > 2
+			uint x2_idx = x2_offset + getStridedIndexFromPos(xPos, x2_strides, DIMS);
+			xArgs.data[2] = acctype(x2_data[x2_idx]);
+		#endif
+		
+		// Do the pointwise routine
+		Y_OUT yTmp = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+		
+		// For now, Y_ARITY is assumed to be 1. Why? Simply put, anything else will be too complicated, and none of the existing kernels use it
+		X_IN reduceArgs;
+		reduceArgs.data[0] = yTmp.data[0];
+		reduceArgs.data[1] = yReduce;
+		yReduce = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, Y_ARITY, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 	}
 	
 	// store y values
