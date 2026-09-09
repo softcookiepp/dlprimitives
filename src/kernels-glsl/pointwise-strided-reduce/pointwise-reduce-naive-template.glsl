@@ -7,6 +7,7 @@ layout(constant_id = 4) const uint POINTWISE_ROUTINE = 0;
 layout(constant_id = 5) const uint REDUCE_ROUTINE = 0;
 layout(constant_id = 6) const uint DIMS = DIMS_MAX;
 layout(constant_id = 7) const uint NUM_REDUCE_DIMS = DIMS_MAX;
+layout(constant_id = 8) const uint NUM_REDUCE_ELEMS = 1024;
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
@@ -108,11 +109,15 @@ void pointwise_reduce_naive_impl()
 	
 	// Need to iterate over all possible elements in the reduction shape.
 	// also get the shape of the operation
-	uint numReduceElems = 1;
-	for (uint i = 0; i < NUM_REDUCE_DIMS; i += 1)
-	{
-		numReduceElems *= reduceShape.s[i];
-	}
+	#if 1
+		uint numReduceElems = NUM_REDUCE_ELEMS;
+	#else
+		uint numReduceElems = 1;
+		for (uint i = 0; i < NUM_REDUCE_DIMS; i += 1)
+		{
+			numReduceElems *= reduceShape.s[i];
+		}
+	#endif
 	
 	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
 	Shape xPos = yPos;

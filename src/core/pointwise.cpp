@@ -346,9 +346,11 @@ namespace core {
 		// convert it to shape so that it can be bound
 		Shape reduceDimShape = Shape::from_range(reduceDims.begin(), reduceDims.end());
 		Shape reduceShape = reduceDimShape;
+		uint32_t numReduceDims = 1;
 		for (size_t i = 0; i < reduceShape.size(); i += 1)
 		{
 			reduceShape[i] = xShape[reduceDimShape[i]];
+			numReduceDims *= reduceShape[i];
 		}
 		
 		if (true)
@@ -393,7 +395,8 @@ namespace core {
 				static_cast<uint32_t>(calcOp),
 				static_cast<uint32_t>(reduceOp),
 				static_cast<uint32_t>(xShape.size()),
-				static_cast<uint32_t>(reduceDimShape.size())
+				static_cast<uint32_t>(reduceDimShape.size()),
+				numReduceDims
 			};
 			k->enqueue(glPair.first, spec);
 		}
