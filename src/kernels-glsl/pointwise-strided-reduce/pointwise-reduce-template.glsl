@@ -175,47 +175,27 @@ void pointwise_reduce_naive_impl()
 	yShmem[gl_LocalInvocationID.x] = yReduce;
 	barrier();
 	
-	// now why is iterating over this so difficult?
-	#if 1
-		if (gl_LocalInvocationID.x > 0) return;
-		[[unroll]]
-		for (uint i = 0; i < Y_ARITY; i += 1)
-			yReduce.data[i] = acctype(yReduceInit[0]);
-		
-		for (uint i = 0; i < localSizeX; i += 1)
+	uint limit = localSizeX >> 1;
+	if (limit == 0 || localSizeX % 2 > 0) limit += 1;
+	
+	for (uint j = 0; j < Y_ARITY; j += 1)
+	{
+		for (uint i = limit; i > 0; i =  i >> 1)
 		{
-			for (uint j = 0; j < Y_ARITY; j += 1)
+			if (gl_LocalInvocationID.x < i )
 			{
 				X_IN reduceArgs;
-				reduceArgs.data[0] = yReduce.data[j];
-				reduceArgs.data[1] = yShmem[i].data[j];
-				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+				reduceArgs.data[0] = yShmem[gl_LocalInvocationID.x].data[j];
+				reduceArgs.data[1] = yShmem[gl_LocalInvocationID.x + i].data[j];
+				yShmem[gl_LocalInvocationID.x].data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 			}
+			barrier();
 		}
-		
-		// store y values
-		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
-		y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
-	#else
-		if (m > 0) return;
-		[[unroll]]
-		for (uint i = 0; i < Y_ARITY; i += 1)
-			yReduce.data[i] = acctype(yReduceInit[0]);
-		
-		for (uint i = 1; i < localSizeX >> 1; i += 1)
-		{
-			for (uint j = 0; j < Y_ARITY; j += 1)
-			{
-				X_IN reduceArgs;
-				reduceArgs.data[0] = yShmem[0].data[j];
-				reduceArgs.data[1] = yShmem[i].data[j];
-				yShmem[0].data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
-				barrier();
-			}
-		}
-		
-		// store y values
-		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
-		y0_data[y0_idx] = typeof_y0(yShmem[0].data[0]);
-	#endif
+	}
+	
+	if (gl_LocalInvocationID.x > 0) return;
+	
+	// store y values
+	uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
+	y0_data[y0_idx] = typeof_y0(yShmem[0].data[0]);
 }
