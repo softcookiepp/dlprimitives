@@ -134,7 +134,7 @@ void pointwise_reduce_naive_impl()
 	// Ensure we don't accidentally go over the number of reduce elems.
 	// For the naive implementation where the reduction is just an iteration, this doesn't matter.
 	// But it will for later implementations.
-	if (i >= NUM_REDUCE_ELEMS) continue;
+	if (i >= NUM_REDUCE_ELEMS) return;
 	
 	// adjust position to point to the specific element being iterated on
 	Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
@@ -144,7 +144,7 @@ void pointwise_reduce_naive_impl()
 		xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
 	}
 	
-	if ( !posValid(xShape, xPos, DIMS) ) continue;
+	if ( !posValid(xShape, xPos, DIMS) ) return;
 	// load x values
 	X_IN xArgs;
 	uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
