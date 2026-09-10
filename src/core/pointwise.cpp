@@ -442,7 +442,6 @@ namespace core {
 			bind_shape(k, p, xShape);
 			bind_shape(k, p, y0.shape());
 			bind_shape(k, p, reduceDimShape);
-			bind_shape(k, p, reduceShape);
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
 			

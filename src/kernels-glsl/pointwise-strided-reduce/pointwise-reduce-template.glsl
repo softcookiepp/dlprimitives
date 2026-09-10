@@ -96,7 +96,6 @@ layout(push_constant, std430) uniform push
 	Shape xShape;
 	Shape yShape;
 	Shape reduceDims;
-	Shape reduceShape;
 	float yReduceInit[Y_ARITY]; // initial values of y for reduction
 	W_ARGS wArgs;
 };
@@ -137,12 +136,13 @@ void pointwise_reduce_naive_impl()
 	if (i >= NUM_REDUCE_ELEMS) return;
 	
 	// adjust position to point to the specific element being iterated on
+	// Also get reduceShape, to avoid having too many push constants
+	Shape reduceShape;
+	[[unroll]]
+	for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1) reduceShape.s[j] = xShape.s[reduceDims.s[j]];
 	Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
 	[[unroll]]
-	for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
-	{
-		xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
-	}
+	for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1) xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
 	
 	if ( !posValid(xShape, xPos, DIMS) ) return;
 	// load x values
