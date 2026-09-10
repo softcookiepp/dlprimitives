@@ -118,6 +118,9 @@ void pointwise_reduce_naive_impl()
 	[[unroll]]
 	for (uint i = 0; i < Y_ARITY; i += 1)
 		yReduce.data[i] = acctype(yReduceInit[0]);
+	
+	// initialize shared memory
+	yShmem[m] = yReduce;
 
 	uint m = gl_LocalInvocationID.x*WORK_PER_THREAD;
 	if (m >= NUM_REDUCE_ELEMS) return;
