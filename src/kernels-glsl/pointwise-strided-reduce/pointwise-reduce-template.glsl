@@ -120,6 +120,8 @@ void pointwise_reduce_naive_impl()
 		yReduce.data[i] = acctype(yReduceInit[0]);
 
 	uint m = gl_LocalInvocationID.x*WORK_PER_THREAD;
+	if (m >= NUM_REDUCE_ELEMS) return;
+	
 	Y_OUT yTmp[WORK_PER_THREAD];
 	[[unroll]]
 	for (uint l = 0; l < WORK_PER_THREAD; l += 1)
