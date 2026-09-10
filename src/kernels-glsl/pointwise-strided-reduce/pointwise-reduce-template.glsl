@@ -109,30 +109,33 @@ void pointwise_reduce_naive_impl()
 {
 	// determine position, exit if out of bounds
 	// In this kernel, yShape is the one
-	Shape yPos = getPosFromTriIndex(gl_GlobalInvocationID, yShape, DIMS);
+	Shape yPos = getPosFromTriIndex(gl_WorkGroupID, yShape, DIMS);
 	if (!posValid(yShape, yPos, DIMS)) return;
 	
+	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
 	Shape xPos = yPos;
-	
-	Y_OUT yTmp[WORK_PER_THREAD];
-	uint startIdx = gl_LocalInvocationID.x*WORK_PER_THREAD;
-	if (startIdx >= NUM_REDUCE_ELEMS) return; // no point in proceeding if this is the case
+	Y_OUT yReduce;
+	[[unroll]]
+	for (uint i = 0; i < Y_ARITY; i += 1)
+		yReduce.data[i] = acctype(yReduceInit[0]);
 
+	uint m = gl_LocalInvocationID.x*WORK_PER_THREAD;
+	Y_OUT yTmp[WORK_PER_THREAD];
+	[[unroll]]
 	for (uint l = 0; l < WORK_PER_THREAD; l += 1)
 	{
-		[[unroll]]
 		for (uint j = 0; j < Y_ARITY; j += 1)
 			yTmp[l].data[j] = yReduceInit[j];
 		
-		uint xReduceElem = startIdx + l;
+		uint i = m + l;
 		// Ensure we don't accidentally go over the number of reduce elems.
 		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
 		// But it will for later implementations.
-		if (xReduceElem >= NUM_REDUCE_ELEMS) continue;
+		if (i >= NUM_REDUCE_ELEMS) continue;
 		
 		// adjust position to point to the specific element being iterated on
-		Shape reduceOpPos = getPos(xReduceElem, reduceShape, NUM_REDUCE_DIMS);
-
+		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
+		[[unroll]]
 		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1)
 		{
 			xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
@@ -159,12 +162,7 @@ void pointwise_reduce_naive_impl()
 		
 	}
 	
-	// Reduce all the WPT elements to a single output (wait I didn't have to split this into another loop. but whatever
-	Y_OUT yReduce;
 	[[unroll]]
-	for (uint i = 0; i < Y_ARITY; i += 1)
-		yReduce.data[i] = acctype(yReduceInit[i]);
-	
 	for (uint wptIdx = 0; wptIdx < WORK_PER_THREAD; wptIdx += 1)
 	{
 		[[unroll]]
@@ -177,46 +175,28 @@ void pointwise_reduce_naive_impl()
 		}
 	}
 	
-	// Now to put them all in shared memory and reduce across it.
-	yShmem[gl_LocalInvocationID.x] = yReduce;
+	// store it in shared memory
+	yShmem[m] = yReduce;
 	barrier();
+	if (m > 0) return;
 	
-	#if 1
-		// For now, start with what we know will work; that is, iterating over the entire thing
-		if (gl_LocalInvocationID.x > 0) return;
-		
-		// re-initialize yReduce
-		[[unroll]]
-		for (uint i = 0; i < Y_ARITY; i += 1)
-			yReduce.data[i] = acctype(yReduceInit[i]);
-		
-		
-		for (uint i = 0; i < localSizeX; i += 1)
+	// now why is iterating over this so difficult?
+	
+	[[unroll]]
+	for (uint i = 0; i < Y_ARITY; i += 1)
+		yReduce.data[i] = acctype(yReduceInit[0]);
+	
+	for (uint i = 0; i < localSizeX; i += 1)
+	{
+		for (uint j = 0; j < Y_ARITY; j += 1)
 		{
-			// this again
-			for (uint j = 0; j < Y_ARITY; j += 1)
-			{
-				X_IN reduceArgs;
-				reduceArgs.data[0] = yShmem[i].data[j];
-				reduceArgs.data[1] = yReduce.data[j];
-				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
-			}
+			X_IN reduceArgs;
+			reduceArgs.data[0] = yReduce.data[j];
+			reduceArgs.data[1] = yShmem[i].data[j];
+			yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 		}
-	#else
-		for (uint s = localSizeX/2; s > 0; s = s >> 1)
-		{
-			if (gl_LocalInvocationID.x < s)
-			{
-				uint lidx0 = gl_LocalInvocationID.x;
-				uint lidx1 = gl_LocalInvocationID.x + s;
-				Y_OUT y0 = yShmem[lidx0];
-				Y_OUT y1 = yShmem[lidx1];
-
-				//yShmem[gl_LocalInvocationID.x] = // REDUCE HERE
-			}
-			barrier();
-		}
-	#endif
+	}
+	
 	// store y values
 	uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
 	y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
