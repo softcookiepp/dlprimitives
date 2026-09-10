@@ -286,7 +286,7 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 		mPointwiseReduceNaiveUnaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-reduce-naive-unary-unary",
 			"typeof_x0", dt0.glsl(), "typeof_y0", dt1.glsl());
 		
-		mPointwiseReduceUnaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-reduce-naive-unary-unary",
+		mPointwiseReduceUnaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-reduce-unary-unary",
 			"typeof_x0", dt0.glsl(), "typeof_y0", dt1.glsl());
 	}
 	else if(dtypes.size() == 3)
