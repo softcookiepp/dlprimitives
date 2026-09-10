@@ -164,7 +164,7 @@ void pointwise_reduce_naive_impl()
 	if (m > 0) return;
 	
 	// now why is iterating over this so difficult?
-	#if 1
+	#if 0
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
 			yReduce.data[i] = acctype(yReduceInit[0]);
@@ -184,19 +184,25 @@ void pointwise_reduce_naive_impl()
 		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
 		y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
 	#else
-		for (uint i = 0; i < localSizeX/2; i += 1)
+		for (uint i = localSizeX/2; i > 0; i = i >> 1)
 		{
-			if (true)
+			if (gl_LocalInvocationID.x < i)
 			{
 				for (uint j = 0; j < Y_ARITY; j += 1)
 				{
 					X_IN reduceArgs;
-					reduceArgs.data[0] = yReduce.data[j];
-					reduceArgs.data[1] = yShmem[i].data[j];
-					yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+					reduceArgs.data[0] = yShmem[gl_LocalInvocationID.x].data[j];
+					reduceArgs.data[1] = yShmem[gl_LocalInvocationID.x + i].data[j];
+					yShmem[gl_LocalInvocationID.x].data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 				}
 			}
 			barrier();
 		}
+		
+		if (gl_LocalInvocationID.x > 0) return;
+		
+		// store y values
+		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
+		y0_data[y0_idx] = typeof_y0(yShmem[0].data[0]);
 	#endif
 }
