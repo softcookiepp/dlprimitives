@@ -164,7 +164,7 @@ void pointwise_reduce_naive_impl()
 	
 	
 	// now why is iterating over this so difficult?
-	#if 0
+	#if 1
 		if (m > 0) return;
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
