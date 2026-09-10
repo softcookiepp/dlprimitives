@@ -460,8 +460,17 @@ namespace core {
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
 			
-			uint32_t wgxSize = numReduceElems >> 2;
-			if (wgxSize == 0 || numReduceElems % 4 > 0) wgxSize += 1;
+			
+			// calculate local size and work per thread, based on the max amount of local invocations along the X axis for this device
+			uint32_t wpt = 1;
+			uint32_t wgxSize = numReduceElems;
+			uint32_t maxWgxSize = device->getMetadata().physicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
+			while (wgxSize > maxWgxSize)
+			{
+				wpt << 1;
+				wgxSize = numReduceElems / wpt;
+				if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
+			}
 			
 			std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());
@@ -473,7 +482,7 @@ namespace core {
 				static_cast<uint32_t>(xShape.size()),
 				static_cast<uint32_t>(reduceDimShape.size()),
 				numReduceElems,
-				4
+				wpt
 			};
 			k->enqueue(global, spec);
 		}
