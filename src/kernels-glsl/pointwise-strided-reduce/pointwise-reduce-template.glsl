@@ -164,7 +164,7 @@ void pointwise_reduce_naive_impl()
 	if (m > 0) return;
 	
 	// now why is iterating over this so difficult?
-	#if 0
+	#if 1
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
 			yReduce.data[i] = acctype(yReduceInit[0]);
