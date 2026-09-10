@@ -161,10 +161,11 @@ void pointwise_reduce_naive_impl()
 	// compute value, store in shared memory
 	yShmem[m] = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
 	barrier();
-	if (m > 0) return;
+	
 	
 	// now why is iterating over this so difficult?
-	#if 1
+	#if 0
+		if (m > 0) return;
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
 			yReduce.data[i] = acctype(yReduceInit[0]);
