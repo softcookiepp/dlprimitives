@@ -169,7 +169,6 @@ void pointwise_reduce_naive_impl()
 		
 	}
 	
-	[[unroll]]
 	for (uint wptIdx = 0; wptIdx < WORK_PER_THREAD; wptIdx += 1)
 	{
 		[[unroll]]
@@ -193,7 +192,6 @@ void pointwise_reduce_naive_impl()
 	for (uint i = 0; i < Y_ARITY; i += 1)
 		yReduce.data[i] = acctype(yReduceInit[0]);
 	
-	[[unroll]]
 	for (uint i = 0; i < localSizeX; i += 1)
 	{
 		for (uint j = 0; j < Y_ARITY; j += 1)
