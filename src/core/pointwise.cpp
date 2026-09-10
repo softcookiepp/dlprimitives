@@ -326,9 +326,17 @@ namespace core {
 			broadcastTensors(xs[0], ys[i], true);
 			for (size_t j = 0; j < reduceDims.size(); j += 1)
 			{
-				// Ensure y dimensions at reduce dims are all 1.
-				// Otherwise it cannot be reduced!
-				DLPRIM_CHECK(ys[i].shape()[reduceDims[j]] == 1);
+				if (ys[i].shape()[reduceDims[j]] != 1)
+				{
+					// Ensure y dimensions at reduce dims are all 1.
+					// Otherwise it cannot be reduced!
+					std::stringstream ss;
+					ss << "failed to apply reduction:"
+						<< "\nreduced x: " << xs[i].shape()
+						<< "\nreduced y: " << ys[i].shape()
+						<< std::endl; 
+					throw std::runtime_error(ss.str());
+				}
 			}
 		}
 		
@@ -408,6 +416,11 @@ namespace core {
 			if (xs.size() == 1 && ys.size() == 1)
 			{
 				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_unary(device, xs[0].dtype(), ys[0].dtype());
+				k = prg->getKernel("exec");
+			}
+			else if(xs.size() == 2 && ys.size() == 1)
+			{
+				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_binary_unary(device, xs[0].dtype(), xs[1].dtype(), ys[0].dtype());
 				k = prg->getKernel("exec");
 			}
 			

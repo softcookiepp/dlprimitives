@@ -430,7 +430,12 @@ void test_reduce(const tart::device_ptr& q)
         auto ref=make_tensor<Type>(q,dp::Shape(1),{7});
         dp::Tensor c(q,dp::Shape(1),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast_reduce({a,b},{c},{},"y0=x0+x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
+        #if 1
+			dlprim::core::pointwiseOpBroadcastReduceStrided({a, b}, {c}, {}, {}, dlprim::core::PointwiseOp::eAdd,
+				dlprim::core::PointwiseOp::eAdd, {0.0});
+        #else
+			pointwise_operation_broadcast_reduce({a,b},{c},{},"y0=x0+x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
+		#endif
         TEST(equal(c,ref,q));
     }
     {
@@ -439,7 +444,7 @@ void test_reduce(const tart::device_ptr& q)
         auto ref=make_tensor<Type>(q,dp::Shape(1,2),{7,9});
         dp::Tensor c(q,dp::Shape(1,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        pointwise_operation_broadcast_reduce({a,b},{c},{7},"y0=x0+w0*x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
+		pointwise_operation_broadcast_reduce({a,b},{c},{7},"y0=x0+w0*x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
         TEST(equal(c,ref,q));
     }
     {

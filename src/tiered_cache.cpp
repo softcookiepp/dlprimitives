@@ -294,6 +294,9 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 		// Disable, as it currently does not compile
 		// mGemm2Program = gpu::Cache::instance().get_program(device, "gemm2", "A_TYPE", dtypes[0].glsl(), "B_TYPE", dtypes[1].glsl(), "D_TYPE", dtypes[2].glsl());
 		
+		mPointwiseReduceBinaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-reduce-binary-unary",
+			"typeof_x0", dtypes[0].glsl(), "typeof_x1", dtypes[1].glsl(), "typeof_y0", dtypes[2].glsl());
+		
 		mPointwiseBinaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-binary-unary",
 			"typeof_x0", dtypes[0].glsl(),
 			"typeof_x1", dtypes[1].glsl(),
