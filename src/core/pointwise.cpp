@@ -348,7 +348,7 @@ namespace core {
 			numReduceElems *= reduceShape[i];
 		}
 		
-		if (false)
+		if (true)
 		{
 			// Only naive reduction is implemented so far, where each element of y is calculated in a giant loop
 			tart::kernel_ptr k = nullptr;
