@@ -128,6 +128,7 @@ void pointwise_reduce_naive_impl()
 	[[unroll]]
 	for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1) reduceShape.s[j] = xShape.s[reduceDims.s[j]];
 	
+	[[unroll]]
 	for (uint wptElem = 0; wptElem < WPT; wptElem += 1)
 	{
 		uint i = gl_LocalInvocationID.x*WPT + wptElem;
@@ -174,9 +175,6 @@ void pointwise_reduce_naive_impl()
 	yShmem[gl_LocalInvocationID.x] = yReduce;
 	barrier();
 	
-	
-	
-	
 	// now why is iterating over this so difficult?
 	#if 1
 		if (gl_LocalInvocationID.x > 0) return;
@@ -198,7 +196,7 @@ void pointwise_reduce_naive_impl()
 		// store y values
 		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
 		y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
-	#elif 1
+	#else
 		if (m > 0) return;
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
@@ -215,29 +213,6 @@ void pointwise_reduce_naive_impl()
 				barrier();
 			}
 		}
-		
-		// store y values
-		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
-		y0_data[y0_idx] = typeof_y0(yShmem[0].data[0]);
-	#else
-		uint limit = localSizeX >> 1;
-		if (localSizeX % 2 > 0) limit += 1;
-		for (uint i = limit; i > 0; i = i >> 1)
-		{
-			for (uint j = 0; j < Y_ARITY; j += 1)
-			{
-				if (gl_LocalInvocationID.x < i)
-				{
-					X_IN reduceArgs;
-					reduceArgs.data[0] = yShmem[gl_LocalInvocationID.x].data[j];
-					reduceArgs.data[1] = yShmem[gl_LocalInvocationID.x + i].data[j];
-					yShmem[gl_LocalInvocationID.x].data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
-				}
-				barrier();
-			}
-		}
-		
-		if (gl_LocalInvocationID.x > 0) return;
 		
 		// store y values
 		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);

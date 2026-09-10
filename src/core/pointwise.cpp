@@ -460,8 +460,8 @@ namespace core {
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
 			
-			uint32_t wgxSize = numReduceElems >> 1;
-			if (wgxSize == 0 || numReduceElems % 2 > 0) wgxSize += 1;
+			uint32_t wgxSize = numReduceElems >> 2;
+			if (wgxSize == 0 || numReduceElems % 4 > 0) wgxSize += 1;
 			
 			std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());
@@ -473,7 +473,7 @@ namespace core {
 				static_cast<uint32_t>(xShape.size()),
 				static_cast<uint32_t>(reduceDimShape.size()),
 				numReduceElems,
-				2
+				4
 			};
 			k->enqueue(global, spec);
 		}
