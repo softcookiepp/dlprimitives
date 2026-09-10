@@ -436,7 +436,7 @@ namespace core {
 			uint32_t workPerThread = 4;
 			uint32_t r = numReduceElems % workPerThread;
 			uint32_t wgxSize = numReduceElems / workPerThread;
-			if (r > 0) wgxSize += 1;
+			if (r > 0 || wgxSize == 0) wgxSize += 1;
 			
 			std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());
