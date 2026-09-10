@@ -433,7 +433,7 @@ namespace core {
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
 			
-			uint32_t workPerThread = 4;
+			uint32_t workPerThread = 1;
 			uint32_t r = numReduceElems % workPerThread;
 			uint32_t wgxSize = numReduceElems / workPerThread;
 			if (r > 0 || wgxSize == 0) wgxSize += 1;
