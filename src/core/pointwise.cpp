@@ -348,7 +348,7 @@ namespace core {
 			numReduceElems *= reduceShape[i];
 		}
 		
-		if (true)
+		if (false)
 		{
 			// Only naive reduction is implemented so far, where each element of y is calculated in a giant loop
 			tart::kernel_ptr k = nullptr;
@@ -407,7 +407,7 @@ namespace core {
 			tart::kernel_ptr k = nullptr;
 			if (xs.size() == 1 && ys.size() == 1)
 			{
-				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_naive_unary_unary(device, xs[0].dtype(), ys[0].dtype());
+				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_unary(device, xs[0].dtype(), ys[0].dtype());
 				k = prg->getKernel("exec");
 			}
 			
@@ -433,7 +433,7 @@ namespace core {
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
 			
-			uint32_t workPerThread = 4;
+			uint32_t workPerThread = 2;
 			uint32_t r = numReduceElems % workPerThread;
 			uint32_t wgxSize = numReduceElems / workPerThread;
 			if (r > 0 || wgxSize == 0) wgxSize += 1;
