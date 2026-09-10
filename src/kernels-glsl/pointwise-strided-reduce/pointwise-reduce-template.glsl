@@ -103,7 +103,7 @@ layout(push_constant, std430) uniform push
 };
 
 // This should be equal to the amount of reduce elements
-shared Y_OUT yShmem[NUM_REDUCE_ELEMS];
+shared Y_OUT yShmem[localSizeX];
 
 void pointwise_reduce_naive_impl()
 {
@@ -192,7 +192,7 @@ void pointwise_reduce_naive_impl()
 			yReduce.data[i] = acctype(yReduceInit[i]);
 		
 		
-		for (uint i = 0; i < NUM_REDUCE_ELEMS; i += 1)
+		for (uint i = 0; i < localSizeX; i += 1)
 		{
 			// this again
 			[[unroll]]

@@ -348,7 +348,7 @@ namespace core {
 			numReduceElems *= reduceShape[i];
 		}
 		
-		if (true)
+		if (false)
 		{
 			// Only naive reduction is implemented so far, where each element of y is calculated in a giant loop
 			tart::kernel_ptr k = nullptr;
@@ -400,6 +400,58 @@ namespace core {
 				wgxSize
 			};
 			k->enqueue(glPair.first, spec);
+		}
+		else
+		{
+			// Only naive reduction is implemented so far, where each element of y is calculated in a giant loop
+			tart::kernel_ptr k = nullptr;
+			if (xs.size() == 1 && ys.size() == 1)
+			{
+				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_naive_unary_unary(device, xs[0].dtype(), ys[0].dtype());
+				k = prg->getKernel("exec");
+			}
+			
+			if (!k) throw std::runtime_error("suitable kernel not found");
+			
+			int p = 0;
+			for (size_t i = 0; i < xs.size(); i += 1)
+			{
+				k->setArg(p++, xs[i].device_buffer());
+				k->setArg(p++, xs[i].device_offset());
+				bind_shape(k, p, xs[i].stride());
+			}
+			for (size_t i = 0; i < ys.size(); i += 1)
+			{
+				k->setArg(p++, ys[i].device_buffer());
+				k->setArg(p++, ys[i].device_offset());
+				bind_shape(k, p, ys[i].stride());
+			}
+			bind_shape(k, p, xShape);
+			bind_shape(k, p, y0.shape());
+			bind_shape(k, p, reduceDimShape);
+			bind_shape(k, p, reduceShape);
+			k->setArg(p++, yInitValues);
+			k->setArg(p++, ws);
+			
+			uint32_t workPerThread = 4;
+			uint32_t r = numReduceElems % workPerThread;
+			uint32_t wgxSize = numReduceElems / workPerThread;
+			if (r > 0) wgxSize += 1;
+			
+			std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
+			auto glPair = calcStridedTensorInvocations(device, y0.shape());
+			std::vector<uint32_t> spec = {
+				wgxSize,
+				ws.size(),
+				static_cast<uint32_t>(calcOp),
+				static_cast<uint32_t>(reduceOp),
+				static_cast<uint32_t>(xShape.size()),
+				static_cast<uint32_t>(reduceDimShape.size()),
+				numReduceElems,
+				workPerThread,
+				wgxSize
+			};
+			k->enqueue(global, spec);
 		}
 	}
 
