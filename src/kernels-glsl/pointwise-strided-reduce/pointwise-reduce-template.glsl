@@ -186,17 +186,17 @@ void pointwise_reduce_naive_impl()
 	#else
 		for (uint i = localSizeX/2; i > 0; i = i >> 1)
 		{
-			if (gl_LocalInvocationID.x < i)
+			for (uint j = 0; j < Y_ARITY; j += 1)
 			{
-				for (uint j = 0; j < Y_ARITY; j += 1)
+				if (gl_LocalInvocationID.x < i)
 				{
 					X_IN reduceArgs;
 					reduceArgs.data[0] = yShmem[gl_LocalInvocationID.x].data[j];
 					reduceArgs.data[1] = yShmem[gl_LocalInvocationID.x + i].data[j];
 					yShmem[gl_LocalInvocationID.x].data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 				}
+				barrier();
 			}
-			barrier();
 		}
 		
 		if (gl_LocalInvocationID.x > 0) return;
