@@ -77,6 +77,8 @@ tart::program_ptr Cache::build_program(const tart::device_ptr& device, std::stri
     if(meta.short_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require\n";
     if(meta.char_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require\n";
     
+    if (meta.subgroupAdd) prepend << "#define USE_SUBGROUP_ARITHMETIC 1\n";
+    
     if (prepend.str().size() > 0) combine = true;
     
 	std::map<std::string, tart::shader_module_ptr> entryPointModules;

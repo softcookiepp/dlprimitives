@@ -471,7 +471,8 @@ namespace core {
 				wgxSize = numReduceElems / wpt;
 				if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
 			}
-			std::cout << "	WPT: " << wpt << std::endl;
+			std::cout << "	WPT: " << wpt
+				<< "\n	WORKGROUP SIZE: " << wgxSize << std::endl;
 			
 			std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());

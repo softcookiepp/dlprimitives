@@ -14,6 +14,16 @@
 #define DBL_MAX stype(1.7976931348623158e+308)
 #define DBL_MIN stype(2.2250738585072014e-308)
 
+#ifndef USE_SUBGROUP_ARITHMETIC
+	#define USE_SUBGROUP_ARITHMETIC 0
+#endif
+#if USE_SUBGROUP_ARITHMETIC
+	// subgroup extensions go here
+	//#extension GL_KHR_shader_subgroup : require
+	#extension GL_KHR_shader_subgroup_basic : require
+	#extension GL_KHR_shader_subgroup_arithmetic : require
+#endif
+
 // whether or not to use float atomics.
 #ifndef ATOMIC_FLOAT16
 	#define ATOMIC_FLOAT16 0
