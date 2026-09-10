@@ -9,6 +9,7 @@ layout(constant_id = 3) const uint REDUCE_ROUTINE = 0;
 layout(constant_id = 4) const uint DIMS = DIMS_MAX;
 layout(constant_id = 5) const uint NUM_REDUCE_DIMS = DIMS_MAX;
 layout(constant_id = 6) const uint NUM_REDUCE_ELEMS = 1024;
+layout(constant_id = 7) const uint WPT = 2;
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
@@ -115,57 +116,70 @@ void pointwise_reduce_naive_impl()
 	Y_OUT yReduce;
 	[[unroll]]
 	for (uint i = 0; i < Y_ARITY; i += 1)
-		yReduce.data[i] = acctype(yReduceInit[0]);
-	
-	uint m = gl_LocalInvocationID.x;
+		yReduce.data[i] = acctype(yReduceInit[i]);
 	
 	// initialize shared memory
-	yShmem[m] = yReduce;
-
+	yShmem[gl_LocalInvocationID.x] = yReduce;
 	
-	if (m >= NUM_REDUCE_ELEMS) return;
+	if (gl_LocalInvocationID.x*WPT > NUM_REDUCE_ELEMS) return;
 	
-	Y_OUT yTmp[1];
-	for (uint j = 0; j < Y_ARITY; j += 1)
-		yReduce.data[j] = yReduceInit[j];
-	
-	uint i = m;
-	// Ensure we don't accidentally go over the number of reduce elems.
-	// For the naive implementation where the reduction is just an iteration, this doesn't matter.
-	// But it will for later implementations.
-	if (i >= NUM_REDUCE_ELEMS) return;
-	
-	// adjust position to point to the specific element being iterated on
 	// Also get reduceShape, to avoid having too many push constants
 	Shape reduceShape;
 	[[unroll]]
 	for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1) reduceShape.s[j] = xShape.s[reduceDims.s[j]];
-	Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
-	[[unroll]]
-	for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1) xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
 	
-	if ( !posValid(xShape, xPos, DIMS) ) return;
-	// load x values
-	X_IN xArgs;
-	uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
-	xArgs.data[0] = acctype(x0_data[x0_idx]);
-	#if X_ARITY > 1
-		uint x1_idx = x1_offset + getStridedIndexFromPos(xPos, x1_strides, DIMS);
-		xArgs.data[1] = acctype(x1_data[x1_idx]);
-	#endif
-	#if X_ARITY > 2
-		uint x2_idx = x2_offset + getStridedIndexFromPos(xPos, x2_strides, DIMS);
-		xArgs.data[2] = acctype(x2_data[x2_idx]);
-	#endif
-	
-	// compute value, store in shared memory
-	yShmem[m] = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+	for (uint wptElem = 0; wptElem < WPT; wptElem += 1)
+	{
+		uint i = gl_LocalInvocationID.x*WPT + wptElem;
+		
+		if (i >= NUM_REDUCE_ELEMS) continue;
+		
+
+		// Ensure we don't accidentally go over the number of reduce elems.
+		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
+		// But it will for later implementations.
+		if (i >= NUM_REDUCE_ELEMS) return;
+		
+		// adjust position to point to the specific element being iterated on
+		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
+		[[unroll]]
+		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1) xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
+		
+		if ( !posValid(xShape, xPos, DIMS) ) continue;
+		// load x values
+		X_IN xArgs;
+		uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
+		xArgs.data[0] = acctype(x0_data[x0_idx]);
+		#if X_ARITY > 1
+			uint x1_idx = x1_offset + getStridedIndexFromPos(xPos, x1_strides, DIMS);
+			xArgs.data[1] = acctype(x1_data[x1_idx]);
+		#endif
+		#if X_ARITY > 2
+			uint x2_idx = x2_offset + getStridedIndexFromPos(xPos, x2_strides, DIMS);
+			xArgs.data[2] = acctype(x2_data[x2_idx]);
+		#endif
+		
+		// compute value, store in shared memory
+		Y_OUT yElem = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+		
+		[[unroll]]
+		for (uint yArityIdx = 0; yArityIdx < Y_ARITY; yArityIdx += 1)
+		{
+			X_IN reduceInput;
+			reduceInput.data[0] = yElem.data[yArityIdx];
+			reduceInput.data[1] = yReduce.data[yArityIdx];
+			yReduce.data[yArityIdx] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceInput, wArgs, REDUCE_ROUTINE).data[0];
+		}
+	}
+	yShmem[gl_LocalInvocationID.x] = yReduce;
 	barrier();
+	
+	
 	
 	
 	// now why is iterating over this so difficult?
 	#if 1
-		if (m > 0) return;
+		if (gl_LocalInvocationID.x > 0) return;
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
 			yReduce.data[i] = acctype(yReduceInit[0]);
@@ -184,8 +198,31 @@ void pointwise_reduce_naive_impl()
 		// store y values
 		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
 		y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
+	#elif 1
+		if (m > 0) return;
+		[[unroll]]
+		for (uint i = 0; i < Y_ARITY; i += 1)
+			yReduce.data[i] = acctype(yReduceInit[0]);
+		
+		for (uint i = 1; i < localSizeX >> 1; i += 1)
+		{
+			for (uint j = 0; j < Y_ARITY; j += 1)
+			{
+				X_IN reduceArgs;
+				reduceArgs.data[0] = yShmem[0].data[j];
+				reduceArgs.data[1] = yShmem[i].data[j];
+				yShmem[0].data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+				barrier();
+			}
+		}
+		
+		// store y values
+		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
+		y0_data[y0_idx] = typeof_y0(yShmem[0].data[0]);
 	#else
-		for (uint i = localSizeX/2; i > 0; i = i >> 1)
+		uint limit = localSizeX >> 1;
+		if (localSizeX % 2 > 0) limit += 1;
+		for (uint i = limit; i > 0; i = i >> 1)
 		{
 			for (uint j = 0; j < Y_ARITY; j += 1)
 			{

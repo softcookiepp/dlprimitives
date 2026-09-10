@@ -293,6 +293,18 @@ namespace core {
 		return dim;
 	}
 	
+	// this one takes properly-broadcasted x an y shapes, and returns the correct axis to reduce across
+	std::vector<int> getReduceDims(dlprim::Shape& x, dlprim::Shape& y)
+    {
+		std::vector<int> reduceDims;
+		for (size_t d = 0; d < x.size(); d += 1)
+		{
+			if (x[d] != y[d] && y[d] == 1)
+				reduceDims.push_back(static_cast<int>(d));
+		}
+		return reduceDims;
+	}
+	
 	void pointwiseOpBroadcastReduceStrided(std::vector<Tensor> xs, std::vector<Tensor> ys, std::vector<float> ws,
 		std::vector<int> reduceDims,
 		PointwiseOp calcOp, PointwiseOp reduceOp, std::vector<float> yInitValues)
@@ -317,13 +329,22 @@ namespace core {
 			xs[i] = broadcasted[i];
 			DLPRIM_CHECK(xs[i].shape() == xShape);
 		}
-		// correct reduce dims to account for negatives and empty vectors
-		reduceDims = getReduceDims(xShape, reduceDims);
 		
 		// now broadcast ys
 		for (size_t i = 0; i < ys.size(); i += 1)
 		{
 			broadcastTensors(xs[0], ys[i], true);
+		}
+		
+		Tensor y0 = ys[0];
+		Shape yShape = y0.shape();
+		if (reduceDims.size() == 0)
+			reduceDims = getReduceDims(xShape, yShape);
+		else 
+			reduceDims = getReduceDims(xShape, reduceDims);
+		for (size_t i = 0; i < ys.size(); i += 1)
+		{
+			DLPRIM_CHECK(y0.shape() == ys[i].shape());
 			for (size_t j = 0; j < reduceDims.size(); j += 1)
 			{
 				if (ys[i].shape()[reduceDims[j]] != 1)
@@ -340,17 +361,11 @@ namespace core {
 			}
 		}
 		
-		// check to ensure all y tensors are same dimensions
-		Tensor y0 = ys[0];
-		for (size_t i = 0; i < ys.size(); i += 1)
-			DLPRIM_CHECK(y0.shape() == ys[i].shape());
-		
-		
 		// convert it to shape so that it can be bound
 		Shape reduceDimShape = Shape::from_range(reduceDims.begin(), reduceDims.end());
 		Shape reduceShape = reduceDimShape;
 		uint32_t numReduceElems = 1;
-		for (size_t i = 0; i < reduceShape.size(); i += 1)
+		for (size_t i = 0; i < reduceDimShape.size(); i += 1)
 		{
 			reduceShape[i] = xShape[reduceDimShape[i]];
 			numReduceElems *= reduceShape[i];
@@ -382,7 +397,7 @@ namespace core {
 				bind_shape(k, p, ys[i].stride());
 			}
 			bind_shape(k, p, xShape);
-			bind_shape(k, p, y0.shape());
+			bind_shape(k, p, yShape);
 			bind_shape(k, p, reduceDimShape);
 			bind_shape(k, p, reduceShape);
 			k->setArg(p++, yInitValues);
@@ -393,7 +408,7 @@ namespace core {
 			uint32_t wgxSize = numReduceElems / workPerThread;
 			if (r > 0) wgxSize += 1;
 			
-			auto glPair = calcStridedTensorInvocations(device, y0.shape());
+			auto glPair = calcStridedTensorInvocations(device, yShape);
 			std::vector<uint32_t> spec = {
 				glPair.second[0],
 				glPair.second[1],
@@ -440,12 +455,13 @@ namespace core {
 				bind_shape(k, p, ys[i].stride());
 			}
 			bind_shape(k, p, xShape);
-			bind_shape(k, p, y0.shape());
+			bind_shape(k, p, yShape);
 			bind_shape(k, p, reduceDimShape);
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
 			
-			uint32_t wgxSize = numReduceElems;
+			uint32_t wgxSize = numReduceElems >> 1;
+			if (wgxSize == 0 || numReduceElems % 2 > 0) wgxSize += 1;
 			
 			std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());
@@ -456,7 +472,8 @@ namespace core {
 				static_cast<uint32_t>(reduceOp),
 				static_cast<uint32_t>(xShape.size()),
 				static_cast<uint32_t>(reduceDimShape.size()),
-				numReduceElems
+				numReduceElems,
+				2
 			};
 			k->enqueue(global, spec);
 		}
