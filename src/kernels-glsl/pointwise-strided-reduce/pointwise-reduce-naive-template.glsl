@@ -159,11 +159,17 @@ void pointwise_reduce_naive_impl()
 			yTmp[l] = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
 			
 			// TODO: it is possible that different y outputs will require different pointwise operators. Implement this.
+			
+		}
+		
+		[[unroll]]
+		for (uint wptIdx = 0; wptIdx < WORK_PER_THREAD; wptIdx += 1)
+		{
 			[[unroll]]
 			for (uint j = 0; j < Y_ARITY; j += 1)
 			{
 				X_IN reduceArgs;
-				reduceArgs.data[0] = yTmp[l].data[j];
+				reduceArgs.data[0] = yTmp[wptIdx].data[j];
 				reduceArgs.data[1] = yReduce.data[j];
 				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 			}
