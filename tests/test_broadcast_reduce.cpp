@@ -485,7 +485,7 @@ void test_reduce(const tart::device_ptr& q)
             auto ref=make_tensor<Type>(q,cs,cv);
             dp::Tensor c(q,cs,a.dtype());
             std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-            #if 0
+            #if 0 // the dimension alignment rules act weird beyond a certain point
 				dlprim::core::pointwiseOpBroadcastReduceStrided({a, b}, {c}, {}, {}, dlprim::core::PointwiseOp::eAdd,
 				dlprim::core::PointwiseOp::eAdd, {0.0});
             #else
