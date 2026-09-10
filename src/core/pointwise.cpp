@@ -448,8 +448,7 @@ namespace core {
 				static_cast<uint32_t>(xShape.size()),
 				static_cast<uint32_t>(reduceDimShape.size()),
 				numReduceElems,
-				workPerThread,
-				wgxSize
+				workPerThread
 			};
 			k->enqueue(global, spec);
 		}
