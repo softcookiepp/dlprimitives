@@ -102,8 +102,8 @@ layout(push_constant, std430) uniform push
 	W_ARGS wArgs;
 };
 
-// This should be equal to the amount of 
-shared Y_OUT yShmem[localSizeX];
+// This should be equal to the amount of reduce elements
+shared Y_OUT yShmem[NUM_REDUCE_ELEMS];
 
 void pointwise_reduce_naive_impl()
 {
@@ -163,7 +163,7 @@ void pointwise_reduce_naive_impl()
 	Y_OUT yReduce;
 	[[unroll]]
 	for (uint i = 0; i < Y_ARITY; i += 1)
-		yReduce.data[i] = acctype(yReduceInit[0]);
+		yReduce.data[i] = acctype(yReduceInit[i]);
 	
 	[[unroll]]
 	for (uint wptIdx = 0; wptIdx < WORK_PER_THREAD; wptIdx += 1)
@@ -179,22 +179,46 @@ void pointwise_reduce_naive_impl()
 	}
 	
 	// Now to put them all in shared memory and reduce across it.
+	yShmem[gl_LocalInvocationID.x] = yReduce;
+	barrier();
 	
-	
-	for (uint s = localSizeX/2; s > 0; s = s >> 1)
-	{
-		if (gl_LocalInvocationID.x < s)
+	#if 1
+		// For now, start with what we know will work; that is, iterating over the entire thing
+		if (gl_LocalInvocationID.x > 0) return;
+		
+		// re-initialize yReduce
+		[[unroll]]
+		for (uint i = 0; i < Y_ARITY; i += 1)
+			yReduce.data[i] = acctype(yReduceInit[i]);
+		
+		
+		for (uint i = 0; i < NUM_REDUCE_ELEMS; i += 1)
 		{
-			uint lidx0 = gl_LocalInvocationID.x;
-			uint lidx1 = gl_LocalInvocationID.x + s;
-			Y_OUT y0 = yShmem[lidx0];
-			Y_OUT y1 = yShmem[lidx1];
-
-			//yShmem[gl_LocalInvocationID.x] = // REDUCE HERE
+			// this again
+			[[unroll]]
+			for (uint j = 0; j < Y_ARITY; j += 1)
+			{
+				X_IN reduceArgs;
+				reduceArgs.data[0] = yShmem[i].data[j];
+				reduceArgs.data[1] = yReduce.data[j];
+				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+			}
 		}
-		barrier();
-	}
-	
+	#else
+		for (uint s = localSizeX/2; s > 0; s = s >> 1)
+		{
+			if (gl_LocalInvocationID.x < s)
+			{
+				uint lidx0 = gl_LocalInvocationID.x;
+				uint lidx1 = gl_LocalInvocationID.x + s;
+				Y_OUT y0 = yShmem[lidx0];
+				Y_OUT y1 = yShmem[lidx1];
+
+				//yShmem[gl_LocalInvocationID.x] = // REDUCE HERE
+			}
+			barrier();
+		}
+	#endif
 	// store y values
 	uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
 	y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
