@@ -197,11 +197,6 @@ void pointwise_reduce_naive_impl()
 		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
 		y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
 	#else
-		
-		[[unroll]]
-		for (uint i = 0; i < Y_ARITY; i += 1)
-			yReduce.data[i] = acctype(yReduceInit[0]);
-		
 		uint limit = localSizeX >> 1;
 		if (limit == 0 || localSizeX % 2 > 0) limit += 1;
 		
