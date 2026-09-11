@@ -19,7 +19,6 @@
 #endif
 #if USE_SUBGROUP_ARITHMETIC
 	// subgroup extensions go here
-	//#extension GL_KHR_shader_subgroup : require
 	#extension GL_KHR_shader_subgroup_basic : require
 	#extension GL_KHR_shader_subgroup_arithmetic : require
 #endif

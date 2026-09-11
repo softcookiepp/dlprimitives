@@ -26,6 +26,37 @@ struct W_ARGS
 	float w[NUM_WEIGHTS_MAX];
 };
 
+#if USE_SUBGROUP_ARITHMETIC
+	// Method for reduce operations on hardware that supports subgroup arithmetic.
+	// Input arity is always going to be 1, but methods are technically binary since arguments come from other subgroup invocations
+	acctype pointwise_subgroup_reduce(acctype x0, W_ARGS wargs, uint pointwiseRoutine)
+	{
+		precise acctype y0;
+		[[flatten]]
+		if (pointwiseRoutine == ROUTINE_ADD)
+			y0 = subgroupAdd(x0);
+		else if (pointwiseRoutine == ROUTINE_MUL)
+			y0 = subgroupMul(x0);
+		else if (pointwiseRoutine == ROUTINE_MIN)
+			y0 = subgroupMin(x0);
+		else if (pointwiseRoutine == ROUTINE_MAX)
+			y0 = subgroupMax(x0);
+		else if (pointwiseRoutine == ROUTINE_BITWISE_AND)
+			// only works for ints :c
+			// TODO: figure out how to do better casting for this stuff.
+			// Casting from float to int to float again likely results in loss of precision, especially on intel iGPUs
+			y0 = acctype(subgroupAnd(iacctype(x0)));
+		else if (pointwiseRoutine == ROUTINE_BITWISE_OR)
+			y0 = acctype(subgroupOr(iacctype(x0)));
+		#if 0
+			// whatever this is. probably will not use it.
+			else if (pointwiseRoutine == ROUTINE_INCLUSIVE_ADD)
+				y0 = subgroupInclusiveAdd(x0);
+		#endif
+		return y0;
+	}
+#endif
+
 Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xargs, W_ARGS wargs, uint pointwiseRoutine)
 {
 	precise acctype x0 = xargs.data[0];
