@@ -120,7 +120,13 @@ void pointwise_reduce_naive_impl()
 		yReduce.data[i] = acctype(yReduceInit[i]);
 	
 	// initialize shared memory
-	yShmem[gl_LocalInvocationID.x] = yReduce;
+	#if USE_SUBGROUP_ARITHMETIC
+		if (gl_SubgroupInvocationID == 0)
+			yShmem[gl_SubgroupID] = yReduce;
+	#else
+		yShmem[gl_LocalInvocationID.x] = yReduce;
+	#endif
+	barrier();
 	
 	if (gl_LocalInvocationID.x*WPT > NUM_REDUCE_ELEMS) return;
 	
