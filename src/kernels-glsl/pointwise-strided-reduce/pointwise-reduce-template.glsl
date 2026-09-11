@@ -10,6 +10,7 @@ layout(constant_id = 4) const uint DIMS = DIMS_MAX;
 layout(constant_id = 5) const uint NUM_REDUCE_DIMS = DIMS_MAX;
 layout(constant_id = 6) const uint NUM_REDUCE_ELEMS = 1024;
 layout(constant_id = 7) const uint WPT = 2;
+layout(constant_id = 8) const uint SHMEM_SIZE = 1024;
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
@@ -102,7 +103,7 @@ layout(push_constant, std430) uniform push
 };
 
 // This should be equal to the amount of reduce elements
-shared Y_OUT yShmem[localSizeX];
+shared Y_OUT yShmem[SHMEM_SIZE];
 
 void pointwise_reduce_naive_impl()
 {
@@ -216,7 +217,7 @@ void pointwise_reduce_naive_impl()
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
 			yReduce.data[i] = acctype(yReduceInit[0]);
-		for (uint i = 0; i < localSizeX; i += 1)
+		for (uint i = 0; i < SHMEM_SIZE; i += 1)
 		{
 			for (uint j = 0; j < Y_ARITY; j += 1)
 			{
