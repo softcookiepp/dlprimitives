@@ -185,11 +185,11 @@ void pointwise_reduce_naive_impl()
 		if (gl_SubgroupInvocationID > 0) return;
 		// Store each subgroup-accumulated partial sum in local memory
 		yShmem[gl_SubgroupID] = yReduce;
-		
+		barrier();
 		
 		// And the final phase
 		if (gl_LocalInvocationID.x > 0) return;
-		barrier();
+		
 		// re-initialize yReduce yet again
 		for (uint i = 0; i < Y_ARITY; i += 1)
 			yReduce.data[i] = acctype(yReduceInit[0]);
