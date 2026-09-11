@@ -194,7 +194,7 @@ void pointwise_reduce_naive_impl()
 		for (uint i = 0; i < Y_ARITY; i += 1)
 			yReduce.data[i] = acctype(yReduceInit[0]);
 		// iterate over each subgroup-compute partial sum and add them together
-		for (uint i = 0; i < gl_NumSubgroups; i += 1)
+		for (uint i = 0; i < SHMEM_SIZE; i += 1)
 		{
 			for (uint j = 0; j < Y_ARITY; j += 1)
 			{
