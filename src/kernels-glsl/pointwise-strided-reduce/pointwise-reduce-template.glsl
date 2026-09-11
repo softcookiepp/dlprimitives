@@ -172,19 +172,32 @@ void pointwise_reduce_naive_impl()
 			yReduce.data[yArityIdx] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceInput, wArgs, REDUCE_ROUTINE).data[0];
 		}
 	}
-	yShmem[gl_LocalInvocationID.x] = yReduce;
-	barrier();
+	
 	
 	#if 0
 		// Reduce with subgroup arithmetic
+		[[unroll]]
+		for (uint j = 0; j < Y_ARITY; j += 1)
+		{
+			yReduce.data[j] = pointwise_subgroup_reduce(acctype yReduce.data[j], REDUCE_ROUTINE);
+		}
+		if (gl_SubgroupInvocationID > 0) return;
+		// Store each subgroup-accumulated partial sum in local memory
+		yShmem[gl_SubgroupID] = yReduce;
+		barrier();
+		if (gl_LocalInvocationID.x > 0) return;
+		// then finally, re-initialize yShmem and do the final reduction
 	#else
-		// No subgroup support, fall back to iterating over the entire local memory.
-		// If someone knows how to improve this, it would be very appreciated!
+		// No subgroup support, fall back to storing all partial sums in local memory and adding them.
+		// I was too stupid to figure out a better way to do this.
+		// If anyone else knows how, I would very much appreciate it!
+		
+		yShmem[gl_LocalInvocationID.x] = yReduce;
+		barrier();
 		if (gl_LocalInvocationID.x > 0) return;
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
 			yReduce.data[i] = acctype(yReduceInit[0]);
-		
 		for (uint i = 0; i < localSizeX; i += 1)
 		{
 			for (uint j = 0; j < Y_ARITY; j += 1)

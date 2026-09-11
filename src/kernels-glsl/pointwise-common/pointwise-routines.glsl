@@ -29,7 +29,7 @@ struct W_ARGS
 #if USE_SUBGROUP_ARITHMETIC
 	// Method for reduce operations on hardware that supports subgroup arithmetic.
 	// Input arity is always going to be 1, but methods are technically binary since arguments come from other subgroup invocations
-	acctype pointwise_subgroup_reduce(acctype x0, W_ARGS wargs, uint pointwiseRoutine)
+	acctype pointwise_subgroup_reduce(acctype x0, uint pointwiseRoutine)
 	{
 		precise acctype y0;
 		[[flatten]]
@@ -48,11 +48,6 @@ struct W_ARGS
 			y0 = acctype(subgroupAnd(iacctype(x0)));
 		else if (pointwiseRoutine == ROUTINE_BITWISE_OR)
 			y0 = acctype(subgroupOr(iacctype(x0)));
-		#if 0
-			// whatever this is. probably will not use it.
-			else if (pointwiseRoutine == ROUTINE_INCLUSIVE_ADD)
-				y0 = subgroupInclusiveAdd(x0);
-		#endif
 		return y0;
 	}
 #endif

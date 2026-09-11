@@ -467,7 +467,7 @@ namespace core {
 			uint32_t maxWgxSize = device->getMetadata().physicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
 			while (wgxSize > maxWgxSize)
 			{
-				wpt = (wpt << 1);
+				wpt += 1;
 				wgxSize = numReduceElems / wpt;
 				if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
 			}
