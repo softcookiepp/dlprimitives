@@ -471,12 +471,21 @@ namespace core {
 				wgxSize = numReduceElems / wpt;
 				if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
 			}
-			std::cout << "	WPT: " << wpt
-				<< "\n	WORKGROUP SIZE: " << wgxSize << std::endl;
-				
-			// Less local memory is required if subgroup arithmetic reduction is used/
-			// TODO: reduce it
+			
 			uint32_t localMemSize = wgxSize;
+			uint32_t subgroupSize;
+			if (device->getMetadata().subgroupAdd)
+			{
+				// Less local memory is required if subgroup arithmetic reduction is used
+				subgroupSize = device->getMetadata().subgroupSize;
+				localMemSize = localMemSize / subgroupSize;
+				if (localMemSize == 0 || localMemSize % subgroupSize > 0) localMemSize += 1;
+			}
+			
+			std::cout << "	WPT: " << wpt
+				<< "\n	WORKGROUP SIZE: " << wgxSize
+				<< "\n	SUBGROUP SIZE: " << subgroupSize
+				<< "\n	LOCAL MEM SIZE: " << localMemSize << std::endl;
 			
 			std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());
