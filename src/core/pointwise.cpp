@@ -477,7 +477,7 @@ namespace core {
 			if (device->getMetadata().subgroupAdd)
 			{
 				// Less local memory is required if subgroup arithmetic reduction is used
-				subgroupSize = device->getMetadata().subgroupSize;
+				subgroupSize = device->getMetadata().maxSubgroupSize;
 				localMemSize = localMemSize / subgroupSize;
 				if (localMemSize == 0 || localMemSize % subgroupSize > 0) localMemSize += 1;
 			}
