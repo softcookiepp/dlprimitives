@@ -473,19 +473,17 @@ namespace core {
 			}
 			
 			uint32_t localMemSize = wgxSize;
-			uint32_t subgroupSize;
-			if (device->getMetadata().subgroupAdd)
-			{
-				// Less local memory is required if subgroup arithmetic reduction is used
-				subgroupSize = device->getMetadata().maxSubgroupSize;
-				localMemSize = localMemSize / subgroupSize;
-				if (localMemSize == 0 || localMemSize % subgroupSize > 0) localMemSize += 1;
-			}
-			
-			std::cout << "	WPT: " << wpt
-				<< "\n	WORKGROUP SIZE: " << wgxSize
-				<< "\n	SUBGROUP SIZE: " << subgroupSize
-				<< "\n	LOCAL MEM SIZE: " << localMemSize << std::endl;
+			#if 0
+				// this is supposed to reduce the amount of local memory required, but for some reason its is causes the kernel to compute nan.
+				// Still need to figure out why.
+				if (device->getMetadata().subgroupAdd)
+				{
+					// Less local memory is required if subgroup arithmetic reduction is used
+					uint32_t subgroupSize = device->getMetadata().maxSubgroupSize;
+					localMemSize = localMemSize / subgroupSize;
+					if (localMemSize == 0 || localMemSize % subgroupSize > 0) localMemSize += 1;
+				}
+			#endif
 			
 			std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());
