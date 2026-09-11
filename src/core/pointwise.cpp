@@ -473,6 +473,10 @@ namespace core {
 			}
 			std::cout << "	WPT: " << wpt
 				<< "\n	WORKGROUP SIZE: " << wgxSize << std::endl;
+				
+			// Less local memory is required if subgroup arithmetic reduction is used/
+			// TODO: reduce it
+			uint32_t localMemSize = wgxSize;
 			
 			std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 			auto glPair = calcStridedTensorInvocations(device, y0.shape());

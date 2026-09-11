@@ -174,19 +174,37 @@ void pointwise_reduce_naive_impl()
 	}
 	
 	
-	#if 0
+	#if USE_SUBGROUP_ARITHMETIC
 		// Reduce with subgroup arithmetic
 		[[unroll]]
 		for (uint j = 0; j < Y_ARITY; j += 1)
 		{
-			yReduce.data[j] = pointwise_subgroup_reduce(acctype yReduce.data[j], REDUCE_ROUTINE);
+			yReduce.data[j] = pointwise_subgroup_reduce(yReduce.data[j], REDUCE_ROUTINE);
 		}
 		if (gl_SubgroupInvocationID > 0) return;
 		// Store each subgroup-accumulated partial sum in local memory
 		yShmem[gl_SubgroupID] = yReduce;
-		barrier();
+		
+		
+		// And the final phase
 		if (gl_LocalInvocationID.x > 0) return;
-		// then finally, re-initialize yShmem and do the final reduction
+		barrier();
+		// re-initialize yReduce yet again
+		for (uint i = 0; i < Y_ARITY; i += 1)
+			yReduce.data[i] = acctype(yReduceInit[0]);
+		// iterate over each subgroup-compute partial sum and add them together
+		for (uint i = 0; i < gl_NumSubgroups; i += 1)
+		{
+			for (uint j = 0; j < Y_ARITY; j += 1)
+			{
+				X_IN reduceArgs;
+				reduceArgs.data[0] = yReduce.data[j];
+				reduceArgs.data[1] = yShmem[i].data[j];
+				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+			}
+		}
+		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
+		y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
 	#else
 		// No subgroup support, fall back to storing all partial sums in local memory and adding them.
 		// I was too stupid to figure out a better way to do this.
