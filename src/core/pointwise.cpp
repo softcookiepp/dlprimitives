@@ -473,7 +473,7 @@ namespace core {
 			}
 			
 			uint32_t localMemSize = wgxSize;
-			#if 1
+			#if 0
 				// this is supposed to reduce the amount of local memory required, but for some reason its is causes the kernel to compute nan.
 				// Still need to figure out why.
 				if (device->getMetadata().subgroupAdd)
