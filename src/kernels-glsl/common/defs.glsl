@@ -179,6 +179,12 @@ dtype erf(dtype x)
 	return sign*y;
 }
 
+precise acctype log10(acctype x)
+{
+	precise acctype y = log(x)/log(acctype(10.0));
+	return y;
+}
+
 precise acctype clippedLog10(acctype x)
 {
 	// Adapted from https://docs.pytorch.org/docs/2.14/generated/torch.nn.BCELoss.html#torch.nn.BCELoss
