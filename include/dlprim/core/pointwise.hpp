@@ -90,7 +90,9 @@ namespace core {
 		eLogicalOr = 66,
 		eMax = 67,
 		eMin = 68,
-		eBceBwd = 69
+		eBceBwd = 69,
+		eBcdFwdWeightless = 70,
+		eBcdFwd = 71
 	};
     
     // Pointwise operation, but without code generation requirement.

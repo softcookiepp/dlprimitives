@@ -257,6 +257,13 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			y0 = max(x0, x1);
 		else if (pointwiseRoutine == ROUTINE_MIN)
 			y0 = min(x0, x1);
+		else if (pointwiseRoutine == ROUTINE_BCE_FWD_WEIGHTLESS)
+		{
+			// adapted from https://docs.pytorch.org/docs/2.14/generated/torch.nn.BCELoss.html#torch.nn.BCELoss
+			// output is pre-scaled when reduction is set to mean in order to maintain numerical stability
+			acctype scale = acctype(w[0]);
+			y0 = scale*(x1*clippedLog10(x0) + (A1 - x1)*clippedLog10(A1 - x0));
+		}
 	}
 	else if (xArity == 3 && yArity == 1)
 	{
@@ -280,6 +287,13 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			y0 = fma(x0, x1, x2);
 		else if (pointwiseRoutine == ROUTINE_BCE_BWD)
 			y0 = -(x1 - x0) / max(acctype(1e-12f), x0 - (x0*x0) ) * x2 * acctype(w[0]);
+		else if (pointwiseRoutine == ROUTINE_BCE_FWD)
+		{
+			// adapted from https://docs.pytorch.org/docs/2.14/generated/torch.nn.BCELoss.html#torch.nn.BCELoss
+			// output is pre-scaled when reduction is set to mean in order to maintain numerical stability
+			acctype scale = acctype(w[0]);
+			y0 = x2*scale*(x1*clippedLog10(x0) + (A1 - x1)*clippedLog10(A1 - x0));
+		}
 	}
 	else if (xArity == 1 && yArity == 2)
 	{
