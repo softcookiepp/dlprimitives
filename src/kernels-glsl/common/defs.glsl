@@ -185,12 +185,12 @@ precise acctype log10(acctype x)
 	return y;
 }
 
-precise acctype clippedLog10(acctype x)
+precise acctype clippedNaturalLog(acctype x)
 {
 	// Adapted from https://docs.pytorch.org/docs/2.14/generated/torch.nn.BCELoss.html#torch.nn.BCELoss
 	// ensure 0.0 is never passed to log10
 	x = max(x, acctype(1.0e-44));
-	precise acctype y = log10(x);
+	precise acctype y = log(x);
 	return y;
 }
 

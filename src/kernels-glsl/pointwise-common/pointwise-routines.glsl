@@ -262,7 +262,7 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			// adapted from https://docs.pytorch.org/docs/2.14/generated/torch.nn.BCELoss.html#torch.nn.BCELoss
 			// output is pre-scaled when reduction is set to mean in order to maintain numerical stability
 			acctype scale = acctype(w[0]);
-			y0 = scale*(x1*clippedLog10(x0) + (A1 - x1)*clippedLog10(A1 - x0));
+			y0 = scale*(x1*clippedNaturalLog(x0) + (A1 - x1)*clippedNaturalLog(A1 - x0));
 		}
 	}
 	else if (xArity == 3 && yArity == 1)
@@ -292,7 +292,7 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			// adapted from https://docs.pytorch.org/docs/2.14/generated/torch.nn.BCELoss.html#torch.nn.BCELoss
 			// output is pre-scaled when reduction is set to mean in order to maintain numerical stability
 			acctype scale = acctype(w[0]);
-			y0 = x2*scale*(x1*clippedLog10(x0) + (A1 - x1)*clippedLog10(A1 - x0));
+			y0 = x2*scale*(x1*clippedNaturalLog(x0) + (A1 - x1)*clippedNaturalLog(A1 - x0));
 		}
 	}
 	else if (xArity == 1 && yArity == 2)
