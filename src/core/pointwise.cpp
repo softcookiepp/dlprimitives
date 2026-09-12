@@ -371,137 +371,80 @@ namespace core {
 			numReduceElems *= reduceShape[i];
 		}
 		
-		if (false)
+		// Single-stage reduction.
+		tart::kernel_ptr k = nullptr;
+		if (xs.size() == 1 && ys.size() == 1)
 		{
-			// Only naive reduction is implemented so far, where each element of y is calculated in a giant loop
-			tart::kernel_ptr k = nullptr;
-			if (xs.size() == 1 && ys.size() == 1)
-			{
-				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_naive_unary_unary(device, xs[0].dtype(), ys[0].dtype());
-				k = prg->getKernel("exec");
-			}
-			
-			if (!k) throw std::runtime_error("suitable kernel not found");
-			
-			int p = 0;
-			for (size_t i = 0; i < xs.size(); i += 1)
-			{
-				k->setArg(p++, xs[i].device_buffer());
-				k->setArg(p++, xs[i].device_offset());
-				bind_shape(k, p, xs[i].stride());
-			}
-			for (size_t i = 0; i < ys.size(); i += 1)
-			{
-				k->setArg(p++, ys[i].device_buffer());
-				k->setArg(p++, ys[i].device_offset());
-				bind_shape(k, p, ys[i].stride());
-			}
-			bind_shape(k, p, xShape);
-			bind_shape(k, p, yShape);
-			bind_shape(k, p, reduceDimShape);
-			bind_shape(k, p, reduceShape);
-			k->setArg(p++, yInitValues);
-			k->setArg(p++, ws);
-			
-			uint32_t workPerThread = 4;
-			uint32_t r = numReduceElems % workPerThread;
-			uint32_t wgxSize = numReduceElems / workPerThread;
-			if (r > 0) wgxSize += 1;
-			
-			auto glPair = calcStridedTensorInvocations(device, yShape);
-			std::vector<uint32_t> spec = {
-				glPair.second[0],
-				glPair.second[1],
-				glPair.second[2],
-				ws.size(),
-				static_cast<uint32_t>(calcOp),
-				static_cast<uint32_t>(reduceOp),
-				static_cast<uint32_t>(xShape.size()),
-				static_cast<uint32_t>(reduceDimShape.size()),
-				numReduceElems,
-				workPerThread,
-				wgxSize
-			};
-			k->enqueue(glPair.first, spec);
+			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_unary(device, xs[0].dtype(), ys[0].dtype());
+			k = prg->getKernel("exec");
 		}
-		else
+		else if(xs.size() == 2 && ys.size() == 1)
 		{
-			// Only naive reduction is implemented so far, where each element of y is calculated in a giant loop
-			tart::kernel_ptr k = nullptr;
-			if (xs.size() == 1 && ys.size() == 1)
-			{
-				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_unary(device, xs[0].dtype(), ys[0].dtype());
-				k = prg->getKernel("exec");
-			}
-			else if(xs.size() == 2 && ys.size() == 1)
-			{
-				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_binary_unary(device, xs[0].dtype(), xs[1].dtype(), ys[0].dtype());
-				k = prg->getKernel("exec");
-			}
-			
-			if (!k) throw std::runtime_error("suitable kernel not found");
-			
-			int p = 0;
-			for (size_t i = 0; i < xs.size(); i += 1)
-			{
-				k->setArg(p++, xs[i].device_buffer());
-				k->setArg(p++, xs[i].device_offset());
-				bind_shape(k, p, xs[i].stride());
-			}
-			for (size_t i = 0; i < ys.size(); i += 1)
-			{
-				k->setArg(p++, ys[i].device_buffer());
-				k->setArg(p++, ys[i].device_offset());
-				bind_shape(k, p, ys[i].stride());
-			}
-			bind_shape(k, p, xShape);
-			bind_shape(k, p, yShape);
-			bind_shape(k, p, reduceDimShape);
-			k->setArg(p++, yInitValues);
-			k->setArg(p++, ws);
-			
-			
-			// calculate local size and work per thread, based on the max amount of local invocations along the X axis for this device
-			uint32_t wpt = 1;
-			uint32_t wgxSize = numReduceElems;
-			uint32_t maxWgxSize = device->getMetadata().physicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
-			while (wgxSize > maxWgxSize)
-			{
-				wpt += 1;
-				wgxSize = numReduceElems / wpt;
-				if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
-			}
-			// need to ensure this is invoked at all
+			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_binary_unary(device, xs[0].dtype(), xs[1].dtype(), ys[0].dtype());
+			k = prg->getKernel("exec");
+		}
+		if (!k) throw std::runtime_error("suitable kernel not found");
+		
+		int p = 0;
+		for (size_t i = 0; i < xs.size(); i += 1)
+		{
+			k->setArg(p++, xs[i].device_buffer());
+			k->setArg(p++, xs[i].device_offset());
+			bind_shape(k, p, xs[i].stride());
+		}
+		for (size_t i = 0; i < ys.size(); i += 1)
+		{
+			k->setArg(p++, ys[i].device_buffer());
+			k->setArg(p++, ys[i].device_offset());
+			bind_shape(k, p, ys[i].stride());
+		}
+		bind_shape(k, p, xShape);
+		bind_shape(k, p, yShape);
+		bind_shape(k, p, reduceDimShape);
+		k->setArg(p++, yInitValues);
+		k->setArg(p++, ws);
+		
+		
+		// calculate local size and work per thread, based on the max amount of local invocations along the X axis for this device
+		uint32_t wpt = 1;
+		uint32_t wgxSize = numReduceElems;
+		uint32_t maxWgxSize = device->getMetadata().physicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
+		while (wgxSize > maxWgxSize)
+		{
+			wpt += 1;
+			wgxSize = numReduceElems / wpt;
 			if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
-			
-			uint32_t localMemSize = wgxSize;
-			#if 0
-				// this is supposed to reduce the amount of local memory required, but for some reason its is causes the kernel to compute nan.
-				// Still need to figure out why.
-				if (device->getMetadata().subgroupAdd)
-				{
-					// Less local memory is required if subgroup arithmetic reduction is used
-					uint32_t subgroupSize = device->getMetadata().maxSubgroupSize;
-					localMemSize = localMemSize / subgroupSize;
-					if (localMemSize == 0 || localMemSize % subgroupSize > 0) localMemSize += 1;
-				}
-			#endif
-			
-			std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
-			auto glPair = calcStridedTensorInvocations(device, y0.shape());
-			std::vector<uint32_t> spec = {
-				wgxSize,
-				ws.size(),
-				static_cast<uint32_t>(calcOp),
-				static_cast<uint32_t>(reduceOp),
-				static_cast<uint32_t>(xShape.size()),
-				static_cast<uint32_t>(reduceDimShape.size()),
-				numReduceElems,
-				wpt,
-				localMemSize
-			};
-			k->enqueue(global, spec);
 		}
+		// need to ensure this is invoked at all
+		if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
+		
+		uint32_t localMemSize = wgxSize;
+		#if 0
+			// this is supposed to reduce the amount of local memory required, but for some reason its is causes the kernel to compute nan.
+			// Still need to figure out why.
+			if (device->getMetadata().subgroupAdd)
+			{
+				// Less local memory is required if subgroup arithmetic reduction is used
+				uint32_t subgroupSize = device->getMetadata().maxSubgroupSize;
+				localMemSize = localMemSize / subgroupSize;
+				if (localMemSize == 0 || localMemSize % subgroupSize > 0) localMemSize += 1;
+			}
+		#endif
+		
+		std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
+		auto glPair = calcStridedTensorInvocations(device, y0.shape());
+		std::vector<uint32_t> spec = {
+			wgxSize,
+			ws.size(),
+			static_cast<uint32_t>(calcOp),
+			static_cast<uint32_t>(reduceOp),
+			static_cast<uint32_t>(xShape.size()),
+			static_cast<uint32_t>(reduceDimShape.size()),
+			numReduceElems,
+			wpt,
+			localMemSize
+		};
+		k->enqueue(global, spec);
 	}
 
     ///
