@@ -471,6 +471,8 @@ namespace core {
 				wgxSize = numReduceElems / wpt;
 				if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
 			}
+			// need to ensure this is invoked at all
+			if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
 			
 			uint32_t localMemSize = wgxSize;
 			#if 0
