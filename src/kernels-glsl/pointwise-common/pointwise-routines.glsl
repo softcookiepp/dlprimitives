@@ -264,6 +264,12 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			acctype scale = acctype(w[0]);
 			y0 = acctype(-1.0)*scale*(x1*clippedNaturalLog(x0) + (A1 - x1)*clippedNaturalLog(A1 - x0));
 		}
+		else if (pointwiseRoutine == ROUTINE_MSE)
+		{
+			// scale if using mean reduction (the most likely case)
+			y0 = x0 - x1;
+			y0 = y0*y0*acctype(w[0]);
+		}
 	}
 	else if (xArity == 3 && yArity == 1)
 	{

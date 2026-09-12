@@ -92,7 +92,8 @@ namespace core {
 		eMin = 68,
 		eBceBwd = 69,
 		eBcdFwdWeightless = 70,
-		eBcdFwd = 71
+		eBcdFwd = 71,
+		eMse = 72
 	};
     
     // Pointwise operation, but without code generation requirement.
