@@ -243,7 +243,7 @@ void pointwise_reduce_naive_impl()
 		// re-initialize yReduce yet again
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
-			yReduce.data[i] = acctype(yReduceInit[0]);
+			yReduce.data[i] = acctype(yReduceInit[i]);
 		// iterate over each subgroup-compute partial sum and add them together
 		[[unroll]]
 		for (uint i = 0; i < gl_NumSubgroups; i += 1)
@@ -267,7 +267,7 @@ void pointwise_reduce_naive_impl()
 		if (gl_LocalInvocationID.x > 0) return;
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
-			yReduce.data[i] = acctype(yReduceInit[0]);
+			yReduce.data[i] = acctype(yReduceInit[i]);
 		for (uint i = 0; i < SHMEM_SIZE; i += 1)
 		{
 			[[unroll]]
