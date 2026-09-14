@@ -128,8 +128,8 @@ void pointwise_reduce_naive_impl()
 	// In this kernel, yShape is the one
 	Shape yShape;
 	[[unroll]]
-	for (size_t i = 0; i < NUM_REDUCE_DIMS; i += 1)
-		yShape.s[reduceDims[i]] = 1;
+	for (uint i = 0; i < NUM_REDUCE_DIMS; i += 1)
+		yShape.s[reduceDims.s[i]] = xShape.s[i];
 		
 	Shape yPos = getPosFromTriIndex(gl_WorkGroupID, yShape, DIMS);
 	if (!posValid(yShape, yPos, DIMS)) return;
