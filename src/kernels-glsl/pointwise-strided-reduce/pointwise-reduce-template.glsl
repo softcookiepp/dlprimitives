@@ -223,7 +223,7 @@ void pointwise_reduce_naive_impl()
 		for (uint j = 0; j < Y_ARITY; j += 1)
 		{
 			#if 1
-				for (uint i = gl_SubgroupSize/2; i > 0; i = i >> 1)
+				for (uint i = gl_SubgroupSize/2; i > 0; i = i/2)
 				{
 					X_IN inp;
 					inp.data[0] = subgroupShuffleDown(yReduce.data[j], i);
