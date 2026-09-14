@@ -222,7 +222,27 @@ void pointwise_reduce_naive_impl()
 		[[unroll]]
 		for (uint j = 0; j < Y_ARITY; j += 1)
 		{
-			yReduce.data[j] = pointwise_subgroup_reduce(yReduce.data[j], reduceRoutines[j]);
+			#if 0
+				// Reduction via shuffling is supposedly less-efficient than subgroup arithmetic intrinsics.
+				// But it will be useful later, for operations that lack an arithmetic intrinsic
+				precise acctype ySubgroupReduce = yReduce.data[j];
+				if (gl_SubgroupInvocationID == 0)
+				{
+					for (uint i = 1; i < gl_SubgroupSize; i += 1)
+					{
+						
+						X_IN inp;
+						inp.data[1] = yReduce.data[j];
+						subgroupBarrier();
+						subgroupMemoryBarrier();
+						inp.data[0] = subgroupShuffleDown(ySubgroupReduce, i);
+						if ((gl_LocalInvocationID.x + i)*WPT < NUM_REDUCE_ELEMS)
+							yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, inp, wArgs, reduceRoutines[j]).data[0];
+					}
+				}
+			#else
+				yReduce.data[j] = pointwise_subgroup_reduce(yReduce.data[j], reduceRoutines[j]);
+			#endif
 		}
 		subgroupBarrier();
 		if (gl_SubgroupInvocationID > 0) return;
