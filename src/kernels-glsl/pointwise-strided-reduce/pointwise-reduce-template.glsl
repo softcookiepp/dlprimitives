@@ -12,7 +12,7 @@ layout(constant_id = 6) const uint SHMEM_SIZE = 1024;
 layout(constant_id = 7) const uint POINTWISE_ROUTINE = 0;
 layout(constant_id = 8) const uint Y0_REDUCE_ROUTINE = 0;
 #if Y_ARITY > 1
-	layout(constant_id = 8) const uint Y1_REDUCE_ROUTINE = 0;
+	layout(constant_id = 9) const uint Y1_REDUCE_ROUTINE = 0;
 #endif
 
 #include "../pointwise-common/pointwise-routines.glsl"
