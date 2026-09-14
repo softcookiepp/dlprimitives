@@ -188,7 +188,7 @@ public:
 	inline const tart::program_ptr& pointwise_reduce_quaternary_unary(const tart::device_ptr& device,
 		const tart::DType& x0t, const tart::DType& x1t, const tart::DType& x2t, const tart::DType& x3t, const tart::DType& y0t)
 	{
-		return getAllPrograms(device, {x0t, x1t, x2t, x3t, y0t}).mPointwiseReduceBinaryUnaryProgram;
+		return getAllPrograms(device, {x0t, x1t, x2t, x3t, y0t}).mPointwiseReduceQuaternaryUnaryProgram;
 	}
 	
 	inline const tart::program_ptr& pooling(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mPoolingProgram; }
