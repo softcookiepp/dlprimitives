@@ -21,6 +21,7 @@
 	// subgroup extensions go here
 	#extension GL_KHR_shader_subgroup_basic : require
 	#extension GL_KHR_shader_subgroup_arithmetic : require
+	#extension GL_KHR_shader_subgroup_shuffle_relative : require
 #endif
 
 // whether or not to use float atomics.

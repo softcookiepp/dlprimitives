@@ -222,7 +222,17 @@ void pointwise_reduce_naive_impl()
 		[[unroll]]
 		for (uint j = 0; j < Y_ARITY; j += 1)
 		{
-			yReduce.data[j] = pointwise_subgroup_reduce(yReduce.data[j], reduceRoutines[j]);
+			#if 1
+				for (uint i = gl_SubgroupSize/2; i > 0; i = i >> 1)
+				{
+					X_IN inp;
+					inp.data[0] = subgroupShuffleDown(yReduce.data[j], i);
+					inp.data[1] = yReduce.data[j];
+					yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, inp, wArgs, reduceRoutines[j]).data[0];
+				}
+			#else
+				yReduce.data[j] = pointwise_subgroup_reduce(yReduce.data[j], reduceRoutines[j]);
+			#endif
 		}
 		subgroupBarrier();
 		if (gl_SubgroupInvocationID > 0) return;
