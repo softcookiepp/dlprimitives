@@ -42,6 +42,9 @@ layout(constant_id = 8) const uint Y0_REDUCE_ROUTINE = 0;
 #ifndef typeof_x2
 	#define typeof_x2 dtype
 #endif
+#ifndef typeof_x3
+	#define typeof_x3 dtype
+#endif
 
 #ifndef typeof_y0
 	#define typeof_y0 dtype
@@ -57,6 +60,9 @@ layout(constant_id = 8) const uint Y0_REDUCE_ROUTINE = 0;
 	#endif
 	#if X_ARITY > 2
 		layout(binding = 2, std430) readonly buffer x2_buf { typeof_x2 x2_data[]; };
+	#endif
+	#if X_ARITY > 3
+		layout(binding = 3, std430) readonly buffer x3_buf { typeof_x3 x3_data[]; };
 	#endif
 	layout(binding = X_ARITY, std430) buffer y0_buf { typeof_y0 y0_data[]; };
 	#if Y_ARITY > 1
