@@ -320,7 +320,7 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 	}
 	else if (dtypes.size() == 5)
 	{
-		mPointwiseReduceQuaternaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-reduce-trinary-unary",
+		mPointwiseReduceQuaternaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-reduce-quaternary-unary",
 			"typeof_x0", dtypes[0].glsl(),
 			"typeof_x1", dtypes[1].glsl(),
 			"typeof_x2", dtypes[2].glsl(),
