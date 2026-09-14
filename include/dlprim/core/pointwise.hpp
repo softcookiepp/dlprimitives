@@ -93,7 +93,8 @@ namespace core {
 		eBceBwd = 69,
 		eBcdFwdWeightless = 70,
 		eBcdFwd = 71,
-		eMse = 72
+		eMse = 72,
+		eLayerGroupNormBwd = 73
 	};
     
     // Pointwise operation, but without code generation requirement.
