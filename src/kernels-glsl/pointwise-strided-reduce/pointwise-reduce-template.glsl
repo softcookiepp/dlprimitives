@@ -126,10 +126,14 @@ void pointwise_reduce_naive_impl()
 {
 	// determine position, exit if out of bounds
 	// In this kernel, yShape is the one
+	// To save on push constant space, y shape is determined form x shape and reduce dims
 	Shape yShape;
 	[[unroll]]
+	for (uint i = 0; i < DIMS; i += 1)
+		yShape.s[i] = xShape.s[i];
+	[[unroll]]
 	for (uint i = 0; i < NUM_REDUCE_DIMS; i += 1)
-		yShape.s[reduceDims.s[i]] = xShape.s[i];
+		yShape.s[reduceDims.s[i]] = 1;
 		
 	Shape yPos = getPosFromTriIndex(gl_WorkGroupID, yShape, DIMS);
 	if (!posValid(yShape, yPos, DIMS)) return;
