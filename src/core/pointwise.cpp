@@ -383,6 +383,12 @@ namespace core {
 			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_binary_unary(device, xs[0].dtype(), xs[1].dtype(), ys[0].dtype());
 			k = prg->getKernel("exec");
 		}
+		else if(xs.size() == 3 && ys.size() == 1)
+		{
+			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_trinary_unary(
+				device, xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), ys[0].dtype());
+			k = prg->getKernel("exec");
+		}
 		if (!k) throw std::runtime_error("suitable kernel not found");
 		
 		int p = 0;
