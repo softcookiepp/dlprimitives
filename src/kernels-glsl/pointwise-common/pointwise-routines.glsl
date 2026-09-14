@@ -1,6 +1,6 @@
 #include "../pointwise-common/pointwise-enum.glsl"
 #ifndef NUM_WEIGHTS_MAX
-	#define NUM_WEIGHTS_MAX 8
+	#define NUM_WEIGHTS_MAX 2
 #endif
 
 #ifndef X_ARITY_MAX
