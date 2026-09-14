@@ -98,6 +98,7 @@ layout(push_constant, std430) uniform push
 		#endif
 		uint x3_offset;
 		Shape x3_strides;
+		#error "does this get tripped"
 	#endif
 	
 	#if USE_BDA

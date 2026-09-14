@@ -391,7 +391,6 @@ namespace core {
 		}
 		else if(xs.size() == 4 && ys.size() == 1)
 		{
-			throw std::runtime_error("don't use this yet");
 			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_quaternary_unary(
 				device, xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), xs[3].dtype(), ys[0].dtype());
 			k = prg->getKernel("exec");
