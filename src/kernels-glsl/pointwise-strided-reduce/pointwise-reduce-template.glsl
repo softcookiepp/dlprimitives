@@ -4,13 +4,17 @@ layout(constant_id = 0) const uint localSizeX = 1;
 #include "../common/shape.glsl"
 #define NUM_WEIGHTS_MAX 8
 layout(constant_id = 1) const uint NUM_WEIGHTS = NUM_WEIGHTS_MAX;
-layout(constant_id = 2) const uint POINTWISE_ROUTINE = 0;
-layout(constant_id = 3) const uint REDUCE_ROUTINE = 0;
-layout(constant_id = 4) const uint DIMS = DIMS_MAX;
-layout(constant_id = 5) const uint NUM_REDUCE_DIMS = DIMS_MAX;
-layout(constant_id = 6) const uint NUM_REDUCE_ELEMS = 1024;
-layout(constant_id = 7) const uint WPT = 2;
-layout(constant_id = 8) const uint SHMEM_SIZE = 1024;
+layout(constant_id = 2) const uint DIMS = DIMS_MAX;
+layout(constant_id = 3) const uint NUM_REDUCE_DIMS = DIMS_MAX;
+layout(constant_id = 4) const uint NUM_REDUCE_ELEMS = 1024;
+layout(constant_id = 5) const uint WPT = 2;
+layout(constant_id = 6) const uint SHMEM_SIZE = 1024;
+layout(constant_id = 7) const uint POINTWISE_ROUTINE = 0;
+layout(constant_id = 8) const uint Y0_REDUCE_ROUTINE = 0;
+#if Y_ARITY > 1
+	layout(constant_id = 8) const uint Y1_REDUCE_ROUTINE = 0;
+#endif
+
 #include "../pointwise-common/pointwise-routines.glsl"
 
 #ifndef X_ARITY
@@ -112,6 +116,13 @@ void pointwise_reduce_naive_impl()
 	Shape yPos = getPosFromTriIndex(gl_WorkGroupID, yShape, DIMS);
 	if (!posValid(yShape, yPos, DIMS)) return;
 	
+	// Reduce routines for easier iteration
+	uint reduceRoutines[Y_ARITY];
+	reduceRoutines[0] = Y0_REDUCE_ROUTINE;
+	#if Y_ARITY > 1
+		reduceRoutines[1] = Y1_REDUCE_ROUTINE;
+	#endif
+	
 	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
 	Shape xPos = yPos;
 	Y_OUT yReduce;
@@ -142,7 +153,6 @@ void pointwise_reduce_naive_impl()
 		
 		if (i >= NUM_REDUCE_ELEMS) continue;
 		
-
 		// Ensure we don't accidentally go over the number of reduce elems.
 		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
 		// But it will for later implementations.
@@ -176,7 +186,7 @@ void pointwise_reduce_naive_impl()
 			X_IN reduceInput;
 			reduceInput.data[0] = yElem.data[yArityIdx];
 			reduceInput.data[1] = yReduce.data[yArityIdx];
-			yReduce.data[yArityIdx] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceInput, wArgs, REDUCE_ROUTINE).data[0];
+			yReduce.data[yArityIdx] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceInput, wArgs, reduceRoutines[yArityIdx]).data[0];
 		}
 	}
 	
@@ -186,7 +196,7 @@ void pointwise_reduce_naive_impl()
 		[[unroll]]
 		for (uint j = 0; j < Y_ARITY; j += 1)
 		{
-			yReduce.data[j] = pointwise_subgroup_reduce(yReduce.data[j], REDUCE_ROUTINE);
+			yReduce.data[j] = pointwise_subgroup_reduce(yReduce.data[j], reduceRoutines[j]);
 		}
 		subgroupBarrier();
 		if (gl_SubgroupInvocationID > 0) return;
@@ -198,21 +208,22 @@ void pointwise_reduce_naive_impl()
 		if (gl_LocalInvocationID.x > 0) return;
 		
 		// re-initialize yReduce yet again
+		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
 			yReduce.data[i] = acctype(yReduceInit[0]);
 		// iterate over each subgroup-compute partial sum and add them together
+		[[unroll]]
 		for (uint i = 0; i < gl_NumSubgroups; i += 1)
 		{
+			[[unroll]]
 			for (uint j = 0; j < Y_ARITY; j += 1)
 			{
 				X_IN reduceArgs;
 				reduceArgs.data[0] = yReduce.data[j];
 				reduceArgs.data[1] = yShmem[i].data[j];
-				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, reduceRoutines[j]).data[0];
 			}
 		}
-		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
-		y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
 	#else
 		// No subgroup support, fall back to storing all partial sums in local memory and adding them.
 		// I was too stupid to figure out a better way to do this.
@@ -226,17 +237,21 @@ void pointwise_reduce_naive_impl()
 			yReduce.data[i] = acctype(yReduceInit[0]);
 		for (uint i = 0; i < SHMEM_SIZE; i += 1)
 		{
+			[[unroll]]
 			for (uint j = 0; j < Y_ARITY; j += 1)
 			{
 				X_IN reduceArgs;
 				reduceArgs.data[0] = yReduce.data[j];
 				reduceArgs.data[1] = yShmem[i].data[j];
-				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
+				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, reduceRoutines[j]).data[0];
 			}
 		}
-		
-		// store y values
-		uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
-		y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
+	#endif
+	// store y values
+	uint y0_idx = y0_offset + getStridedIndexFromPos(yPos, y0_strides, DIMS);
+	y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
+	#if Y_ARITY > 1
+		uint y1_idx = y1_offset + getStridedIndexFromPos(yPos, y1_strides, DIMS);
+		y1_data[y1_idx = typeof_y1(yReduce.data[1]);
 	#endif
 }

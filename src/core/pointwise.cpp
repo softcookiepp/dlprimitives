@@ -433,17 +433,16 @@ namespace core {
 		
 		std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 		auto glPair = calcStridedTensorInvocations(device, y0.shape());
-		std::vector<uint32_t> spec = {
-			wgxSize,
-			ws.size(),
-			static_cast<uint32_t>(calcOp),
-			static_cast<uint32_t>(reduceOp),
-			static_cast<uint32_t>(xShape.size()),
-			static_cast<uint32_t>(reduceDimShape.size()),
-			numReduceElems,
-			wpt,
-			localMemSize
-		};
+		std::vector<uint32_t> spec(8 + ys.size());
+		spec[0] = wgxSize;
+		spec[1] = ws.size();
+		spec[2] = static_cast<uint32_t>(xShape.size());
+		spec[3] = static_cast<uint32_t>(reduceDimShape.size());
+		spec[4] = numReduceElems;
+		spec[5] = wpt;
+		spec[6] = localMemSize;
+		spec[7] = static_cast<uint32_t>(calcOp);
+		spec[8] = static_cast<uint32_t>(reduceOp);
 		k->enqueue(global, spec);
 	}
 
