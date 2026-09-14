@@ -10,10 +10,7 @@ layout(constant_id = 4) const uint NUM_REDUCE_ELEMS = 1024;
 layout(constant_id = 5) const uint WPT = 2;
 layout(constant_id = 6) const uint SHMEM_SIZE = 1024;
 layout(constant_id = 7) const uint POINTWISE_ROUTINE = 0;
-layout(constant_id = 8) const uint Y0_REDUCE_ROUTINE = 0;
-#if Y_ARITY > 1
-	layout(constant_id = 9) const uint Y1_REDUCE_ROUTINE = 0;
-#endif
+layout(constant_id = 8) const uint REDUCE_ROUTINE = 0;
 
 #include "../pointwise-common/pointwise-routines.glsl"
 
@@ -137,14 +134,7 @@ void pointwise_reduce_naive_impl()
 		
 	Shape yPos = getPosFromTriIndex(gl_WorkGroupID, yShape, DIMS);
 	if (!posValid(yShape, yPos, DIMS)) return;
-	
-	// Reduce routines for easier iteration
-	uint reduceRoutines[Y_ARITY];
-	reduceRoutines[0] = Y0_REDUCE_ROUTINE;
-	#if Y_ARITY > 1
-		reduceRoutines[1] = Y1_REDUCE_ROUTINE;
-	#endif
-	
+
 	// Elements are simply loaded sequentially. Why? Because I need something that works before I have something optimal.
 	Shape xPos = yPos;
 	Y_OUT yReduce;
@@ -212,38 +202,35 @@ void pointwise_reduce_naive_impl()
 			X_IN reduceInput;
 			reduceInput.data[0] = yElem.data[yArityIdx];
 			reduceInput.data[1] = yReduce.data[yArityIdx];
-			yReduce.data[yArityIdx] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceInput, wArgs, reduceRoutines[yArityIdx]).data[0];
+			yReduce.data[yArityIdx] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceInput, wArgs, REDUCE_ROUTINE).data[0];
 		}
 	}
 	
 	
 	#if USE_SUBGROUP_ARITHMETIC
 		// Reduce with subgroup arithmetic
-		[[unroll]]
-		for (uint j = 0; j < Y_ARITY; j += 1)
-		{
-			#if 0
-				// Reduction via shuffling is supposedly less-efficient than subgroup arithmetic intrinsics.
-				// But it will be useful later, for operations that lack an arithmetic intrinsic
-				precise acctype ySubgroupReduce = yReduce.data[j];
-				if (gl_SubgroupInvocationID == 0)
+		#if Y_ARITY > 1
+			Y_OUT ySubgroupReduce;
+			[[unroll]]
+			for (uint i = 0; i < Y_ARITY; i += 1)
+				ySubgroupReduce.data[i] = yReduce.data[i];
+			for (uint i = 1; i < gl_SubgroupSize; i += 1)
+			{
+				if ((gl_LocalInvocationID.x + i)*WPT < NUM_REDUCE_ELEMS)
 				{
-					for (uint i = 1; i < gl_SubgroupSize; i += 1)
-					{
-						
-						X_IN inp;
-						inp.data[1] = yReduce.data[j];
-						subgroupBarrier();
-						subgroupMemoryBarrier();
-						inp.data[0] = subgroupShuffleDown(ySubgroupReduce, i);
-						if ((gl_LocalInvocationID.x + i)*WPT < NUM_REDUCE_ELEMS)
-							yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, inp, wArgs, reduceRoutines[j]).data[0];
-					}
+					Y_OUT ySubgroupSrc;
+					[[unroll]]
+					for (uint j = 0; j < Y_ARITY; j += 1)
+						ySubgroupSrc.data[j] = subgroupShuffleDown(ySubgroupReduce.data[j], i);
+				
+					yReduce = pointwise_reduce_function(ySubgroupSrc, yReduce, Y_ARITY, REDUCE_ROUTINE);
 				}
-			#else
-				yReduce.data[j] = pointwise_subgroup_reduce(yReduce.data[j], reduceRoutines[j]);
-			#endif
-		}
+			}
+		#else
+			// Most of these ops can just be done by using subgroup arithmetic builtins
+			yReduce.data[0] = pointwise_subgroup_reduce(yReduce.data[0], REDUCE_ROUTINE);
+		#endif
+		
 		subgroupBarrier();
 		if (gl_SubgroupInvocationID > 0) return;
 		// Store each subgroup-accumulated partial sum in local memory
@@ -267,7 +254,7 @@ void pointwise_reduce_naive_impl()
 				X_IN reduceArgs;
 				reduceArgs.data[0] = yReduce.data[j];
 				reduceArgs.data[1] = yShmem[i].data[j];
-				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, reduceRoutines[j]).data[0];
+				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 			}
 		}
 	#else
@@ -289,7 +276,7 @@ void pointwise_reduce_naive_impl()
 				X_IN reduceArgs;
 				reduceArgs.data[0] = yReduce.data[j];
 				reduceArgs.data[1] = yShmem[i].data[j];
-				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, reduceRoutines[j]).data[0];
+				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
 			}
 		}
 	#endif

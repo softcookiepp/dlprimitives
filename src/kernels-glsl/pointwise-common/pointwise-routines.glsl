@@ -323,3 +323,31 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 	outp.data[1] = y1;
 	return outp;
 }
+
+// For operations without builtin subgroup arithmetic functions
+Y_OUT pointwise_reduce_function(Y_OUT y, Y_OUT yReduce, uint yArity, uint pointwiseRoutine)
+{
+	if (yArity == 1)
+	{
+		// (we already have a huge thing for this
+		Shape dummy;
+		X_IN x;
+		x.data[0] = yReduce.data[0];
+		x.data[1] = y.data[0];
+		W_ARGS wargs;
+		yReduce.data[0] = pointwise_function(dummy, 0, 2, 1, x, wargs, pointwiseRoutine).data[0];
+	}
+	else if (yArity == 2)
+	{
+		// Routines that have this criteria are few and far between.
+		if (pointwiseRoutine == ROUTINE_ARGMAX_REDUCE)
+		{
+			if (y.data[0] > yReduce.data[0])
+			{
+				yReduce.data[0] = y.data[0];
+				yReduce.data[1] = y.data[1];
+			}
+		}
+	}
+	return yReduce;
+}
