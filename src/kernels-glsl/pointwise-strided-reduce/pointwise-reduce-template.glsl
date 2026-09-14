@@ -113,7 +113,7 @@ layout(push_constant, std430) uniform push
 		Shape y1_strides;
 	#endif
 	Shape xShape;
-	Shape yShape;
+	//Shape yShape;
 	Shape reduceDims;
 	float yReduceInit[Y_ARITY]; // initial values of y for reduction
 	W_ARGS wArgs;
@@ -126,6 +126,11 @@ void pointwise_reduce_naive_impl()
 {
 	// determine position, exit if out of bounds
 	// In this kernel, yShape is the one
+	Shape yShape;
+	[[unroll]]
+	for (size_t i = 0; i < NUM_REDUCE_DIMS; i += 1)
+		yShape.s[reduceDims[i]] = 1;
+		
 	Shape yPos = getPosFromTriIndex(gl_WorkGroupID, yShape, DIMS);
 	if (!posValid(yShape, yPos, DIMS)) return;
 	
