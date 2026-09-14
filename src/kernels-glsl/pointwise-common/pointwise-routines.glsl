@@ -4,7 +4,7 @@
 #endif
 
 #ifndef X_ARITY_MAX
-	#define X_ARITY_MAX 3
+	#define X_ARITY_MAX 4
 #endif
 
 #ifndef Y_ARITY_MAX
@@ -57,6 +57,7 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 	precise acctype x0 = xargs.data[0];
 	precise acctype x1 = xargs.data[1];
 	precise acctype x2 = xargs.data[2];
+	precise acctype x3 = xargs.data[3];
 	precise acctype y0;
 	precise acctype y1;
 	float w[NUM_WEIGHTS_MAX] = wargs.w;
@@ -300,6 +301,11 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			acctype scale = acctype(w[0]);
 			y0 = acctype(-1.0)*x2*scale*(x1*clippedNaturalLog(x0) + (A1 - x1)*clippedNaturalLog(A1 - x0));
 		}
+	}
+	else if (xArity == 4 && yArity == 1)
+	{
+		if (pointwiseRoutine == ROUTINE_LAYER_GROUP_NORM_BWD)
+			y0 = (x0 - x1)*x2*x3;
 	}
 	else if (xArity == 1 && yArity == 2)
 	{

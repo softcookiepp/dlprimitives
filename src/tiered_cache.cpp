@@ -318,6 +318,15 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 			"typeof_x2", dtypes[2].glsl(),
 			"typeof_y0", dtypes[3].glsl());
 	}
+	else if (dtypes.size() == 5)
+	{
+		mPointwiseReduceQuaternaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-reduce-trinary-unary",
+			"typeof_x0", dtypes[0].glsl(),
+			"typeof_x1", dtypes[1].glsl(),
+			"typeof_x2", dtypes[2].glsl(),
+			"typeof_x3", dtypes[3].glsl(),
+			"typeof_y0", dtypes[4].glsl());
+	}
 }
 
 } // namespace gpu

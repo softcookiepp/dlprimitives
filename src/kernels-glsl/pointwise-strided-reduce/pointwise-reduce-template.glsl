@@ -86,6 +86,13 @@ layout(push_constant, std430) uniform push
 		uint x2_offset;
 		Shape x2_strides;
 	#endif
+	#if X_ARITY > 3
+		#if USE_BDA
+			// x3_data
+		#endif
+		uint x3_offset;
+		Shape x3_strides;
+	#endif
 	
 	#if USE_BDA
 		// y0_data
@@ -175,6 +182,10 @@ void pointwise_reduce_naive_impl()
 		#if X_ARITY > 2
 			uint x2_idx = x2_offset + getStridedIndexFromPos(xPos, x2_strides, DIMS);
 			xArgs.data[2] = acctype(x2_data[x2_idx]);
+		#endif
+		#if X_ARITY > 3
+			uint x3_idx = x3_offset + getStridedIndexFromPos(xPos, x3_strides, DIMS);
+			xArgs.data[3] = acctype(x3_data[x3_idx]);
 		#endif
 		
 		// compute value, store in shared memory
