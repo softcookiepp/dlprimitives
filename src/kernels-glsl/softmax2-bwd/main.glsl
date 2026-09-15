@@ -23,9 +23,9 @@ layout(constant_id = 6) const uint SOFTMAX_ROUTINE = ROUTINE_SOFTMAX; // either 
 #endif
 
 #if USE_BDA == 0
-	layout(binding = 0, std430) readonly buffer x0_grad_buf { typeof_x0 x0_grad_data[]; };
-	layout(binding = 1, std430) buffer y0_buf { typeof_y0 y0_data[]; };
-	layout(binding = 2, std430) buffer y0_grad_buf { typeof_y0 y0_grad_data[]; };
+	layout(binding = 0, std430) writeonly buffer x0_grad_buf { typeof_x0 x0_grad_data[]; };
+	layout(binding = 1, std430) readonly buffer y0_buf { typeof_y0 y0_data[]; };
+	layout(binding = 2, std430) readonly buffer y0_grad_buf { typeof_y0 y0_grad_data[]; };
 #endif
 
 layout(push_constant, std430) uniform push
@@ -56,7 +56,7 @@ layout(push_constant, std430) uniform push
 shared acctype yShmem[SHMEM_SIZE];
 
 // gave it silly name to prevent kernel source preprocessing for now
-void this_will_eventually_be_main()
+void main()
 {
 	// also adapted from here
 	// https://adityaagrawal.net/blog/deep_learning/bprop_softmax
@@ -98,6 +98,10 @@ void this_will_eventually_be_main()
 	[[unroll]]
 	for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1) reduceShape.s[j] = xShape.s[reduceDims.s[j]];
 	
+	// store these for later
+	precise acctype y0_cache[WPT];
+	precise acctype y0_grad_cache[WPT];
+	
 	// This whole segment is for calculating the partial sum portion
 	[[unroll]]
 	for (uint wptElem = 0; wptElem < WPT; wptElem += 1)
@@ -107,7 +111,7 @@ void this_will_eventually_be_main()
 		// Ensure we don't accidentally go over the number of reduce elems.
 		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
 		// But it will for later implementations.
-		if (i >= NUM_REDUCE_ELEMS) return;
+		if (i >= NUM_REDUCE_ELEMS) continue;
 		
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
@@ -115,12 +119,17 @@ void this_will_eventually_be_main()
 		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1) xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
 		
 		if ( !posValid(xShape, xPos, DIMS) ) continue;
-		// load x value, add it to denominator
+		// load y and y grad, do the thingy
 		uint y0_idx = y0_offset + getStridedIndexFromPos(xPos, y0_strides, DIMS);
 		precise acctype y0 = acctype(y0_data[y0_idx]);
+		y0_cache[wptElem] = y0;
 		uint y0_grad_idx = y0_grad_offset + getStridedIndexFromPos(xPos, y0_grad_strides, DIMS);
 		precise acctype y0_grad = acctype(y0_grad_data[y0_grad_idx]);
-		yReduce += exp(y0_grad*y0);
+		y0_grad_cache[wptElem] = y0_grad;
+		if (SOFTMAX_ROUTINE == ROUTINE_SOFTMAX)
+			yReduce += y0_grad*y0;
+		else
+			yReduce += y0_grad;
 	}
 	
 	
@@ -186,13 +195,7 @@ void this_will_eventually_be_main()
 	for (uint wptElem = 0; wptElem < WPT; wptElem += 1)
 	{
 		uint i = gl_LocalInvocationID.x*WPT + wptElem;
-		
 		if (i >= NUM_REDUCE_ELEMS) continue;
-		
-		// Ensure we don't accidentally go over the number of reduce elems.
-		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
-		// But it will for later implementations.
-		if (i >= NUM_REDUCE_ELEMS) return;
 		
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
@@ -200,16 +203,15 @@ void this_will_eventually_be_main()
 		for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1) xPos.s[reduceDims.s[j]] = reduceOpPos.s[j];
 		
 		if ( !posValid(xShape, xPos, DIMS) ) continue;
-		// load x value, this time use the complete denominator to compute the softmax.
-		uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
-		precise acctype x0 = acctype(x0_data[x0_idx]);
-		if (SOFTMAX_ROUTINE == ROUTINE_SOFTMAX)
-			x0 = exp(x0)/yReduce;
-		else
-			x0 = x0 - yReduce;
 		
-		// compute + store results
-		uint y0_idx = y0_offset + getStridedIndexFromPos(xPos, y0_strides, DIMS);
-		y0_data[y0_idx] = typeof_y0(x0);
+		precise acctype x0_grad;
+		if (SOFTMAX_ROUTINE == ROUTINE_SOFTMAX)
+			x0_grad = acctype(-1.0)*y0_cache[wptElem]*(yReduce - y0_grad_cache[wptElem]);
+		else
+			x0_grad = y0_grad_cache[wptElem] - exp(y0_cache[wptElem])*yReduce;
+			
+		// load x value, this time use the complete denominator to compute the softmax.
+		uint x0_grad_idx = x0_grad_offset + getStridedIndexFromPos(xPos, x0_grad_strides, DIMS);
+		x0_grad_data[x0_grad_idx] = typeof_x0(x0_grad);
 	}
 }
