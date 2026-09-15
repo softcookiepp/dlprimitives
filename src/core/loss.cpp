@@ -203,14 +203,7 @@ namespace core {
 		x = broadcasted[0];
 		y = broadcasted[1];
 		Shape xShape = x.shape();
-		
-		if (dims.size() == 0)
-		{
-			// perform softmax with respect to all dimensions
-			dims.resize(x.shape().size());
-			for (size_t i = 0; i < dims.size(); i += 1)
-				dims[i] = static_cast<int>(i);
-		}
+		dims = getReduceDims(xShape, dims);
 		
 		// ensure dimensions aren't out of bounds
 		for (size_t i = 0; i < dims.size(); i += 1)
