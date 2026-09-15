@@ -23,8 +23,9 @@ layout(constant_id = 6) const uint SOFTMAX_ROUTINE = ROUTINE_SOFTMAX; // either 
 #endif
 
 #if USE_BDA == 0
-	layout(binding = 0, std430) readonly buffer x0_buf { typeof_x0 x0_data[]; };
+	layout(binding = 0, std430) readonly buffer x0_grad_buf { typeof_x0 x0_grad_data[]; };
 	layout(binding = 1, std430) buffer y0_buf { typeof_y0 y0_data[]; };
+	layout(binding = 2, std430) buffer y0_grad_buf { typeof_y0 y0_grad_data[]; };
 #endif
 
 layout(push_constant, std430) uniform push
@@ -32,14 +33,20 @@ layout(push_constant, std430) uniform push
 	#if USE_BDA
 		// x0_data
 	#endif
-	uint x0_offset;
-	Shape x0_strides;
+	uint x0_grad_offset;
+	Shape x0_grad_strides;
 	
 	#if USE_BDA
 		// y0_data
 	#endif
 	uint y0_offset;
 	Shape y0_strides;
+	
+	#if USE_BDA
+		// y0_grad_data
+	#endif
+	uint y0_grad_offset;
+	Shape y0_grad_strides;
 
 	Shape xShape;
 	Shape reduceDims;
@@ -48,8 +55,12 @@ layout(push_constant, std430) uniform push
 // This should be equal to the amount of reduce elements
 shared acctype yShmem[SHMEM_SIZE];
 
-void main()
+// gave it silly name to prevent kernel source preprocessing for now
+void this_will_eventually_be_main()
 {
+	// also adapted from here
+	// https://adityaagrawal.net/blog/deep_learning/bprop_softmax
+	
 	// This kernel was adapted from the pointwise broadcast reduce kernel.
 	// Given their similarity, it made sense to do so.
 	// It definitely needs cleaning up though.
@@ -87,9 +98,7 @@ void main()
 	[[unroll]]
 	for (uint j = 0; j < NUM_REDUCE_DIMS; j += 1) reduceShape.s[j] = xShape.s[reduceDims.s[j]];
 	
-	// for x0 values so they don't have to be reloaded later
-	precise acctype x0_values[WPT];
-	// This whole segment is for calculating the denominator of the softmax function.
+	// This whole segment is for calculating the partial sum portion
 	[[unroll]]
 	for (uint wptElem = 0; wptElem < WPT; wptElem += 1)
 	{
@@ -98,7 +107,7 @@ void main()
 		// Ensure we don't accidentally go over the number of reduce elems.
 		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
 		// But it will for later implementations.
-		if (i >= NUM_REDUCE_ELEMS) continue;
+		if (i >= NUM_REDUCE_ELEMS) return;
 		
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
@@ -107,10 +116,11 @@ void main()
 		
 		if ( !posValid(xShape, xPos, DIMS) ) continue;
 		// load x value, add it to denominator
-		uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
-		precise acctype x0 = acctype(x0_data[x0_idx]);
-		x0_values[wptElem] = x0; // store for later use
-		yReduce += exp(x0);
+		uint y0_idx = y0_offset + getStridedIndexFromPos(xPos, y0_strides, DIMS);
+		precise acctype y0 = acctype(y0_data[y0_idx]);
+		uint y0_grad_idx = y0_grad_offset + getStridedIndexFromPos(xPos, y0_grad_strides, DIMS);
+		precise acctype y0_grad = acctype(y0_grad_data[y0_grad_idx]);
+		yReduce += exp(y0_grad*y0);
 	}
 	
 	
@@ -135,6 +145,7 @@ void main()
 				yReduce += yShmem[i];
 			}
 			// take the log of it if necessary
+			// how does this work for the backward? I don't think it works like this.
 			if (SOFTMAX_ROUTINE == ROUTINE_LOG_SOFTMAX)
 				yReduce = log(yReduce);
 		}
@@ -176,10 +187,12 @@ void main()
 	{
 		uint i = gl_LocalInvocationID.x*WPT + wptElem;
 		
+		if (i >= NUM_REDUCE_ELEMS) continue;
+		
 		// Ensure we don't accidentally go over the number of reduce elems.
 		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
 		// But it will for later implementations.
-		if (i >= NUM_REDUCE_ELEMS) continue;
+		if (i >= NUM_REDUCE_ELEMS) return;
 		
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
@@ -188,12 +201,8 @@ void main()
 		
 		if ( !posValid(xShape, xPos, DIMS) ) continue;
 		// load x value, this time use the complete denominator to compute the softmax.
-		#if 1
-			precise acctype x0 = acctype(x0_values[wptElem]);
-		#else
-			uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
-			precise acctype x0 = acctype(x0_data[x0_idx]);
-		#endif
+		uint x0_idx = x0_offset + getStridedIndexFromPos(xPos, x0_strides, DIMS);
+		precise acctype x0 = acctype(x0_data[x0_idx]);
 		if (SOFTMAX_ROUTINE == ROUTINE_SOFTMAX)
 			x0 = exp(x0)/yReduce;
 		else
