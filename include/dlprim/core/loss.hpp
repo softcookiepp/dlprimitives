@@ -10,11 +10,6 @@
 #include <dlprim/context.hpp>
 namespace dlprim {
 namespace core {
-    
-    ///
-    /// Compute softmax output of x-> to y. if log_softmax true compute log of the output value
-    ///
-    void softmax_forward(Tensor &x,Tensor &y,bool log_softmax);
     ///
     /// Softmax backpropogation
     ///
