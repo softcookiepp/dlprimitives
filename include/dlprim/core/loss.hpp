@@ -26,6 +26,7 @@ namespace core {
     
     // Re-attempt at writing a softmax kernel. Adapted from existing pointwiseOpBroadcastReduceStrided kernel, since the signature is similar enough.
     void softmaxAttempt2(Tensor x, Tensor y, std::vector<int> dims, bool useLogSoftmax);
+    void softmaxAttempt2Bwd(Tensor x, Tensor y, std::vector<int> dims, bool useLogSoftmax);
 
 } // core
 } // dlprim
