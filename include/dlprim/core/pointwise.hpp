@@ -97,6 +97,8 @@ namespace core {
 		eLayerGroupNormBwd = 73,
 		eArgmaxReduce = 74
 	};
+	
+	std::vector<int> getReduceDims(dlprim::Shape ref, std::vector<int> dim);
     
     // Pointwise operation, but without code generation requirement.
     // Instead, chosen routine is chosen by PointwiseOp value provided
@@ -182,6 +184,8 @@ namespace core {
                         std::string const &reduce);
 
     };
+    
+    void bind_shape(tart::kernel_ptr k, int &p,Shape const &s);
 
 } // core
 } // dlprim

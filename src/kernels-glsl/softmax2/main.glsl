@@ -42,9 +42,7 @@ layout(push_constant, std430) uniform push
 	Shape y0_strides;
 
 	Shape xShape;
-	//Shape yShape;
 	Shape reduceDims;
-	float yReduceInit; // initial values of y for reduction
 };
 
 // This should be equal to the amount of reduce elements
@@ -71,7 +69,7 @@ void main()
 	if (!posValid(yShape, yPos, DIMS)) return;
 
 	Shape xPos = yPos;
-	precise acctype yReduce = yReduceInit;
+	precise acctype yReduce = acctype(0.0);
 	
 	// initialize shared memory
 	#if USE_SUBGROUP_ARITHMETIC
@@ -126,7 +124,7 @@ void main()
 		// wait, can't we just use all subgroups for this?
 		{
 			// re-initialize yReduce yet again
-			yReduce = yReduceInit;
+			yReduce = acctype(0.0);
 			// iterate over each subgroup-compute partial sum and add them together
 			[[unroll]]
 			for (uint i = 0; i < gl_NumSubgroups; i += 1)
@@ -149,7 +147,7 @@ void main()
 		if (gl_LocalInvocationID.x == 0)
 		{
 			// compute the denominator
-			yReduce = acctype(yReduceInit);
+			yReduce = acctype(0.0);
 			
 			[[unroll]]
 			for (uint i = 0; i < SHMEM_SIZE; i += 1)

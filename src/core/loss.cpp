@@ -6,8 +6,11 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/core/activation.hpp>
+#include <dlprim/core/pointwise.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/gpu/tiered_cache.hpp>
+#include <dlprim/core/util.hpp>
+#include <dlprim/core/loss.hpp>
 #include <iostream>
 
 namespace dlprim {
@@ -190,7 +193,95 @@ namespace core {
         kernel->setArg(p++,factor);
         kernel->enqueue({in_shape[1],in_shape[0], 1}, {1, 1, 1, static_cast<uint32_t>(reduce)} );
     }
+	
+	void softmaxAttempt2(Tensor x, Tensor y, std::vector<int> dims, bool useLogSoftmax)
+	{
+		tart::device_ptr device = tensorDevice(x);
+		
+		// broadcast tensors
+		std::vector<Tensor> broadcasted({x, y});
+		x = broadcasted[0];
+		y = broadcasted[1];
+		Shape xShape = x.shape();
+		
+		if (dims.size() == 0)
+		{
+			// perform softmax with respect to all dimensions
+			dims.resize(x.shape().size());
+			for (size_t i = 0; i < dims.size(); i += 1)
+				dims[i] = static_cast<int>(i);
+		}
+		
+		// ensure dimensions aren't out of bounds
+		for (size_t i = 0; i < dims.size(); i += 1)
+			DLPRIM_CHECK(dims[i] < x.shape().size());
+		
+		// convert it to shape so that it can be bound
+		Shape reduceDimShape = Shape::from_range(dims.begin(), dims.end());
+		uint32_t numReduceElems = 1;
+		// The way the kernel is set up, it needs the reduction shape to be provided as if a reduction operation is being performed,
+		// even though no output is reduced.
+		Shape dummyReduceShape = xShape;
+		for (size_t i = 0; i < reduceDimShape.size(); i += 1)
+		{
+			numReduceElems *= xShape[reduceDimShape[i]];
+			dummyReduceShape[reduceDimShape[i]] = 1;
+		}
+		
+		tart::kernel_ptr k = gpu::PerDeviceProgramCache::instance().softmax(device, x.dtype(), y.dtype())->getKernel("main");;
+		if (!k) throw std::runtime_error("suitable kernel not found");
+		
+		int p = 0;
+		k->setArg(p++, x.device_buffer());
+		k->setArg(p++, x.device_offset());
+		bind_shape(k, p, x.stride());
 
+		k->setArg(p++, y.device_buffer());
+		k->setArg(p++, y.device_offset());
+		bind_shape(k, p, y.stride());
+		
+		bind_shape(k, p, xShape);
+		bind_shape(k, p, reduceDimShape);
+		
+		// calculate local size and work per thread, based on the max amount of local invocations along the X axis for this device
+		uint32_t wpt = 1;
+		uint32_t wgxSize = numReduceElems;
+		uint32_t maxWgxSize = device->getMetadata().physicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
+		while (wgxSize > maxWgxSize)
+		{
+			wpt += 1;
+			wgxSize = numReduceElems / wpt;
+			if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
+		}
+		// need to ensure this is invoked at all
+		if (wgxSize == 0 || numReduceElems % wpt > 0) wgxSize += 1;
+		
+		uint32_t localMemSize = wgxSize;
+		#if 0
+			// this is supposed to reduce the amount of local memory required, but for some reason its is causes the kernel to compute nan.
+			// Still need to figure out why.
+			if (device->getMetadata().subgroupAdd)
+			{
+				// Less local memory is required if subgroup arithmetic reduction is used
+				uint32_t subgroupSize = device->getMetadata().maxSubgroupSize;
+				localMemSize = localMemSize / subgroupSize;
+				if (localMemSize == 0 || localMemSize % subgroupSize > 0) localMemSize += 1;
+			}
+		#endif
+		
+		std::vector<uint32_t> global = calcStridedTensorRange(device, dummyReduceShape);
+		auto glPair = calcStridedTensorInvocations(device, dummyReduceShape);
+		std::vector<uint32_t> spec = {
+			wgxSize,
+			static_cast<uint32_t>(xShape.size()),
+			static_cast<uint32_t>(reduceDimShape.size()),
+			numReduceElems,
+			wpt,
+			localMemSize,
+			useLogSoftmax ? 1 : 0
+		};
+		k->enqueue(global, spec);
+	}
     
 } // core
 } // dlprim

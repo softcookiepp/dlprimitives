@@ -285,6 +285,12 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 		
 		mPointwiseReduceUnaryUnaryProgram = gpu::Cache::instance().get_program(device, "pointwise-reduce-unary-unary",
 			"typeof_x0", dt0.glsl(), "typeof_y0", dt1.glsl());
+			
+		if (dt0.isFloatingPoint() && dt1.isFloatingPoint())
+		{
+			mSoftmaxProgram = gpu::Cache::instance().get_program(device, "softmax2",
+				"typeof_x0", dt0.glsl(), "typeof_y0", dt1.glsl());
+		}
 	}
 	else if(dtypes.size() == 3)
 	{
