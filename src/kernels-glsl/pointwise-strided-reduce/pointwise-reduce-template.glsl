@@ -162,13 +162,10 @@ void pointwise_reduce_naive_impl()
 	for (uint wptElem = 0; wptElem < WPT; wptElem += 1)
 	{
 		uint i = gl_LocalInvocationID.x*WPT + wptElem;
-		
-		if (i >= NUM_REDUCE_ELEMS) continue;
-		
 		// Ensure we don't accidentally go over the number of reduce elems.
 		// For the naive implementation where the reduction is just an iteration, this doesn't matter.
 		// But it will for later implementations.
-		if (i >= NUM_REDUCE_ELEMS) return;
+		if (i >= NUM_REDUCE_ELEMS) continue;
 		
 		// adjust position to point to the specific element being iterated on
 		Shape reduceOpPos = getPos(i, reduceShape, NUM_REDUCE_DIMS);
