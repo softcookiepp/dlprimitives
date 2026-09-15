@@ -125,7 +125,6 @@ set(DLPRIM_CORE_SRC
         src/core/util.cpp
         src/core/interpolate.cpp
         src/im2col.cpp
-        src/softmax.cpp
         src/tiered_cache.cpp
         # moving any stuff from dlprim to dlprim_core that contains useful functionality, prior to deletion
         src/ops/initialization.cpp
