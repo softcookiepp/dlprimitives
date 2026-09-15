@@ -208,7 +208,7 @@ namespace core {
 	void softmaxAttempt2Bwd(Tensor xGrad, Tensor y, Tensor yGrad, std::vector<int> dims, bool useLogSoftmax)
 	{
 		tart::device_ptr device = tensorDevice(xGrad);
-		
+		DLPRIM_CHECK(y.dtype() == yGrad.dtype()); // these should be the same type, but just gonna make sure
 		// broadcast tensors
 		std::vector<Tensor> broadcasted({xGrad, y, yGrad});
 		xGrad = broadcasted[0];
@@ -235,7 +235,7 @@ namespace core {
 		}
 		
 		// no kernel yet. sadly.
-		tart::kernel_ptr k = gpu::PerDeviceProgramCache::instance().softmax(device, xGrad.dtype(), y.dtype())->getKernel("main");;
+		tart::kernel_ptr k = gpu::PerDeviceProgramCache::instance().softmax_bwd(device, xGrad.dtype(), y.dtype())->getKernel("main");;
 		if (!k) throw std::runtime_error("suitable kernel not found");
 		
 		int p = 0;

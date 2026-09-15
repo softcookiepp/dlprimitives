@@ -290,6 +290,9 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 		{
 			mSoftmaxProgram = gpu::Cache::instance().get_program(device, "softmax2",
 				"typeof_x0", dt0.glsl(), "typeof_y0", dt1.glsl());
+			
+			mSoftmaxBwdProgram = gpu::Cache::instance().get_program(device, "softmax2-bwd",
+				"typeof_x0", dt0.glsl(), "typeof_y0", dt1.glsl());
 		}
 	}
 	else if(dtypes.size() == 3)
