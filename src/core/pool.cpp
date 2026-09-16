@@ -7,6 +7,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <dlprim/core/pool.hpp>
 #include <dlprim/core/common.hpp>
+#include <dlprim/core/pointwise.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/gpu/tiered_cache.hpp>
 #include <iostream>
@@ -74,8 +75,8 @@ namespace core {
 		int out_w = dy.shape()[3];
 
 		int p=0;
-
-		scale_tensor(factor, dx);
+		
+		pointwiseOpStrided({dx}, {dx}, {factor}, PointwiseOp::eScale);
 		bwd_kernel_->setArg(p++,bc);
 		bwd_kernel_->setArg(p++,in_h);
 		bwd_kernel_->setArg(p++,in_w);

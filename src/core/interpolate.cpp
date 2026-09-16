@@ -1,5 +1,6 @@
 #include <dlprim/core/interpolate.hpp>
 #include <dlprim/core/common.hpp>
+#include <dlprim/core/pointwise.hpp>
 #include <dlprim/gpu/program_cache.hpp>
 #include <dlprim/gpu/tiered_cache.hpp>
 #include <iostream>
@@ -77,8 +78,9 @@ namespace dlprim { namespace core {
 
     void interpolate2d_backward(Tensor &dx,Tensor &dy,double scale_y,double scale_x,InterpolateType method,bool align_corners,float factor)
     {
-        if(method == InterpolateType::bilinear) {
-            scale_tensor(factor, dx);
+        if(method == InterpolateType::bilinear)
+        {
+			pointwiseOpStrided({dx}, {dx}, {factor}, PointwiseOp::eScale);
             interpolate2d_intern(dx,dy,scale_y,scale_x,method,align_corners, false);
             return;
         }

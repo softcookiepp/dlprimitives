@@ -24,7 +24,7 @@ namespace core {
     
     void scale_tensor(float s,Tensor &t)
     {
-		clblast::Scal<float>(t.shape().total_size(), s, t.device_buffer(), t.device_offset(), 1, tensorDevice(t));
+		pointwiseOpStrided({t}, {t}, {s}, PointwiseOp::eScale);
     }
 
     ///
