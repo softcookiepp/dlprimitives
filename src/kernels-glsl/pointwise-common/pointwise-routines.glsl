@@ -293,7 +293,7 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 		else if (pointwiseRoutine == ROUTINE_FMA)
 			y0 = fma(x0, x1, x2);
 		else if (pointwiseRoutine == ROUTINE_BCE_BWD)
-			y0 = -(x1 - x0) / max(acctype(1e-12f), x0 - (x0*x0) ) * x2 * acctype(w[0]);
+			y0 = -(x1 - x0) / max(acctype(1e-5f), x0 - (x0*x0) ) * x2 * acctype(w[0]);
 		else if (pointwiseRoutine == ROUTINE_BCE_FWD)
 		{
 			// adapted from https://docs.pytorch.org/docs/2.14/generated/torch.nn.BCELoss.html#torch.nn.BCELoss
