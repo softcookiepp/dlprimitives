@@ -450,7 +450,7 @@ namespace core {
 		
 		std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 		auto glPair = calcStridedTensorInvocations(device, y0.shape());
-		std::vector<uint32_t> spec(8 + ys.size());
+		std::vector<uint32_t> spec(9);
 		spec[0] = wgxSize;
 		spec[1] = ws.size();
 		spec[2] = static_cast<uint32_t>(xShape.size());

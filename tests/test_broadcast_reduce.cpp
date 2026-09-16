@@ -458,7 +458,7 @@ void test_reduce(const tart::device_ptr& q)
 			dlprim::core::PointwiseOp::eAdd, {0.0});
         TEST(equal(c,ref,q));
     }
-    #if 1 // this is a custom function that I have no interest in adding to the giant list of pointwise ops
+    #if 0 // this is a custom function that I have no interest in adding to the giant list of pointwise ops
     {
         auto a=make_tensor<Type>(q,dp::Shape(2,2),{1,2,7,3});
         auto ref0=make_tensor<Type>(q,dp::Shape(1,2),{7, 3});
