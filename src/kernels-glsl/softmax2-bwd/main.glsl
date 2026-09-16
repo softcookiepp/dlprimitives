@@ -153,10 +153,6 @@ void main()
 			{
 				yReduce += yShmem[i];
 			}
-			// take the log of it if necessary
-			// how does this work for the backward? I don't think it works like this.
-			if (SOFTMAX_ROUTINE == ROUTINE_LOG_SOFTMAX)
-				yReduce = log(yReduce);
 		}
 		// at this point, yReduce should be the fully computed softmax denominator.
 		
@@ -177,8 +173,6 @@ void main()
 			{
 				yReduce += yShmem[i];
 			}
-			if (SOFTMAX_ROUTINE == ROUTINE_LOG_SOFTMAX)
-				yReduce = log(yReduce);
 			[[unroll]]
 			for (uint i = 0; i < SHMEM_SIZE; i += 1)
 			{

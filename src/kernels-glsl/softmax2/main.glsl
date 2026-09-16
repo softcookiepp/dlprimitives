@@ -136,7 +136,7 @@ void main()
 			}
 			// take the log of it if necessary
 			if (SOFTMAX_ROUTINE == ROUTINE_LOG_SOFTMAX)
-				yReduce = log(yReduce);
+				yReduce = clippedNaturalLog(yReduce);
 		}
 		// at this point, yReduce should be the fully computed softmax denominator.
 		
@@ -158,7 +158,7 @@ void main()
 				yReduce += yShmem[i];
 			}
 			if (SOFTMAX_ROUTINE == ROUTINE_LOG_SOFTMAX)
-				yReduce = log(yReduce);
+				yReduce = clippedNaturalLog(yReduce);
 			[[unroll]]
 			for (uint i = 0; i < SHMEM_SIZE; i += 1)
 			{
