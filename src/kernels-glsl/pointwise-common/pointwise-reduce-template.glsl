@@ -245,14 +245,7 @@ void pointwise_reduce_naive_impl()
 		[[unroll]]
 		for (uint i = 0; i < gl_NumSubgroups; i += 1)
 		{
-			[[unroll]]
-			for (uint j = 0; j < Y_ARITY; j += 1)
-			{
-				X_IN reduceArgs;
-				reduceArgs.data[0] = yReduce.data[j];
-				reduceArgs.data[1] = yShmem[i].data[j];
-				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
-			}
+			yReduce = pointwise_reduce_function(yShmem[i], yReduce, Y_ARITY, REDUCE_ROUTINE);
 		}
 	#else
 		// No subgroup support, fall back to storing all partial sums in local memory and adding them.
@@ -265,16 +258,10 @@ void pointwise_reduce_naive_impl()
 		[[unroll]]
 		for (uint i = 0; i < Y_ARITY; i += 1)
 			yReduce.data[i] = acctype(yReduceInit[i]);
+		[[unroll]]
 		for (uint i = 0; i < SHMEM_SIZE; i += 1)
 		{
-			[[unroll]]
-			for (uint j = 0; j < Y_ARITY; j += 1)
-			{
-				X_IN reduceArgs;
-				reduceArgs.data[0] = yReduce.data[j];
-				reduceArgs.data[1] = yShmem[i].data[j];
-				yReduce.data[j] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceArgs, wArgs, REDUCE_ROUTINE).data[0];
-			}
+			yReduce = pointwise_reduce_function(yShmem[i], yReduce, Y_ARITY, REDUCE_ROUTINE);
 		}
 	#endif
 	// store y values
