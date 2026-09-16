@@ -96,8 +96,6 @@ class AllPrograms
 	
 	tart::program_ptr mScalProgram = nullptr;
 	
-	tart::program_ptr mSpatialSoftmaxProgram = nullptr;
-	
 	tart::program_ptr mSoftmaxProgram = nullptr;
 	tart::program_ptr mSoftmaxBwdProgram = nullptr;
 	
@@ -199,8 +197,6 @@ public:
 	
 	inline const tart::program_ptr& random(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mRandomProgram; }
 	inline const tart::program_ptr& scal(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mScalProgram; }
-	
-	inline const tart::program_ptr& spatial_softmax(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mSpatialSoftmaxProgram; }
 	
 	inline const tart::program_ptr& softmax(const tart::device_ptr& device, const tart::DType& xt, const tart::DType& yt) { return getAllPrograms(device, {xt, yt}).mSoftmaxProgram; }
 	inline const tart::program_ptr& softmax_bwd(const tart::device_ptr& device, const tart::DType& xt, const tart::DType& yt) { return getAllPrograms(device, {xt, yt}).mSoftmaxBwdProgram; }

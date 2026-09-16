@@ -262,7 +262,6 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 		
 		mRandomProgram = Cache::instance().get_program(device, "random", "dtype", dt.glsl());
 		mScalProgram = Cache::instance().get_program(device, "random", "dtype", dt.glsl());
-		mSpatialSoftmaxProgram = Cache::instance().get_program(device, "spatial_softmax_torch", "dtype", dt.glsl());
 	}
 	else if (dtypes.size() == 2)
 	{
