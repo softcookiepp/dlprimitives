@@ -198,7 +198,7 @@ void pointwise_reduce_naive_impl()
 	
 	#if USE_SUBGROUP_ARITHMETIC
 		// Reduce with subgroup arithmetic
-		#if 1//Y_ARITY > 1
+		#if Y_ARITY > 1
 			Y_OUT ySubgroupReduce;
 			[[unroll]]
 			for (uint i = 0; i < Y_ARITY; i += 1)
