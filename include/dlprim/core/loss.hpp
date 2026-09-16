@@ -25,8 +25,8 @@ namespace core {
     void nll_loss_backward(Tensor &dx,Tensor &label,Tensor &dy,bool reduce,float scale,float factor);
     
     // Re-attempt at writing a softmax kernel. Adapted from existing pointwiseOpBroadcastReduceStrided kernel, since the signature is similar enough.
-    void softmaxAttempt2(Tensor x, Tensor y, std::vector<int> dims, bool useLogSoftmax);
-    void softmaxAttempt2Bwd(Tensor xGrad, Tensor y, Tensor yGrad, std::vector<int> dims, bool useLogSoftmax);
+    void softmax(Tensor x, Tensor y, std::vector<int> dims, bool useLogSoftmax);
+    void softmaxBwd(Tensor xGrad, Tensor y, Tensor yGrad, std::vector<int> dims, bool useLogSoftmax);
 
 } // core
 } // dlprim
