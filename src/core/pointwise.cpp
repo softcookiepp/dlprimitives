@@ -400,7 +400,6 @@ namespace core {
 			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_binary(device, xs[0].dtype(), ys[0].dtype(), ys[1].dtype());
 			k = prg->getKernel("exec");
 		}
-		std::cout << "xs size: " << xs.size() << "\nys size: " << ys.size() << std::endl;
 		if (!k) throw std::runtime_error("suitable kernel not found");
 		
 		int p = 0;
