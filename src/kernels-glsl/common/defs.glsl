@@ -3,6 +3,8 @@
 	// just to prevent the other header from interfering
 #endif
 
+#include "../common/dtype-enum.glsl"
+
 // loop unrolling!
 #extension GL_EXT_control_flow_attributes : require
 

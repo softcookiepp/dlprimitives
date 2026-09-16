@@ -282,6 +282,6 @@ void pointwise_reduce_naive_impl()
 	y0_data[y0_idx] = typeof_y0(yReduce.data[0]);
 	#if Y_ARITY > 1
 		uint y1_idx = y1_offset + getStridedIndexFromPos(yPos, y1_strides, DIMS);
-		y1_data[y1_idx = typeof_y1(yReduce.data[1]);
+		y1_data[y1_idx] = typeof_y1(yReduce.data[1]);
 	#endif
 }

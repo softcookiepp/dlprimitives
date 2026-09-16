@@ -395,23 +395,28 @@ namespace core {
 				device, xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), xs[3].dtype(), ys[0].dtype());
 			k = prg->getKernel("exec");
 		}
+		else if(xs.size() == 1 && ys.size() == 2)
+		{
+			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_binary(device, xs[0].dtype(), ys[0].dtype(), ys[1].dtype());
+			k = prg->getKernel("exec");
+		}
+		std::cout << "xs size: " << xs.size() << "\nys size: " << ys.size() << std::endl;
 		if (!k) throw std::runtime_error("suitable kernel not found");
 		
 		int p = 0;
 		for (size_t i = 0; i < xs.size(); i += 1)
 		{
 			k->setArg(p++, xs[i].device_buffer());
-			k->setArg(p++, xs[i].device_offset());
+			k->setArg(p++, static_cast<uint32_t>(xs[i].device_offset()));
 			bind_shape(k, p, xs[i].stride());
 		}
 		for (size_t i = 0; i < ys.size(); i += 1)
 		{
 			k->setArg(p++, ys[i].device_buffer());
-			k->setArg(p++, ys[i].device_offset());
+			k->setArg(p++, static_cast<uint32_t>(ys[i].device_offset()));
 			bind_shape(k, p, ys[i].stride());
 		}
 		bind_shape(k, p, xShape);
-		//bind_shape(k, p, yShape);
 		bind_shape(k, p, reduceDimShape);
 		k->setArg(p++, yInitValues);
 		k->setArg(p++, ws);

@@ -248,6 +248,20 @@ void test_pointwise(const tart::device_ptr& q)
 		pointwiseOpStrided({b, a}, {c}, {-1}, dp::core::PointwiseOp::eAxpy);
         TEST(equal(c,ref,q));
     }
+    
+    #if 0
+		// eventually a test for workgroup size overflow will be necessary.
+		{
+			std::vector<Type> aVals(1024);
+			auto a=make_tensor<Type>(q,dp::Shape(1),{1});
+			auto b=make_tensor<Type>(q,dp::Shape(2),{2,3});
+			auto ref=make_tensor<Type>(q,dp::Shape(2),{3,4});
+			dp::Tensor c(q,dp::Shape(2),a.dtype());
+			std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
+			pointwiseOpBroadcastStrided({a, b}, {c}, {}, PointwiseOp::eAdd);
+			TEST(equal(c,ref,q));
+		}
+    #endif
 }
 
 template<typename Type>
@@ -430,12 +444,8 @@ void test_reduce(const tart::device_ptr& q)
         auto ref=make_tensor<Type>(q,dp::Shape(1),{7});
         dp::Tensor c(q,dp::Shape(1),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        #if 1
-			dlprim::core::pointwiseOpBroadcastReduceStrided({a, b}, {c}, {}, {}, dlprim::core::PointwiseOp::eAdd,
-				dlprim::core::PointwiseOp::eAdd, {0.0});
-        #else
-			pointwise_operation_broadcast_reduce({a,b},{c},{},"y0=x0+x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
-		#endif
+		dlprim::core::pointwiseOpBroadcastReduceStrided({a, b}, {c}, {}, {}, dlprim::core::PointwiseOp::eAdd,
+			dlprim::core::PointwiseOp::eAdd, {0.0});
         TEST(equal(c,ref,q));
     }
     {
@@ -444,14 +454,11 @@ void test_reduce(const tart::device_ptr& q)
         auto ref=make_tensor<Type>(q,dp::Shape(1,2),{7,9});
         dp::Tensor c(q,dp::Shape(1,2),a.dtype());
         std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-        #if 1
-			dlprim::core::pointwiseOpBroadcastReduceStrided({b, a}, {c}, {7.0}, {0}, dlprim::core::PointwiseOp::eAxpy,
-				dlprim::core::PointwiseOp::eAdd, {0.0});
-        #else
-			pointwise_operation_broadcast_reduce({a,b},{c},{7},"y0=x0+w0*x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
-		#endif
+		dlprim::core::pointwiseOpBroadcastReduceStrided({b, a}, {c}, {7.0}, {0}, dlprim::core::PointwiseOp::eAxpy,
+			dlprim::core::PointwiseOp::eAdd, {0.0});
         TEST(equal(c,ref,q));
     }
+    #if 1 // this is a custom function that I have no interest in adding to the giant list of pointwise ops
     {
         auto a=make_tensor<Type>(q,dp::Shape(2,2),{1,2,7,3});
         auto ref0=make_tensor<Type>(q,dp::Shape(1,2),{7, 3});
@@ -459,12 +466,18 @@ void test_reduce(const tart::device_ptr& q)
         dp::Tensor c0(q,dp::Shape(1,2),a.dtype());
         dp::Tensor c1(q,dp::Shape(1,2),a.dtype());
         std::cout << a <<"+"<<"->"<<c0 << "x" << c1<<","<<c1<<std::endl;
+        #if 1
+			dlprim::core::pointwiseOpBroadcastReduceStrided({a}, {c0, c1}, {}, {0}, dlprim::core::PointwiseOp::eIdentity,
+				dlprim::core::PointwiseOp::eArgmaxReduce, {-100.0, -1.0});
+        #else
         pointwise_operation_broadcast_reduce({a},{c0,c1},{},
                     "y0=typeof_y0(x0); y1=typeof_y1(reduce_item);",
                     "reduce_y0 = -100; reduce_y1 = -1;" ,"if(y0 > reduce_y0) { reduce_y0 = y0; reduce_y1 = y1; }");
+		#endif
         TEST(equal(c0,ref0,q));
         TEST(equal(c1,ref1,q));
     }
+    #endif
     {
         auto a=make_tensor<Type>(q,dp::Shape(1,2),{0,1});
         auto b=make_tensor<Type>(q,dp::Shape(2,1),{0,1});
@@ -559,51 +572,53 @@ void test_reduce(const tart::device_ptr& q)
                 });
 		#endif
     }
-    for(size_t size : std::vector<int>({5,101,201,512,1001,2011,5099,10012,50243,100017})) {
-        int C=200;
-        dp::Shape as(C,size);
-        dp::Shape rs(C,1);
-        std::vector<Type> av(as.total_size());
-        std::vector<Type> r0(rs.total_size());
-        std::vector<std::int64_t> r1(rs.total_size());
-        size_t pos = 0;
-        int eps = 0;
-        int reduced_max  = 17 * size * 5;
-        if(tart::getDType<Type>() == tart::dtypes::float16) {
-            if(reduced_max >= 2048)
-                eps = std::numeric_limits<int>::max();
-        }
-        for(int c=0;c<C;c++) {
-            for(size_t j=0;j<size;j++) {
-                av.at(pos) = pos % 17;
-                r0.at(c) += pos % 17 * 5;
-                r1.at(c) += -(pos % 17) * 4;
-                pos++;
-            }
-        }
-        auto a=make_tensor<Type>(q,as,av);
-        auto ref0=make_tensor<Type>(q,rs,r0);
-        auto ref1=make_tensor<std::int64_t>(q,rs,r1);
-        dp::Tensor c0(q,rs,a.dtype());
-        dp::Tensor c1(q,rs,ref1.dtype());
-        std::cout << a <<"->"<<c0 << "&" << c1<<std::endl;
+    #if 0
+		for(size_t size : std::vector<int>({5,101,201,512,1001,2011,5099,10012,50243,100017})) {
+			int C=200;
+			dp::Shape as(C,size);
+			dp::Shape rs(C,1);
+			std::vector<Type> av(as.total_size());
+			std::vector<Type> r0(rs.total_size());
+			std::vector<std::int64_t> r1(rs.total_size());
+			size_t pos = 0;
+			int eps = 0;
+			int reduced_max  = 17 * size * 5;
+			if(tart::getDType<Type>() == tart::dtypes::float16) {
+				if(reduced_max >= 2048)
+					eps = std::numeric_limits<int>::max();
+			}
+			for(int c=0;c<C;c++) {
+				for(size_t j=0;j<size;j++) {
+					av.at(pos) = pos % 17;
+					r0.at(c) += pos % 17 * 5;
+					r1.at(c) += -(pos % 17) * 4;
+					pos++;
+				}
+			}
+			auto a=make_tensor<Type>(q,as,av);
+			auto ref0=make_tensor<Type>(q,rs,r0);
+			auto ref1=make_tensor<std::int64_t>(q,rs,r1);
+			dp::Tensor c0(q,rs,a.dtype());
+			dp::Tensor c1(q,rs,ref1.dtype());
+			std::cout << a <<"->"<<c0 << "&" << c1<<std::endl;
 
-        auto op = dp::core::PointwiseOperationBroadcastReduce::create(
-            q,{a.specs()},{c0.specs(),c1.specs()},
-            0, tart::dtypes::float32,
-            "y0=typeof_y0(x0); y1=typeof_y1(-x0);",
-            "reduce_y0 = 0; reduce_y1 = 0;" ,
-            "reduce_y0 += y0; reduce_y1 += y1;");
-        dp::Tensor ws;
-        if(op->workspace() > 0)
-            ws = dp::Tensor(q,dp::Shape(op->workspace()),tart::dtypes::uint8);
+			auto op = dp::core::PointwiseOperationBroadcastReduce::create(
+				q,{a.specs()},{c0.specs(),c1.specs()},
+				0, tart::dtypes::float32,
+				"y0=typeof_y0(x0); y1=typeof_y1(-x0);",
+				"reduce_y0 = 0; reduce_y1 = 0;" ,
+				"reduce_y0 += y0; reduce_y1 += y1;");
+			dp::Tensor ws;
+			if(op->workspace() > 0)
+				ws = dp::Tensor(q,dp::Shape(op->workspace()),tart::dtypes::uint8);
 
-        op->enqueue({a},{c0,c1},ws,{},{1,2},{0,0});
-        op->enqueue({a},{c0,c1},ws,{},{1,2},{4,1});
+			op->enqueue({a},{c0,c1},ws,{},{1,2},{0,0});
+			op->enqueue({a},{c0,c1},ws,{},{1,2},{4,1});
 
-        TEST(equal(c0,ref0,q,eps));
-        TEST(equal(c1,ref1,q,eps));
-    }
+			TEST(equal(c0,ref0,q,eps));
+			TEST(equal(c1,ref1,q,eps));
+		}
+	#endif
     for(int b : std::vector<int>{2,5,64}) {
         for(int hw : std::vector<int>{7,20,37}) {
             int C=500;

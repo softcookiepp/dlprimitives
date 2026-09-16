@@ -85,6 +85,7 @@ class AllPrograms
 	tart::program_ptr mPointwiseTrinaryUnaryProgram = nullptr;
 	
 	tart::program_ptr mPointwiseReduceUnaryUnaryProgram = nullptr;
+	tart::program_ptr mPointwiseReduceUnaryBinaryProgram = nullptr;
 	tart::program_ptr mPointwiseReduceBinaryUnaryProgram = nullptr;
 	tart::program_ptr mPointwiseReduceTrinaryUnaryProgram = nullptr;
 	tart::program_ptr mPointwiseReduceQuaternaryUnaryProgram = nullptr;
@@ -190,6 +191,12 @@ public:
 		const tart::DType& x0t, const tart::DType& x1t, const tart::DType& x2t, const tart::DType& x3t, const tart::DType& y0t)
 	{
 		return getAllPrograms(device, {x0t, x1t, x2t, x3t, y0t}).mPointwiseReduceQuaternaryUnaryProgram;
+	}
+	
+	inline const tart::program_ptr& pointwise_reduce_unary_binary(const tart::device_ptr& device,
+		const tart::DType& x0t, const tart::DType& y0t, const tart::DType& y1t)
+	{
+		return getAllPrograms(device, {x0t, y0t, y1t}).mPointwiseReduceUnaryBinaryProgram;
 	}
 	
 	inline const tart::program_ptr& pooling(const tart::device_ptr& device, const tart::DType dtype) { return getAllPrograms(device, {dtype}).mPoolingProgram; }
