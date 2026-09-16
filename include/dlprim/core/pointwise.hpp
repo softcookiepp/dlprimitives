@@ -95,7 +95,8 @@ namespace core {
 		eBcdFwd = 71,
 		eMse = 72,
 		eLayerGroupNormBwd = 73,
-		eArgmaxReduce = 74
+		eArgmaxReduce = 74,
+		eArgmaxInit = 75
 	};
 	
 	std::vector<int> getReduceDims(dlprim::Shape ref, std::vector<int> dim);

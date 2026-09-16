@@ -315,6 +315,11 @@ Y_OUT pointwise_function(Shape pos, uint gid, uint xArity, uint yArity, X_IN xar
 			y1 = exp(-abs(x0));
 			y0 = min(A0, x0) - log(A1 + y1);
 		}
+		else if (pointwiseRoutine == ROUTINE_ARGMAX_INIT)
+		{
+			y0 = x0;
+			y1 = acctype(gid);
+		}
 	}
 	
 	

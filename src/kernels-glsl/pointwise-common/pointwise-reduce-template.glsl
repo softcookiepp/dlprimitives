@@ -191,7 +191,7 @@ void pointwise_reduce_naive_impl()
 		#endif
 		
 		// compute value, store in shared memory
-		Y_OUT yElem = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
+		Y_OUT yElem = pointwise_function(yPos, x0_idx, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
 		yReduce = pointwise_reduce_function(yElem, yReduce, Y_ARITY, REDUCE_ROUTINE);
 	}
 	

@@ -405,34 +405,6 @@ void test_broadcast(const tart::device_ptr& q)
     }
 }
 
-void pointwise_operation_broadcast_reduce(  std::vector<dp::Tensor> xs,
-                                            std::vector<dp::Tensor> ys,
-                                            std::vector<double>  ws,
-                                            std::string const &compute,
-                                            std::string const &reduce_init,
-                                            std::string const &reduce)
-{
-    using namespace dlprim;
-    std::vector<TensorSpecs> xspec,yspec;
-    std::vector<double> alpha,beta;
-    for(auto const &x:xs) {
-        xspec.push_back(x.specs());
-    }
-    for(auto const &y:ys) {
-        yspec.push_back(y.specs());
-        alpha.push_back(1.0);
-        beta.push_back(0.0);
-    }
-    
-    auto op = dlprim::core::PointwiseOperationBroadcastReduce::create(
-                        dlprim::tensorDevice(xs[0]), xspec,yspec,
-                        ws.size(),ys[0].dtype(),compute,reduce_init,reduce);
-    Tensor workspace;
-    if(op->workspace() > 0)
-        workspace = Tensor(dlprim::tensorDevice(xs[0]),Shape(op->workspace()),tart::dtypes::uint8);
-    op->enqueue(xs,ys,workspace,ws,alpha,beta);
-}
-
 template<typename Type>
 void test_reduce(const tart::device_ptr& q)
 {
@@ -459,37 +431,32 @@ void test_reduce(const tart::device_ptr& q)
         TEST(equal(c,ref,q));
     }
     #if 0 // This is for argmax-like functions, and argmax will be implemented in a separate kernel somewhere else.
-    {
-        auto a=make_tensor<Type>(q,dp::Shape(2,2),{1,2,7,3});
-        auto ref0=make_tensor<Type>(q,dp::Shape(1,2),{7, 3});
-        auto ref1=make_tensor<Type>(q,dp::Shape(1,2),{1, 1});
-        dp::Tensor c0(q,dp::Shape(1,2),a.dtype());
-        dp::Tensor c1(q,dp::Shape(1,2),a.dtype());
-        std::cout << a <<"+"<<"->"<<c0 << "x" << c1<<","<<c1<<std::endl;
-        #if 1
-			dlprim::core::pointwiseOpBroadcastReduceStrided({a}, {c0, c1}, {}, {0}, dlprim::core::PointwiseOp::eIdentity,
-				dlprim::core::PointwiseOp::eArgmaxReduce, {-100.0, 0.0});
-        #else
-        pointwise_operation_broadcast_reduce({a},{c0,c1},{},
-                    "y0=typeof_y0(x0); y1=typeof_y1(reduce_item);",
-                    "reduce_y0 = -100; reduce_y1 = -1;" ,"if(y0 > reduce_y0) { reduce_y0 = y0; reduce_y1 = y1; }");
-		#endif
-        TEST(equal(c0,ref0,q));
-        TEST(equal(c1,ref1,q));
-    }
+		{
+			auto a=make_tensor<Type>(q,dp::Shape(2,2),{1,2,7,3});
+			auto ref0=make_tensor<Type>(q,dp::Shape(1,2),{7, 3});
+			auto ref1=make_tensor<Type>(q,dp::Shape(1,2),{1, 1});
+			dp::Tensor c0(q,dp::Shape(1,2),a.dtype());
+			dp::Tensor c1(q,dp::Shape(1,2),a.dtype());
+			std::cout << a <<"+"<<"->"<<c0 << "x" << c1<<","<<c1<<std::endl;
+				dlprim::core::pointwiseOpBroadcastReduceStrided({a}, {c0, c1}, {}, {}, dlprim::core::PointwiseOp::eIdentity,
+					dlprim::core::PointwiseOp::eArgmaxReduce, {-100.0, 0.0});
+			TEST(equal(c0,ref0,q));
+			TEST(equal(c1,ref1,q));
+		}
+		
+		{
+			auto a=make_tensor<Type>(q,dp::Shape(1,2),{0,1});
+			auto b=make_tensor<Type>(q,dp::Shape(2,1),{0,1});
+			auto ref0=make_tensor<Type>(q,dp::Shape(2,1),{1,15});
+			auto ref1=make_tensor<Type>(q,dp::Shape(2,1),{0,56});
+			dp::Tensor c0(q,dp::Shape(2,1),a.dtype());
+			dp::Tensor c1(q,dp::Shape(2,1),a.dtype());
+			std::cout << a <<"+"<<b<<"->"<<c0<<","<<c1<<std::endl;
+			pointwise_operation_broadcast_reduce({a,b},{c0,c1},{7},"y0=x0+w0*x1; y1=y0;","reduce_y0 = 0; reduce_y1 = 1;" ,"reduce_y0 += y0; reduce_y1 *= y1;");
+			TEST(equal(c0,ref0,q));
+			TEST(equal(c1,ref1,q));
+		}
     #endif
-    {
-        auto a=make_tensor<Type>(q,dp::Shape(1,2),{0,1});
-        auto b=make_tensor<Type>(q,dp::Shape(2,1),{0,1});
-        auto ref0=make_tensor<Type>(q,dp::Shape(2,1),{1,15});
-        auto ref1=make_tensor<Type>(q,dp::Shape(2,1),{0,56});
-        dp::Tensor c0(q,dp::Shape(2,1),a.dtype());
-        dp::Tensor c1(q,dp::Shape(2,1),a.dtype());
-        std::cout << a <<"+"<<b<<"->"<<c0<<","<<c1<<std::endl;
-        pointwise_operation_broadcast_reduce({a,b},{c0,c1},{7},"y0=x0+w0*x1; y1=y0;","reduce_y0 = 0; reduce_y1 = 1;" ,"reduce_y0 += y0; reduce_y1 *= y1;");
-        TEST(equal(c0,ref0,q));
-        TEST(equal(c1,ref1,q));
-    }
     {
         auto test_eq = [&](dp::Shape as,std::vector<Type> av,dp::Shape bs,std::vector<Type> bv,dp::Shape cs,std::vector<Type> cv) 
         {
@@ -498,12 +465,8 @@ void test_reduce(const tart::device_ptr& q)
             auto ref=make_tensor<Type>(q,cs,cv);
             dp::Tensor c(q,cs,a.dtype());
             std::cout << a <<"+"<<b<<"->"<<c<<std::endl;
-            #if 1 // the dimension alignment rules act weird beyond a certain point
-				dlprim::core::pointwiseOpBroadcastReduceStrided({a, b}, {c}, {}, {}, dlprim::core::PointwiseOp::eAdd,
-				dlprim::core::PointwiseOp::eAdd, {0.0});
-            #else
-				pointwise_operation_broadcast_reduce({a,b},{c},{},"y0=x0+x1;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
-			#endif
+			dlprim::core::pointwiseOpBroadcastReduceStrided({a, b}, {c}, {}, {}, dlprim::core::PointwiseOp::eAdd,
+			dlprim::core::PointwiseOp::eAdd, {0.0});
             TEST(equal(c,ref,q));
         };
         test_eq(dp::Shape(1,2,1),{0,1},
@@ -642,7 +605,8 @@ void test_reduce(const tart::device_ptr& q)
             auto ref=make_tensor<Type>(q,rs,rv);
             dp::Tensor c(q,rs,a.dtype());
             std::cout << a <<"->"<<c<<std::endl;
-            pointwise_operation_broadcast_reduce({a},{c},{},"y0=x0;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
+			dlprim::core::pointwiseOpBroadcastReduceStrided({a}, {c}, {}, {}, dlprim::core::PointwiseOp::eIdentity,
+				dlprim::core::PointwiseOp::eAdd, {0.0});
             int eps = 0;
             if(tart::getDType<Type>() == tart::dtypes::float16 && (b*hw*hw*7) >= 2048) {
                 eps = std::numeric_limits<int>::max();
@@ -674,7 +638,8 @@ void test_reduce(const tart::device_ptr& q)
             auto ref=make_tensor<Type>(q,rs,rv);
             dp::Tensor c(q,rs,a.dtype());
             std::cout << a <<"->"<<c<<std::endl;
-            pointwise_operation_broadcast_reduce({a},{c},{},"y0=x0;","reduce_y0 = 0;" ,"reduce_y0 += y0;");
+            dlprim::core::pointwiseOpBroadcastReduceStrided({a}, {c}, {}, {}, dlprim::core::PointwiseOp::eIdentity,
+				dlprim::core::PointwiseOp::eAdd, {0.0});
             int eps = 0;
             if(tart::getDType<Type>() == tart::dtypes::float16 ) {
                 eps = std::numeric_limits<int>::max();
