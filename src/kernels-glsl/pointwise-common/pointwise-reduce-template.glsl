@@ -192,21 +192,13 @@ void pointwise_reduce_naive_impl()
 		
 		// compute value, store in shared memory
 		Y_OUT yElem = pointwise_function(yPos, gl_GlobalInvocationID.x, X_ARITY, Y_ARITY, xArgs, wArgs, POINTWISE_ROUTINE);
-		
-		[[unroll]]
-		for (uint yArityIdx = 0; yArityIdx < Y_ARITY; yArityIdx += 1)
-		{
-			X_IN reduceInput;
-			reduceInput.data[0] = yElem.data[yArityIdx];
-			reduceInput.data[1] = yReduce.data[yArityIdx];
-			yReduce.data[yArityIdx] = pointwise_function(yPos, gl_GlobalInvocationID.x, 2, 1, reduceInput, wArgs, REDUCE_ROUTINE).data[0];
-		}
+		yReduce = pointwise_reduce_function(yElem, yReduce, Y_ARITY, REDUCE_ROUTINE);
 	}
 	
 	
 	#if USE_SUBGROUP_ARITHMETIC
 		// Reduce with subgroup arithmetic
-		#if Y_ARITY > 1
+		#if 1//Y_ARITY > 1
 			Y_OUT ySubgroupReduce;
 			[[unroll]]
 			for (uint i = 0; i < Y_ARITY; i += 1)

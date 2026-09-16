@@ -458,7 +458,7 @@ void test_reduce(const tart::device_ptr& q)
 			dlprim::core::PointwiseOp::eAdd, {0.0});
         TEST(equal(c,ref,q));
     }
-    #if 1 // this is a custom function that I have no interest in adding to the giant list of pointwise ops
+    #if 0 // This is for argmax-like functions, and argmax will be implemented in a separate kernel somewhere else.
     {
         auto a=make_tensor<Type>(q,dp::Shape(2,2),{1,2,7,3});
         auto ref0=make_tensor<Type>(q,dp::Shape(1,2),{7, 3});
@@ -468,7 +468,7 @@ void test_reduce(const tart::device_ptr& q)
         std::cout << a <<"+"<<"->"<<c0 << "x" << c1<<","<<c1<<std::endl;
         #if 1
 			dlprim::core::pointwiseOpBroadcastReduceStrided({a}, {c0, c1}, {}, {0}, dlprim::core::PointwiseOp::eIdentity,
-				dlprim::core::PointwiseOp::eArgmaxReduce, {-100.0, -1.0});
+				dlprim::core::PointwiseOp::eArgmaxReduce, {-100.0, 0.0});
         #else
         pointwise_operation_broadcast_reduce({a},{c0,c1},{},
                     "y0=typeof_y0(x0); y1=typeof_y1(reduce_item);",
