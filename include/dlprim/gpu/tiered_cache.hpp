@@ -11,41 +11,6 @@ namespace dlprim
 namespace gpu
 {
 
-// The fundamental distinguishing factor of each pointwise op.
-typedef std::tuple<
-	std::vector<tart::DType>, // xtypes
-	std::vector<tart::DType>, // ytypes
-	size_t, // weight count
-	std::vector<tart::DType>, // wtypes
-	std::string, // code
-	bool, // shrink dims
-	std::string, // reduce init code
-	std::string // reduce code
-> PointwiseOpKey;
-
-class PointwiseCache
-{
-	tart::device_ref mDevice;
-	std::map<PointwiseOpKey, tart::program_ptr> mPointwisePrograms;
-	//std::vector<std::pair<PointwiseOpKey, tart::program_ptr>> mPointwisePrograms;
-	
-	tart::program_ptr findProgram(const PointwiseOpKey& key);
-public:
-	PointwiseCache(const tart::device_ptr& device);
-	
-	tart::program_ptr getPointwiseOperation(std::vector<Tensor>& xs,
-		std::vector<Tensor>& ys, std::vector<double> ws, const std::string& code);
-	
-	tart::program_ptr getPointwiseBroadcastReduceOperation(
-		std::vector<TensorSpecs>& xs,
-		std::vector<TensorSpecs>& ys,
-		int weights_count,
-		const tart::DType& weights_type,
-		const std::string& compute_code,
-		const std::string& reduce_init,
-		const std::string& reduce);
-};
-
 class PerDeviceProgramCache;
 
 class AllPrograms
@@ -119,23 +84,11 @@ public:
 class PerDeviceProgramCache
 {
 	std::map<std::uintptr_t, std::unique_ptr<ProgramsPerDtypes>> mProgramsPerDtypes;
-	std::map<std::uintptr_t, std::unique_ptr<PointwiseCache>> mPointwiseCaches;
 	
-	PointwiseCache& getPointwiseCache(const tart::device_ptr& device);
 public:
 	AllPrograms& getAllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes);
 	
 	static PerDeviceProgramCache& instance();
-	
-	tart::program_ptr getPointwiseBroadcastReduceOperation(
-		const tart::device_ptr& device,
-		std::vector<TensorSpecs>& xs,
-		std::vector<TensorSpecs>& ys,
-		int weights_count,
-		const tart::DType& weights_type,
-		const std::string& compute_code,
-		const std::string& reduce_init,
-		const std::string& reduce);
 	
 	inline const tart::program_ptr& activation(const tart::device_ptr& device) { return getAllPrograms(device, {}).mActivationProgram; }
 	inline const tart::program_ptr& axpby(const tart::device_ptr& device) { return getAllPrograms(device, {}).mAxpbyProgram; }
