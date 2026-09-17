@@ -71,25 +71,24 @@
 	#define gridDim gl_NumWorkGroups
 #endif
 
-#ifndef dtype
-	#define dtype float
+#ifndef DTYPE
+	#define DTYPE DTYPE_F32
 #endif
 
-#if 0
-	#if dtype == float16_t
-		#define stype float16_t
-		#define sizeof_dtype 2
-		#define PRECISION 32
-		#define dtype2 f16vec2
-		#define dtype4 f16vec4
-		#define DTYPE_MAX HLF_MAX
-		#define DTYPE_MIN HLF_MIN
-		#if ATOMIC_FLOAT16
-			#error "not implemented"
-		#endif
+#if DTYPE == DTYPE_F16
+	#define stype float16_t
+	#define sizeof_dtype 2
+	#define PRECISION 32
+	#define dtype2 f16vec2
+	#define dtype4 f16vec4
+	#define DTYPE_MAX HLF_MAX
+	#define DTYPE_MIN HLF_MIN
+	#if ATOMIC_FLOAT16
+		#error "not implemented"
 	#endif
 #endif
-#if dtype == float
+#if DTYPE == DTYPE_F32
+	#define dtype float
 	#define stype float
 	#define sizeof_dtype 4
 	#define PRECISION 32
@@ -107,7 +106,8 @@
 		#define dtype_to_atomic(v) floatBitsToUint(v)
 		#define atomic_to_dtype(v) uintBitsToFloat(v)
 	#endif
-#elif dtype == double
+#elif DTYPE == DTYPE_F64
+	#define dtype double
 	#define stype double
 	#define sizeof_dtype 8
 	#define PRECISION 64
@@ -118,6 +118,8 @@
 	#if ATOMIC_FLOAT64
 		#error "not implemented"
 	#endif
+#else
+	#error "dtype not implemented"
 #endif
 
 // intermediate types used for accumulation/calculation
@@ -125,7 +127,7 @@
 	#define iacctype int
 #endif
 #ifndef acctype
-	#define acctype float
+	#define acctype dtype
 #endif
 #define A0 acctype(0)
 #define A1 acctype(1)
@@ -135,13 +137,37 @@
 #define NAN stype(uintBitsToFloat(0x7FC00000))
 #define PI stype(double(3.14159265358979323846))
 
-#define cmp_gt(a, b) (dtype(a) > dtype(b) )
 
-#ifndef itype
+#ifndef ITYPE
 	// just default to 32 bit for now just so we can test to ensure it compiles
-	#define itype int
+	#define ITYPE DTYPE_I32
 #endif
 
+#if ITYPE == DTYPE_F16
+	#define itype float16_t
+#elif ITYPE == DTYPE_F32
+	#define itype float
+#elif ITYPE == DTYPE_F64
+	#define itype double
+#elif ITYPE == DTYPE_I8
+	#define itype int8_t
+#elif ITYPE == DTYPE_I16
+	#define itype int16_t
+#elif ITYPE == DTYPE_I32
+	#define itype int
+#elif ITYPE== DTYPE_I64
+	#define itype int64_t
+#elif ITYPE == DTYPE_U8
+	#define itype uint8_t
+#elif ITYPE == DTYPE_U16
+	#define itype uint16_t
+#elif ITYPE == DTYPE_U32
+	#define itype uint
+#elif ITYPE== DTYPE_U64
+	#define itype uint64_t
+#else
+	#error "itype not implemented"
+#endif
 
 #ifndef USE_UNROLL
 	#define USE_UNROLL 0
@@ -151,17 +177,13 @@
 	#if USE_UNROLL
 		#define UNROLL(d)
 	#else
-		#define UNROLL(d)
+		#define UNROLL(d) [[unroll]]
 	#endif
 #endif
 
-// stubs to keep the compiler happy; they in fact do nothing, however
-#if 0
-	int64_t exp(int64_t x) { return int64_t(0); }
-	uint64_t exp(uint64_t x) { return uint64_t(0); }
-#endif
-int exp(int x) { return int(0); }
-uint exp(uint x) { return uint(0); }
+// why the hell not
+int exp(int x) { return int(exp(float(x))); }
+uint exp(uint x) { return uint(exp(float(x))); }
 
 double exp(double x) { precise float y = float(x); y = exp(y); return double(y); }
 

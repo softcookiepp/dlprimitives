@@ -1,4 +1,6 @@
 #include "../pointwise-common/pointwise-enum.glsl"
+#include "../pointwise-common/pointwise-dtypes.glsl"
+
 #ifndef NUM_WEIGHTS_MAX
 	#define NUM_WEIGHTS_MAX 2
 #endif
