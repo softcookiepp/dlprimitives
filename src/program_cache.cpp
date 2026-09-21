@@ -35,9 +35,6 @@ tart::program_ptr Cache::build_program(const tart::device_ptr& device, std::stri
     if(ks == kernel_sources.end())
         throw ValidationError("Unknow program source " + source);
 	auto& entryPointMap = ks->second;
-    //std::string const &source_text = ks->second;
-    std::ostringstream prepend;
-    bool combine = false;
 
     std::vector<std::string> options;
     for(size_t i=0;i<params.size();i++)
@@ -62,21 +59,14 @@ tart::program_ptr Cache::build_program(const tart::device_ptr& device, std::stri
     if(meta.long_) options.push_back("-DENABLE_INT64_ARITHMETIC=1");
     if(meta.short_) options.push_back("-DENABLE_INT16_ARITHMETIC=1");
     if(meta.char_)  options.push_back("-DENABLE_INT8_ARITHMETIC=1");
+    if (meta.subgroupAdd) options.push_back("-DUSE_SUBGROUP_ARITHMETIC=1");
     
-    if (meta.subgroupAdd) prepend << "#define USE_SUBGROUP_ARITHMETIC 1\n";
-    
-    if (prepend.str().size() > 0) combine = true;
     
 	std::map<std::string, tart::shader_module_ptr> entryPointModules;
 	for (auto& pair : entryPointMap)
 	{
-		const std::string src = "#version 450\n" + (combine ? prepend.str() + pair.second : pair.second);
-		entryPointModules[pair.first] = device->compileGLSL(src, options, pair.first);
+		entryPointModules[pair.first] = device->compileGLSL(pair.second, options, pair.first);
 	}
-	
-    #ifdef DEBUG_CACHE_TIMES
-    TimeWriter guard(source);
-    #endif
     
 	// this may be more complicated than I thought :c
 	tart::program_ptr prg = device->createProgram(entryPointModules);
