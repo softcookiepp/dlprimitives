@@ -6,13 +6,12 @@
 #define typeof_c typeof_y0
 
 // adapted from https://github.com/Peterc3-dev/torch-vulkan
+layout(local_size_x_id = 0, local_size_y_id = 0) in;
+layout(constant_id = 0) const uint TILE_SIZE = 16;
+layout(constant_id = 1) const bool USE_BETA = true; // if beta is 0, don't add c
 
-#define TILE_SIZE 16
-
-layout(local_size_x = TILE_SIZE, local_size_y = TILE_SIZE) in;
-
-layout(binding = 0, std430) buffer BufA { typeof_a a[]; };
-layout(binding = 1, std430) buffer BufB { typeof_b b[]; };
+layout(binding = 0, std430) readonly buffer BufA { typeof_a a[]; };
+layout(binding = 1, std430) readonly buffer BufB { typeof_b b[]; };
 layout(binding = 2, std430) buffer BufC { typeof_c c[]; };
 
 layout(push_constant) uniform PushConstants
@@ -20,6 +19,8 @@ layout(push_constant) uniform PushConstants
     uint M;
     uint K;
     uint N;
+    float alpha;
+    float beta;
 } params;
 
 shared typeof_a tileA[TILE_SIZE][TILE_SIZE];
@@ -68,7 +69,11 @@ void main()
         barrier();
     }
 
-    if (row < params.M && col < params.N) {
-        c[row * params.N + col] = typeof_c(sum);
+    if (row < params.M && col < params.N)
+    {
+		if (USE_BETA)
+			c[row * params.N + col] = typeof_c(params.beta)*c[row * params.N + col] + typeof_c(params.alpha)*typeof_c(sum);
+		else
+			c[row * params.N + col] = typeof_c(sum)*typeof_c(params.alpha);
     }
 }
