@@ -43,11 +43,9 @@ tart::program_ptr Cache::build_program(const tart::device_ptr& device, std::stri
     for(size_t i=0;i<params.size();i++)
     {
 		const char startChar = params[i].name.c_str()[0];
-		if (startChar == '$')
-		{
-			prepend << "\n" << params[i].value << "\n";
-		}
-        else if(startChar == '#') {
+        if(startChar == '#')
+        {
+			throw std::runtime_error("don't use defines any more, silly");
             prepend << "#define " << params[i].name.c_str() + 1 << " " << params[i].value << "\n";
             combine=true;
         }

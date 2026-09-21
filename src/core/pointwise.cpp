@@ -124,28 +124,26 @@ namespace core {
 			}
 		}
 		
+		tart::program_ptr prg = nullptr;
 		tart::kernel_ptr k = nullptr;
 		if (xs.size() == 1)
 		{
 			if (ys.size() == 1)
 			{
-				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_unary_unary(device, xs[0].dtype(), ys[0].dtype());
-				k = prg->getKernel("exec");
+				prg = gpu::PerDeviceProgramCache::instance().pointwise_unary_unary(device, xs[0].dtype(), ys[0].dtype());
 			}
 			else
 			{
-				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_unary_binary(device,
+				prg = gpu::PerDeviceProgramCache::instance().pointwise_unary_binary(device,
 					xs[0].dtype(), ys[0].dtype(), ys[1].dtype());
-				k = prg->getKernel("exec");
 			}
 		}
 		else if (xs.size() == 2)
 		{
 			if (ys.size() == 1)
 			{
-				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_binary_unary(device,
+				prg = gpu::PerDeviceProgramCache::instance().pointwise_binary_unary(device,
 					xs[0].dtype(), xs[1].dtype(), ys[0].dtype());
-				k = prg->getKernel("exec");
 			}
 			else
 			{
@@ -156,15 +154,15 @@ namespace core {
 		{
 			if (ys.size() == 1)
 			{
-				tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_trinary_unary(device,
+				prg = gpu::PerDeviceProgramCache::instance().pointwise_trinary_unary(device,
 					xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), ys[0].dtype());
-				k = prg->getKernel("exec");
 			}
 			else
 			{
 				throw std::runtime_error("outputArity != 1 not implemented");
 			}
 		}
+		k = prg->getKernel("main");
 		int p = 0;
 		for (size_t i = 0; i < xs.size(); i += 1)
 		{
@@ -372,34 +370,31 @@ namespace core {
 		}
 		
 		// Single-stage reduction.
+		tart::program_ptr prg = nullptr;
 		tart::kernel_ptr k = nullptr;
 		if (xs.size() == 1 && ys.size() == 1)
 		{
-			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_unary(device, xs[0].dtype(), ys[0].dtype());
-			k = prg->getKernel("exec");
+			prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_unary(device, xs[0].dtype(), ys[0].dtype());
 		}
 		else if(xs.size() == 2 && ys.size() == 1)
 		{
-			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_binary_unary(device, xs[0].dtype(), xs[1].dtype(), ys[0].dtype());
-			k = prg->getKernel("exec");
+			prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_binary_unary(device, xs[0].dtype(), xs[1].dtype(), ys[0].dtype());
 		}
 		else if(xs.size() == 3 && ys.size() == 1)
 		{
-			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_trinary_unary(
+			prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_trinary_unary(
 				device, xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), ys[0].dtype());
-			k = prg->getKernel("exec");
 		}
 		else if(xs.size() == 4 && ys.size() == 1)
 		{
-			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_quaternary_unary(
+			prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_quaternary_unary(
 				device, xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), xs[3].dtype(), ys[0].dtype());
-			k = prg->getKernel("exec");
 		}
 		else if(xs.size() == 1 && ys.size() == 2)
 		{
-			tart::program_ptr prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_binary(device, xs[0].dtype(), ys[0].dtype(), ys[1].dtype());
-			k = prg->getKernel("exec");
+			prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_binary(device, xs[0].dtype(), ys[0].dtype(), ys[1].dtype());
 		}
+		k = prg->getKernel("main");
 		if (!k) throw std::runtime_error("suitable kernel not found");
 		
 		int p = 0;
