@@ -49,7 +49,12 @@ def get_sources(files,search_dirs):
 					sources[program_name] = program_entry_points
 	return sources;
 
-def make_cpp(sources, target):
+def get_sources2(files, search_dirs):
+	sources = {}
+	for d in search_dirs:
+		d = os.path.abspath(d)
+
+def make_cpp(sources, target, single_kernel_modules = {}):
 	if os.path.exists(target):
 		os.remove(target)
 	content = """
@@ -90,4 +95,5 @@ if __name__ == "__main__":
 	parser.add_argument('sources',nargs='*')
 	args = parser.parse_args(sys.argv[1:])
 	src = get_sources(args.sources,args.I)
+	src2 = get_sources2(args.sources, args.I)
 	make_cpp(src,args.o)
