@@ -43,37 +43,25 @@ tart::program_ptr Cache::build_program(const tart::device_ptr& device, std::stri
     for(size_t i=0;i<params.size();i++)
     {
 		const char startChar = params[i].name.c_str()[0];
-        if(startChar == '#')
-        {
-			throw std::runtime_error("don't use defines any more, silly");
-            prepend << "#define " << params[i].name.c_str() + 1 << " " << params[i].value << "\n";
-            combine=true;
-        }
-        else
         {
 			std::stringstream optSS;
 			optSS << "-D" << params[i].name <<"=" <<params[i].value;
 			// std::cout << "OPTION: " << optSS.str() << "\n";
             options.push_back(optSS.str());
-            if (params[i].name == "dtype" && params[i].value == "")
-            {
-				throw std::runtime_error("dtype cannot be empty");
-				//params[i].value = "float";
-			}
         }
     }
     
 	tart::DeviceMetadata meta = device->getMetadata();
     // storage extensions
-    if (meta.half_ || meta.short_) prepend << "#extension GL_EXT_shader_16bit_storage : require\n";
-    if(meta.char_) prepend << "#extension GL_EXT_shader_8bit_storage : require\n";
+    if (meta.half_ || meta.short_) options.push_back("-DENABLE_16BIT_STORAGE=1");
+    if(meta.char_) options.push_back("-DENABLE_8BIT_STORAGE=1");
     
     // arithmetic types
-    if(meta.double_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_float64 : require\n";
-    if(meta.half_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require\n";
-    if(meta.long_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require\n";
-    if(meta.short_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require\n";
-    if(meta.char_) prepend << "#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require\n";
+    if(meta.double_) options.push_back("-DENABLE_FLOAT64_ARITHMETIC=1");
+    if(meta.half_) options.push_back("-DENABLE_FLOAT16_ARITHMETIC=1");
+    if(meta.long_) options.push_back("-DENABLE_INT64_ARITHMETIC=1");
+    if(meta.short_) options.push_back("-DENABLE_INT16_ARITHMETIC=1");
+    if(meta.char_)  options.push_back("-DENABLE_INT8_ARITHMETIC=1");
     
     if (meta.subgroupAdd) prepend << "#define USE_SUBGROUP_ARITHMETIC 1\n";
     

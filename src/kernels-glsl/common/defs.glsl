@@ -5,6 +5,34 @@
 
 #include "../common/dtype-enum.glsl"
 
+#if ENABLE_16BIT_STORAGE
+	#extension GL_EXT_shader_16bit_storage : require
+#endif
+#if ENABLE_8BIT_STORAGE
+	#extension GL_EXT_shader_8bit_storage : require
+#endif
+
+#if ENABLE_INT8_ARITHMETIC
+	#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#endif
+#if ENABLE_INT16_ARITHMETIC
+	#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+#endif
+#if ENABLE_INT64_ARITHMETIC
+	#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#endif
+
+#if ENABLE_FLOAT16_ARITHMETIC
+	#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
+#endif
+
+#if ENABLE_FLOAT64_ARITHMETIC
+	#extension GL_EXT_shader_explicit_arithmetic_types_float64 : require
+#endif
+
+
+
+
 // loop unrolling!
 #extension GL_EXT_control_flow_attributes : require
 
