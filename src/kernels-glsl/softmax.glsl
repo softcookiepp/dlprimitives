@@ -1,4 +1,10 @@
 #version 450
+
+/* This block is meant to be read by the compile script. Please do not remove it!
+ * @dtype TYPEOF_X0 floats
+ * @dtype TYPEOF_Y0 floats
+ */
+
 #include "common/defs.glsl"
 layout(local_size_x_id = 0) in;
 layout(constant_id = 0) const uint localSizeX = 1;

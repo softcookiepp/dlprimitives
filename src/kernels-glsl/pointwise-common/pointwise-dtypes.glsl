@@ -35,7 +35,9 @@
 #elif TYPEOF_X0 == DTYPE_U32
 	#define typeof_x0 uint
 #elif TYPEOF_X0 == DTYPE_U64
-	#define typeof_x0 uint64_t	
+	#define typeof_x0 uint64_t
+#elif TYPEOF_X0 == DTYPE_BF16
+	#define typeof_x0 bfloat16_t
 #else
 	#error "dtype not implemented for pointwise"
 #endif
@@ -62,6 +64,8 @@
 	#define typeof_x1 uint
 #elif TYPEOF_X1 == DTYPE_U64
 	#define typeof_x1 uint64_t
+#elif TYPEOF_X1 == DTYPE_BF16
+	#define typeof_x1 bfloat16_t
 #else
 	#error "dtype not implemented for pointwise"
 #endif
@@ -88,6 +92,8 @@
 	#define typeof_x2 uint
 #elif TYPEOF_X2 == DTYPE_U64
 	#define typeof_x2 uint64_t
+#elif TYPEOF_X2 == DTYPE_BF16
+	#define typeof_x2 bfloat16_t
 #else
 	#error "dtype not implemented for pointwise"
 #endif
@@ -114,6 +120,8 @@
 	#define typeof_x3 uint
 #elif TYPEOF_X3 == DTYPE_U64
 	#define typeof_x3 uint64_t
+#elif TYPEOF_X3 == DTYPE_BF16
+	#define typeof_x3 bfloat16_t
 #else
 	#error "dtype not implemented for pointwise"
 #endif
@@ -148,6 +156,8 @@
 	#define typeof_y0 uint
 #elif TYPEOF_Y0 == DTYPE_U64
 	#define typeof_y0 uint64_t
+#elif TYPEOF_Y0 == DTYPE_BF16
+	#define typeof_y0 bfloat16_t
 #else
 	#error "dtype not implemented for pointwise"
 #endif
@@ -175,6 +185,8 @@
 	#define typeof_y1 uint
 #elif TYPEOF_Y1 == DTYPE_U64
 	#define typeof_y1 uint64_t
+#elif TYPEOF_Y1 == DTYPE_BF16
+	#define typeof_y1 bfloat16_t
 #else
 	#error "dtype not implemented for pointwise"
 #endif

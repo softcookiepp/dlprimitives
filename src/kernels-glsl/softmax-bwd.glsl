@@ -1,8 +1,14 @@
 #version 450
-#include "../common/defs.glsl"
+
+/* This block is meant to be read by the compile script. Please do not remove it!
+ * @dtype TYPEOF_X0 floats
+ * @dtype TYPEOF_Y0 floats
+ */
+
+#include "common/defs.glsl"
 layout(local_size_x_id = 0) in;
 layout(constant_id = 0) const uint localSizeX = 1;
-#include "../common/shape.glsl"
+#include "common/shape.glsl"
 
 #define ROUTINE_SOFTMAX 0
 #define ROUTINE_LOG_SOFTMAX 1

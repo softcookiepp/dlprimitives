@@ -192,17 +192,6 @@
 	#error "dtype not implemented"
 #endif
 
-// intermediate types used for accumulation/calculation
-#ifndef iacctype
-	#define iacctype int
-#endif
-#ifndef acctype
-	#define acctype dtype
-#endif
-#define A0 acctype(0)
-#define A1 acctype(1)
-#define AN1 acctype(-1)
-
 #define INFINITY stype(uintBitsToFloat(0x7F800000))
 #define NAN stype(uintBitsToFloat(0x7FC00000))
 #define PI stype(double(3.14159265358979323846))
@@ -238,6 +227,17 @@
 #else
 	#error "itype not implemented"
 #endif
+
+// intermediate types used for accumulation/calculation
+#ifndef iacctype
+	#define iacctype itype
+#endif
+#ifndef acctype
+	#define acctype dtype
+#endif
+#define A0 acctype(0)
+#define A1 acctype(1)
+#define AN1 acctype(-1)
 
 #ifndef USE_UNROLL
 	#define USE_UNROLL 0

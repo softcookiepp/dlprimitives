@@ -3,6 +3,12 @@
 #define Y_ARITY 2
 #include "pointwise-common/pointwise-reduce-template.glsl"
 
+/* This block is meant to be read by the compile script. Please do not remove it!
+ * @dtype TYPEOF_X0 all
+ * @dtype TYPEOF_Y0 all
+ * @dtype TYPEOF_Y1 all
+ */
+
 void main()
 {
 	pointwise_reduce_naive_impl();
