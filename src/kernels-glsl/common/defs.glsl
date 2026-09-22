@@ -25,6 +25,9 @@
 #if ENABLE_FLOAT16_ARITHMETIC
 	#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
 #endif
+#if ENABLE_BFLOAT16_ARITHMETIC
+	#extension GL_EXT_bfloat16 : require
+#endif
 
 #if ENABLE_FLOAT64_ARITHMETIC
 	#extension GL_EXT_shader_explicit_arithmetic_types_float64 : require
@@ -104,7 +107,8 @@
 #endif
 
 #if DTYPE == DTYPE_F16
-	#define stype float16_t
+	#define dtype float16_t
+	#define stype dtype
 	#define sizeof_dtype 2
 	#define PRECISION 32
 	#define dtype2 f16vec2
@@ -114,8 +118,14 @@
 	#if ATOMIC_FLOAT16
 		#error "not implemented"
 	#endif
-#endif
-#if DTYPE == DTYPE_F32
+#elif DTYPE == DTYPE_BF16
+	#define dtype bfloat16_t 
+	#define stype dtype
+	#define sizeof_dtype 2
+	#define dtype2 bf16vec2
+	#define dtype2 bf16vec4
+	// more on this later
+#elif DTYPE == DTYPE_F32
 	#define dtype float
 	#define stype float
 	#define sizeof_dtype 4
@@ -136,7 +146,7 @@
 	#endif
 #elif DTYPE == DTYPE_F64
 	#define dtype double
-	#define stype double
+	#define stype dtype
 	#define sizeof_dtype 8
 	#define PRECISION 64
 	#define dtype2 dvec2
@@ -146,6 +156,38 @@
 	#if ATOMIC_FLOAT64
 		#error "not implemented"
 	#endif
+#elif DTYPE == DTYPE_I8
+	#define dtype int8_t
+	#define stype dtype
+	#define sizeof_dtype 1
+#elif DTYPE == DTYPE_I16
+	#define dtype int16_t
+	#define stype dtype
+	#define sizeof_dtype 2
+#elif DTYPE == DTYPE_I32
+	#define dtype int
+	#define stype dtype
+	#define sizeof_dtype 4
+#elif DTYPE == DTYPE_I64
+	#define dtype int64_t
+	#define stype dtype
+	#define sizeof_dtype 8
+#elif DTYPE == DTYPE_U8
+	#define dtype uint8_t
+	#define stype dtype
+	#define sizeof_dtype 1
+#elif DTYPE == DTYPE_U16
+	#define dtype uint16_t
+	#define stype dtype
+	#define sizeof_dtype 2
+#elif DTYPE == DTYPE_U32
+	#define dtype uint
+	#define stype dtype
+	#define sizeof_dtype 4
+#elif DTYPE == DTYPE_U64
+	#define dtype uint64_t
+	#define stype dtype
+	#define sizeof_dtype 8
 #else
 	#error "dtype not implemented"
 #endif
@@ -191,7 +233,7 @@
 	#define itype uint16_t
 #elif ITYPE == DTYPE_U32
 	#define itype uint
-#elif ITYPE== DTYPE_U64
+#elif ITYPE == DTYPE_U64
 	#define itype uint64_t
 #else
 	#error "itype not implemented"
