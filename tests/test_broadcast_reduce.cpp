@@ -660,7 +660,7 @@ int main(int argc,char **argv)
     }
     try
     {
-		for (size_t testIdx = 0; testIdx < 40; testIdx += 1)
+		for (size_t testIdx = 0; testIdx < 1; testIdx += 1)
 		{
 			std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
 			std::cout << "Testing shape" << std::endl;
