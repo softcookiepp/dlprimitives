@@ -396,7 +396,6 @@ namespace core {
 					k->setArg(p++, xs[i].device_offset());
 					for (size_t j = 0; j < max_tensor_dim; j += 1)
 						block.setMemberData(p++, static_cast<uint32_t>(xs[i].stride()[j]));
-					//bindShape(block, p, xs[i].stride());
 				}
 				else // just pad with first
 				{
@@ -404,7 +403,6 @@ namespace core {
 					k->setArg(p++, xs[0].device_offset());
 					for (size_t j = 0; j < max_tensor_dim; j += 1)
 						block.setMemberData(p++, static_cast<uint32_t>(xs[0].stride()[j]));
-					//bindShape(block, p, xs[0].stride());
 				}
 			}
 			
@@ -416,7 +414,6 @@ namespace core {
 					k->setArg(p++, ys[i].device_offset());
 					for (size_t j = 0; j < max_tensor_dim; j += 1)
 						block.setMemberData(p++, static_cast<uint32_t>(ys[i].stride()[j]));
-					//bindShape(block, p, ys[i].stride());
 				}
 				else // just pad with first
 				{
@@ -424,15 +421,12 @@ namespace core {
 					k->setArg(p++, ys[0].device_offset());
 					for (size_t j = 0; j < max_tensor_dim; j += 1)
 						block.setMemberData(p++, static_cast<uint32_t>(ys[0].stride()[j]));
-					//bindShape(block, p, ys[0].stride());
 				}
 			}
 			for (size_t j = 0; j < max_tensor_dim; j += 1)
 				block.setMemberData(p++, static_cast<uint32_t>(xShape[j]));
 			for (size_t j = 0; j < max_tensor_dim; j += 1)
 				block.setMemberData(p++, static_cast<uint32_t>(reduceDimShape[j]));
-			//bindShape(block, p, xShape);
-			//bindShape(block, p, reduceDimShape);
 			k->setArg(p++, yInitValues);
 			k->setArg(p++, ws);
 			k->setArg(p++, 0, gpu::kPointwiseMaxArityY + gpu::kPointwiseMaxArityX, block); // set 0

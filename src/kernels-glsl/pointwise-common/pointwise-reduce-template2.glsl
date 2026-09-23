@@ -314,86 +314,14 @@ void pointwise_reduce_naive_impl()
 {	
 	#if USE_SPEC_FOR_STRIDES == 0
 		// have to make the strides + shapes from the uniform buffer
-		Shape x0_strides = Shape(uint[DIMS_MAX](
-			x0s0,
-			x0s1,
-			x0s2,
-			x0s3,
-			x0s4,
-			x0s5,
-			x0s6,
-			x0s7
-		));
-		Shape x1_strides = Shape(uint[DIMS_MAX](
-			x1s0,
-			x1s1,
-			x1s2,
-			x1s3,
-			x1s4,
-			x1s5,
-			x1s6,
-			x1s7
-		));
-		Shape x2_strides = Shape(uint[DIMS_MAX](
-			x2s0,
-			x2s1,
-			x2s2,
-			x2s3,
-			x2s4,
-			x2s5,
-			x2s6,
-			x2s7
-		));
-		Shape x3_strides = Shape(uint[DIMS_MAX](
-			x3s0,
-			x3s1,
-			x3s2,
-			x3s3,
-			x3s4,
-			x3s5,
-			x3s6,
-			x3s7
-		));
-		Shape y0_strides = Shape(uint[DIMS_MAX](
-			y0s0,
-			y0s1,
-			y0s2,
-			y0s3,
-			y0s4,
-			y0s5,
-			y0s6,
-			y0s7
-		));
-		Shape y1_strides = Shape(uint[DIMS_MAX](
-			y1s0,
-			y1s1,
-			y1s2,
-			y1s3,
-			y1s4,
-			y1s5,
-			y1s6,
-			y1s7
-		));
-		Shape xShape = Shape(uint[DIMS_MAX](
-			xShape0,
-			xShape1,
-			xShape2,
-			xShape3,
-			xShape4,
-			xShape5,
-			xShape6,
-			xShape7
-		));
-		Shape reduceDims = Shape(uint[DIMS_MAX](
-			r0,
-			r1,
-			r2,
-			r3,
-			r4,
-			r5,
-			r6,
-			r7
-		));
+		Shape x0_strides = Shape(uint[DIMS_MAX](x0s0, x0s1, x0s2, x0s3, x0s4, x0s5, x0s6, x0s7));
+		Shape x1_strides = Shape(uint[DIMS_MAX](x1s0, x1s1, x1s2, x1s3, x1s4, x1s5, x1s6, x1s7));
+		Shape x2_strides = Shape(uint[DIMS_MAX](x2s0, x2s1, x2s2, x2s3, x2s4, x2s5, x2s6, x2s7));
+		Shape x3_strides = Shape(uint[DIMS_MAX](x3s0, x3s1, x3s2, x3s3, x3s4, x3s5, x3s6, x3s7));
+		Shape y0_strides = Shape(uint[DIMS_MAX](y0s0, y0s1, y0s2, y0s3, y0s4, y0s5, y0s6, y0s7));
+		Shape y1_strides = Shape(uint[DIMS_MAX](y1s0, y1s1, y1s2, y1s3, y1s4, y1s5, y1s6, y1s7));
+		Shape xShape = Shape(uint[DIMS_MAX](xShape0, xShape1, xShape2, xShape3, xShape4, xShape5, xShape6, xShape7));
+		Shape reduceDims = Shape(uint[DIMS_MAX](r0, r1, r2, r3, r4, r5, r6, r7));
 	#endif
 	
 	// determine position, exit if out of bounds

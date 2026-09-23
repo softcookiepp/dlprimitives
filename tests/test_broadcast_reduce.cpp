@@ -10,6 +10,7 @@
 #include <dlprim/core/pointwise.hpp>
 #include <iostream>
 #include "test.hpp"
+#include <chrono>
 
 namespace dp = dlprim;
 
@@ -657,43 +658,50 @@ int main(int argc,char **argv)
         std::cerr << "Use paltform:device" << std::endl;
         return 1;
     }
-    try {
+    try
+    {
+		for (size_t testIdx = 0; testIdx < 40; testIdx += 1)
+		{
+			std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+			std::cout << "Testing shape" << std::endl;
+			test_shape();
 
-        std::cout << "Testing shape" << std::endl;
-        test_shape();
-
-        dp::Context ctx(argv[1]);
-        bool with_half = false;
-        tart::device_ptr q = ctx.device();
-        std::cout << ctx.name() << std::endl;
-        
-        std::cout << "Pointwise" << std::endl;
-        test_pointwise<float>(q);
-        test_pointwise<int>(q);
-        test_pointwise<int64_t>(q);
-        test_pointwise<int16_t>(q);
-        #if 0
-			// broken until tart::half is fully integrated
-			if(with_half)
-				test_pointwise<tart::half>(q);
-		#endif
-        std::cout << "Broadcast" << std::endl;
-        test_broadcast<float>(q);
-        test_broadcast<int>(q);
-        test_broadcast<int64_t>(q);
-        test_broadcast<int16_t>(q);
-        test_broadcast<uint8_t>(q);
-        #if 0
-			if(with_half)
-				test_broadcast<my_half>(q);
-		#endif
-        std::cout << "Broadcast Reduce" << std::endl;
-        test_reduce<float>(q);
-        test_reduce<int>(q);
-        #if 0
-			if(with_half)
-				test_reduce<my_half>(q);
-		#endif
+			dp::Context ctx(argv[1]);
+			bool with_half = false;
+			tart::device_ptr q = ctx.device();
+			std::cout << ctx.name() << std::endl;
+			
+			std::cout << "Pointwise" << std::endl;
+			test_pointwise<float>(q);
+			test_pointwise<int>(q);
+			test_pointwise<int64_t>(q);
+			test_pointwise<int16_t>(q);
+			#if 0
+				// broken until tart::half is fully integrated
+				if(with_half)
+					test_pointwise<tart::half>(q);
+			#endif
+			std::cout << "Broadcast" << std::endl;
+			test_broadcast<float>(q);
+			test_broadcast<int>(q);
+			test_broadcast<int64_t>(q);
+			test_broadcast<int16_t>(q);
+			test_broadcast<uint8_t>(q);
+			#if 0
+				if(with_half)
+					test_broadcast<my_half>(q);
+			#endif
+			std::cout << "Broadcast Reduce" << std::endl;
+			test_reduce<float>(q);
+			test_reduce<int>(q);
+			#if 0
+				if(with_half)
+					test_reduce<my_half>(q);
+			#endif
+			std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+			size_t duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+			std::cout << "Test executed in " << duration << " ms\n";
+		}
     }
     catch(std::exception const &e) {
         std::cerr <<"Failed:"<< e.what() << std::endl;
