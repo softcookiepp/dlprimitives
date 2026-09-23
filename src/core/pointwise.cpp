@@ -376,7 +376,7 @@ namespace core {
 			reduceShape[i] = xShape[reduceDimShape[i]];
 			numReduceElems *= reduceShape[i];
 		}
-		#if 0
+		#if 1
 			std::vector<tart::DType> xts(xs.size(), tart::dtypes::float32);
 			std::vector<tart::DType> yts(ys.size(), tart::dtypes::float32);
 			for (size_t i = 0; i < xs.size(); i += 1)
@@ -393,16 +393,18 @@ namespace core {
 				if (i < xs.size())
 				{
 					k->setArg(p++, xs[i].device_buffer());
-					block.setMemberData(p++, xs[i].device_offset());
-					//block.setMemberData(p++, p);
-					bindShape(block, p, xs[i].stride());
+					k->setArg(p++, xs[i].device_offset());
+					for (size_t j = 0; j < max_tensor_dim; j += 1)
+						block.setMemberData(p++, static_cast<uint32_t>(xs[i].stride()[j]));
+					//bindShape(block, p, xs[i].stride());
 				}
 				else // just pad with first
 				{
 					k->setArg(p++, xs[0].device_buffer());
-					block.setMemberData(p++, xs[0].device_offset());
-					//block.setMemberData(p++, p);
-					bindShape(block, p, xs[0].stride());
+					k->setArg(p++, xs[0].device_offset());
+					for (size_t j = 0; j < max_tensor_dim; j += 1)
+						block.setMemberData(p++, static_cast<uint32_t>(xs[0].stride()[j]));
+					//bindShape(block, p, xs[0].stride());
 				}
 			}
 			
@@ -411,21 +413,29 @@ namespace core {
 				if (i < ys.size())
 				{
 					k->setArg(p++, ys[i].device_buffer());
-					block.setMemberData(p++, ys[i].device_offset());
-					bindShape(block, p, ys[i].stride());
+					k->setArg(p++, ys[i].device_offset());
+					for (size_t j = 0; j < max_tensor_dim; j += 1)
+						block.setMemberData(p++, static_cast<uint32_t>(ys[i].stride()[j]));
+					//bindShape(block, p, ys[i].stride());
 				}
 				else // just pad with first
 				{
 					k->setArg(p++, ys[0].device_buffer());
-					block.setMemberData(p++, ys[0].device_offset());
-					bindShape(block, p, ys[0].stride());
+					k->setArg(p++, ys[0].device_offset());
+					for (size_t j = 0; j < max_tensor_dim; j += 1)
+						block.setMemberData(p++, static_cast<uint32_t>(ys[0].stride()[j]));
+					//bindShape(block, p, ys[0].stride());
 				}
 			}
-			bindShape(block, p, xShape);
-			bindShape(block, p, reduceDimShape);
-			block.setMemberData(p++, yInitValues);
-			block.setMemberData(p++, ws);
-			k->setArg(p++, 0, 6, block); // set 0, binding depends on arity
+			for (size_t j = 0; j < max_tensor_dim; j += 1)
+				block.setMemberData(p++, static_cast<uint32_t>(xShape[j]));
+			for (size_t j = 0; j < max_tensor_dim; j += 1)
+				block.setMemberData(p++, static_cast<uint32_t>(reduceDimShape[j]));
+			//bindShape(block, p, xShape);
+			//bindShape(block, p, reduceDimShape);
+			k->setArg(p++, yInitValues);
+			k->setArg(p++, ws);
+			k->setArg(p++, 0, gpu::kPointwiseMaxArityY + gpu::kPointwiseMaxArityX, block); // set 0
 			
 		#else
 			// Single-stage reduction.
@@ -504,7 +514,7 @@ namespace core {
 		
 		std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 		auto glPair = calcStridedTensorInvocations(device, y0.shape());
-		#if 0
+		#if 1
 			std::vector<uint32_t> spec(11);
 		#else
 			std::vector<uint32_t> spec(9);
@@ -518,7 +528,7 @@ namespace core {
 		spec[6] = localMemSize;
 		spec[7] = static_cast<uint32_t>(calcOp);
 		spec[8] = static_cast<uint32_t>(reduceOp);
-		#if 0
+		#if 1
 			spec[9] = static_cast<uint32_t>(xs.size());
 			spec[10] = static_cast<uint32_t>(ys.size());
 		#endif

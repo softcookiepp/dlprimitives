@@ -182,99 +182,220 @@ layout(constant_id = 10) const uint Y_ARITY = Y_ARITY_MAX;
 	#if USE_SPEC_FOR_STRIDES == 0
 		layout(binding = 6) uniform uni0_buf
 		{
-			#if USE_BDA
-				// x0_data
-			#endif
-			uint x0_offset;
-			Shape x0_strides;
-			
-			#if USE_BDA
-				// x1_data
-			#endif
-			uint x1_offset;
-			Shape x1_strides;
+			#if 1
+				// because std140 is incredibly stupid
+				uint x0s0;
+				uint x0s1;
+				uint x0s2;
+				uint x0s3;
+				uint x0s4;
+				uint x0s5;
+				uint x0s6;
+				uint x0s7;
+				
+				uint x1s0;
+				uint x1s1;
+				uint x1s2;
+				uint x1s3;
+				uint x1s4;
+				uint x1s5;
+				uint x1s6;
+				uint x1s7;
+				
+				uint x2s0;
+				uint x2s1;
+				uint x2s2;
+				uint x2s3;
+				uint x2s4;
+				uint x2s5;
+				uint x2s6;
+				uint x2s7;
+				
+				uint x3s0;
+				uint x3s1;
+				uint x3s2;
+				uint x3s3;
+				uint x3s4;
+				uint x3s5;
+				uint x3s6;
+				uint x3s7;
+				
+				uint y0s0;
+				uint y0s1;
+				uint y0s2;
+				uint y0s3;
+				uint y0s4;
+				uint y0s5;
+				uint y0s6;
+				uint y0s7;
+				
+				uint y1s0;
+				uint y1s1;
+				uint y1s2;
+				uint y1s3;
+				uint y1s4;
+				uint y1s5;
+				uint y1s6;
+				uint y1s7;
+				
+				uint xShape0;
+				uint xShape1;
+				uint xShape2;
+				uint xShape3;
+				uint xShape4;
+				uint xShape5;
+				uint xShape6;
+				uint xShape7;
+				
+				uint r0;
+				uint r1;
+				uint r2;
+				uint r3;
+				uint r4;
+				uint r5;
+				uint r6;
+				uint r7;
+			#else
+				Shape x0_strides;
+				Shape x1_strides;
+				Shape x2_strides;
+				Shape x3_strides;
+				Shape y0_strides;
+				Shape y1_strides;
 
-			#if USE_BDA
-				// x2_data
+				Shape xShape;
+				Shape reduceDims;
 			#endif
-			uint x2_offset;
-			Shape x2_strides;
-
-			#if USE_BDA
-				// x3_data
-			#endif
-			uint x3_offset;
-			Shape x3_strides;
-
-			
-			#if USE_BDA
-				// y0_data
-			#endif
-			uint y0_offset;
-			Shape y0_strides;
-
-			#if USE_BDA
-				// y1_data
-			#endif
-			uint y1_offset;
-			Shape y1_strides;
-
-			Shape xShape;
-			//Shape yShape;
-			Shape reduceDims;
-			float yReduceInit[Y_ARITY]; // initial values of y for reduction
-			W_ARGS wArgs;
 		};
 	#endif
 #endif
 
-// still use push constants for the smaller parameters if using specialization constants
-#if USE_SPEC_FOR_STRIDES
-	layout(push_constant, std430) uniform push
-	{
-		#if USE_BDA
-			// x0_data
-		#endif
-		uint x0_offset;
-		
-		#if USE_BDA
-			// x1_data
-		#endif
-		uint x1_offset;
+layout(push_constant, std430) uniform push
+{
+	#if USE_BDA
+		// x0_data
+	#endif
+	uint x0_offset;
+	
+	#if USE_BDA
+		// x1_data
+	#endif
+	uint x1_offset;
 
-		#if USE_BDA
-			// x2_data
-		#endif
-		uint x2_offset;
+	#if USE_BDA
+		// x2_data
+	#endif
+	uint x2_offset;
 
-		#if USE_BDA
-			// x3_data
-		#endif
-		uint x3_offset;
-		
-		#if USE_BDA
-			// y0_data
-		#endif
-		uint y0_offset;
+	#if USE_BDA
+		// x3_data
+	#endif
+	uint x3_offset;
+	
+	#if USE_BDA
+		// y0_data
+	#endif
+	uint y0_offset;
 
-		#if USE_BDA
-			// y1_data
-		#endif
-		uint y1_offset;
+	#if USE_BDA
+		// y1_data
+	#endif
+	uint y1_offset;
 
-		Shape xShape;
-		//Shape yShape;
-		Shape reduceDims;
-		float yReduceInit[Y_ARITY]; // initial values of y for reduction
-		W_ARGS wArgs;
-	};
-#endif
+	float yReduceInit[Y_ARITY]; // initial values of y for reduction
+	W_ARGS wArgs;
+};
+
 
 // This should be equal to the amount of reduce elements
 shared Y_OUT yShmem[SHMEM_SIZE];
 
 void pointwise_reduce_naive_impl()
 {	
+	#if USE_SPEC_FOR_STRIDES == 0
+		// have to make the strides + shapes from the uniform buffer
+		Shape x0_strides = Shape(uint[DIMS_MAX](
+			x0s0,
+			x0s1,
+			x0s2,
+			x0s3,
+			x0s4,
+			x0s5,
+			x0s6,
+			x0s7
+		));
+		Shape x1_strides = Shape(uint[DIMS_MAX](
+			x1s0,
+			x1s1,
+			x1s2,
+			x1s3,
+			x1s4,
+			x1s5,
+			x1s6,
+			x1s7
+		));
+		Shape x2_strides = Shape(uint[DIMS_MAX](
+			x2s0,
+			x2s1,
+			x2s2,
+			x2s3,
+			x2s4,
+			x2s5,
+			x2s6,
+			x2s7
+		));
+		Shape x3_strides = Shape(uint[DIMS_MAX](
+			x3s0,
+			x3s1,
+			x3s2,
+			x3s3,
+			x3s4,
+			x3s5,
+			x3s6,
+			x3s7
+		));
+		Shape y0_strides = Shape(uint[DIMS_MAX](
+			y0s0,
+			y0s1,
+			y0s2,
+			y0s3,
+			y0s4,
+			y0s5,
+			y0s6,
+			y0s7
+		));
+		Shape y1_strides = Shape(uint[DIMS_MAX](
+			y1s0,
+			y1s1,
+			y1s2,
+			y1s3,
+			y1s4,
+			y1s5,
+			y1s6,
+			y1s7
+		));
+		Shape xShape = Shape(uint[DIMS_MAX](
+			xShape0,
+			xShape1,
+			xShape2,
+			xShape3,
+			xShape4,
+			xShape5,
+			xShape6,
+			xShape7
+		));
+		Shape reduceDims = Shape(uint[DIMS_MAX](
+			r0,
+			r1,
+			r2,
+			r3,
+			r4,
+			r5,
+			r6,
+			r7
+		));
+	#endif
+	
 	// determine position, exit if out of bounds
 	// In this kernel, yShape is the one
 	// To save on push constant space, y shape is determined form x shape and reduce dims
