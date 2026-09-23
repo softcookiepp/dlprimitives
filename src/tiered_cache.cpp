@@ -162,6 +162,17 @@ AllPrograms::AllPrograms(const tart::device_ptr& device, const std::vector<tart:
 			"TYPEOF_X3", dtypes[3].get(),
 			"TYPEOF_Y0", dtypes[4].get());
 	}
+	else if (dtypes.size() == 6)
+	{
+		auto prg = gpu::Cache::instance().get_program(device, "pointwise-reduce-max-arity",
+			"TYPEOF_X0", dtypes[0].get(),
+			"TYPEOF_X1", dtypes[1].get(),
+			"TYPEOF_X2", dtypes[2].get(),
+			"TYPEOF_X3", dtypes[3].get(),
+			"TYPEOF_Y0", dtypes[4].get(),
+			"TYPEOF_Y1", dtypes[5].get());
+		mPointwiseReduceMaxArityKernel = prg->getShaderModule("main")->createKernel("main");
+	}
 }
 
 } // namespace gpu

@@ -11,6 +11,9 @@ namespace dlprim
 namespace gpu
 {
 
+const size_t kPointwiseMaxArityX = 4;
+const size_t kPointwiseMaxArityY = 2;
+
 class PerDeviceProgramCache;
 
 class AllPrograms
@@ -64,6 +67,9 @@ class AllPrograms
 	
 	tart::program_ptr mSoftmaxProgram = nullptr;
 	tart::program_ptr mSoftmaxBwdProgram = nullptr;
+	
+	tart::program_ptr mPointwiseReduceMaxArityProgram = nullptr; // pretty sure this needs to be kept alive
+	tart::kernel_ptr mPointwiseReduceMaxArityKernel = nullptr;
 	
 public:
 	AllPrograms(const tart::device_ptr& device, const std::vector<tart::DType>& dtypes);
@@ -160,6 +166,17 @@ public:
 	
 	inline const tart::program_ptr& softmax(const tart::device_ptr& device, const tart::DType& xt, const tart::DType& yt) { return getAllPrograms(device, {xt, yt}).mSoftmaxProgram; }
 	inline const tart::program_ptr& softmax_bwd(const tart::device_ptr& device, const tart::DType& xt, const tart::DType& yt) { return getAllPrograms(device, {xt, yt}).mSoftmaxBwdProgram; }
+	
+	inline const tart::kernel_ptr& pointwiseReduce(const tart::device_ptr& device, const std::vector<tart::DType>& xts,
+		const std::vector<tart::DType>& yts)
+	{
+		std::vector<tart::DType> dts(kPointwiseMaxArityX + kPointwiseMaxArityY, tart::dtypes::float32);
+		for (size_t i = 0; i < xts.size(); i += 1)
+			dts[i] = xts[i];
+		for (size_t i = 0; i < yts.size(); i += 1)
+			dts[i + kPointwiseMaxArityX] = yts[i];
+		return getAllPrograms(device, dts).mPointwiseReduceMaxArityKernel;
+	}
 };
 
 } // namespace gpu

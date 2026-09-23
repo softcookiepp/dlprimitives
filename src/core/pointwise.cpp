@@ -83,6 +83,14 @@ namespace core {
             }
         }
     }
+    
+    void bindShape(tart::UniformBlock& block, int& p, const Shape& s)
+    {
+		CLShape cl_s;
+        for(int i = 0; i < s.size(); i += 1)
+            cl_s.s[i] = s[i];
+        block.setMemberData(p++, cl_s);
+	}
 	
 	void pointwiseOpStrided(
 			std::vector<Tensor> xs,
@@ -368,52 +376,104 @@ namespace core {
 			reduceShape[i] = xShape[reduceDimShape[i]];
 			numReduceElems *= reduceShape[i];
 		}
-		
-		// Single-stage reduction.
-		tart::program_ptr prg = nullptr;
-		tart::kernel_ptr k = nullptr;
-		if (xs.size() == 1 && ys.size() == 1)
-		{
-			prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_unary(device, xs[0].dtype(), ys[0].dtype());
-		}
-		else if(xs.size() == 2 && ys.size() == 1)
-		{
-			prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_binary_unary(device, xs[0].dtype(), xs[1].dtype(), ys[0].dtype());
-		}
-		else if(xs.size() == 3 && ys.size() == 1)
-		{
-			prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_trinary_unary(
-				device, xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), ys[0].dtype());
-		}
-		else if(xs.size() == 4 && ys.size() == 1)
-		{
-			prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_quaternary_unary(
-				device, xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), xs[3].dtype(), ys[0].dtype());
-		}
-		else if(xs.size() == 1 && ys.size() == 2)
-		{
-			prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_binary(device, xs[0].dtype(), ys[0].dtype(), ys[1].dtype());
-		}
-		k = prg->getKernel("main");
-		if (!k) throw std::runtime_error("suitable kernel not found");
-		
-		int p = 0;
-		for (size_t i = 0; i < xs.size(); i += 1)
-		{
-			k->setArg(p++, xs[i].device_buffer());
-			k->setArg(p++, static_cast<uint32_t>(xs[i].device_offset()));
-			bind_shape(k, p, xs[i].stride());
-		}
-		for (size_t i = 0; i < ys.size(); i += 1)
-		{
-			k->setArg(p++, ys[i].device_buffer());
-			k->setArg(p++, static_cast<uint32_t>(ys[i].device_offset()));
-			bind_shape(k, p, ys[i].stride());
-		}
-		bind_shape(k, p, xShape);
-		bind_shape(k, p, reduceDimShape);
-		k->setArg(p++, yInitValues);
-		k->setArg(p++, ws);
+		#if 0
+			std::vector<tart::DType> xts(xs.size(), tart::dtypes::float32);
+			std::vector<tart::DType> yts(ys.size(), tart::dtypes::float32);
+			for (size_t i = 0; i < xs.size(); i += 1)
+				xts[i] = xs[i].dtype();
+			for (size_t i = 0; i < ys.size(); i += 1)
+				yts[i] = ys[i].dtype();
+			tart::kernel_ptr k = gpu::PerDeviceProgramCache::instance().pointwiseReduce(device, xts, yts);
+			
+			// unused params still need to be provided due to layout nonsense in order to avoid pipeline bloat
+			tart::UniformBlock block;
+			int p = 0;
+			for (size_t i = 0; i < gpu::kPointwiseMaxArityX; i += 1)
+			{
+				if (i < xs.size())
+				{
+					k->setArg(p++, xs[i].device_buffer());
+					block.setMemberData(p++, xs[i].device_offset());
+					//block.setMemberData(p++, p);
+					bindShape(block, p, xs[i].stride());
+				}
+				else // just pad with first
+				{
+					k->setArg(p++, xs[0].device_buffer());
+					block.setMemberData(p++, xs[0].device_offset());
+					//block.setMemberData(p++, p);
+					bindShape(block, p, xs[0].stride());
+				}
+			}
+			
+			for (size_t i = 0; i < gpu::kPointwiseMaxArityY; i += 1)
+			{
+				if (i < ys.size())
+				{
+					k->setArg(p++, ys[i].device_buffer());
+					block.setMemberData(p++, ys[i].device_offset());
+					bindShape(block, p, ys[i].stride());
+				}
+				else // just pad with first
+				{
+					k->setArg(p++, ys[0].device_buffer());
+					block.setMemberData(p++, ys[0].device_offset());
+					bindShape(block, p, ys[0].stride());
+				}
+			}
+			bindShape(block, p, xShape);
+			bindShape(block, p, reduceDimShape);
+			block.setMemberData(p++, yInitValues);
+			block.setMemberData(p++, ws);
+			k->setArg(p++, 0, 6, block); // set 0, binding depends on arity
+			
+		#else
+			// Single-stage reduction.
+			tart::program_ptr prg = nullptr;
+			tart::kernel_ptr k = nullptr;
+			if (xs.size() == 1 && ys.size() == 1)
+			{
+				prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_unary(device, xs[0].dtype(), ys[0].dtype());
+			}
+			else if(xs.size() == 2 && ys.size() == 1)
+			{
+				prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_binary_unary(device, xs[0].dtype(), xs[1].dtype(), ys[0].dtype());
+			}
+			else if(xs.size() == 3 && ys.size() == 1)
+			{
+				prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_trinary_unary(
+					device, xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), ys[0].dtype());
+			}
+			else if(xs.size() == 4 && ys.size() == 1)
+			{
+				prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_quaternary_unary(
+					device, xs[0].dtype(), xs[1].dtype(), xs[2].dtype(), xs[3].dtype(), ys[0].dtype());
+			}
+			else if(xs.size() == 1 && ys.size() == 2)
+			{
+				prg = gpu::PerDeviceProgramCache::instance().pointwise_reduce_unary_binary(device, xs[0].dtype(), ys[0].dtype(), ys[1].dtype());
+			}
+			k = prg->getKernel("main");
+			if (!k) throw std::runtime_error("suitable kernel not found");
+			
+			int p = 0;
+			for (size_t i = 0; i < xs.size(); i += 1)
+			{
+				k->setArg(p++, xs[i].device_buffer());
+				k->setArg(p++, static_cast<uint32_t>(xs[i].device_offset()));
+				bind_shape(k, p, xs[i].stride());
+			}
+			for (size_t i = 0; i < ys.size(); i += 1)
+			{
+				k->setArg(p++, ys[i].device_buffer());
+				k->setArg(p++, static_cast<uint32_t>(ys[i].device_offset()));
+				bind_shape(k, p, ys[i].stride());
+			}
+			bind_shape(k, p, xShape);
+			bind_shape(k, p, reduceDimShape);
+			k->setArg(p++, yInitValues);
+			k->setArg(p++, ws);
+		#endif
 		
 		
 		// calculate local size and work per thread, based on the max amount of local invocations along the X axis for this device
@@ -444,7 +504,11 @@ namespace core {
 		
 		std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 		auto glPair = calcStridedTensorInvocations(device, y0.shape());
-		std::vector<uint32_t> spec(9);
+		#if 0
+			std::vector<uint32_t> spec(11);
+		#else
+			std::vector<uint32_t> spec(9);
+		#endif
 		spec[0] = wgxSize;
 		spec[1] = ws.size();
 		spec[2] = static_cast<uint32_t>(xShape.size());
@@ -454,6 +518,10 @@ namespace core {
 		spec[6] = localMemSize;
 		spec[7] = static_cast<uint32_t>(calcOp);
 		spec[8] = static_cast<uint32_t>(reduceOp);
+		#if 0
+			spec[9] = static_cast<uint32_t>(xs.size());
+			spec[10] = static_cast<uint32_t>(ys.size());
+		#endif
 		k->enqueue(global, spec);
 	}
 
