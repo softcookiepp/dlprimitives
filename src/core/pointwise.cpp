@@ -376,7 +376,7 @@ namespace core {
 			reduceShape[i] = xShape[reduceDimShape[i]];
 			numReduceElems *= reduceShape[i];
 		}
-		#if 1
+		#if 0
 			std::vector<tart::DType> xts(xs.size(), tart::dtypes::float32);
 			std::vector<tart::DType> yts(ys.size(), tart::dtypes::float32);
 			for (size_t i = 0; i < xs.size(); i += 1)
@@ -508,7 +508,7 @@ namespace core {
 		
 		std::vector<uint32_t> global = calcStridedTensorRange(device, y0.shape());
 		auto glPair = calcStridedTensorInvocations(device, y0.shape());
-		#if 1
+		#if 0
 			std::vector<uint32_t> spec(11);
 		#else
 			std::vector<uint32_t> spec(9);
@@ -522,7 +522,7 @@ namespace core {
 		spec[6] = localMemSize;
 		spec[7] = static_cast<uint32_t>(calcOp);
 		spec[8] = static_cast<uint32_t>(reduceOp);
-		#if 1
+		#if 0
 			spec[9] = static_cast<uint32_t>(xs.size());
 			spec[10] = static_cast<uint32_t>(ys.size());
 		#endif
